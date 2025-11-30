@@ -1,4 +1,5 @@
 const vscode = require('vscode');
+const path = require('path');
 const AppearanceSettingsProvider = require('./providers/AppearanceSettingsProvider');
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterSettingsProvider = require('./providers/FilterSettingsProvider');
@@ -92,6 +93,44 @@ function activate(context) {
         vscode.commands.registerCommand('forceGraphViewer.analyzeJavaProject', async () => {
             const analyzer = new JavaAnalyzer(context);
             await analyzer.analyze();
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.selectJavaSourceDirectory', async () => {
+            const { getWorkspaceFolder } = require('./utils/utils');
+            let workspaceFolder;
+            try {
+                workspaceFolder = getWorkspaceFolder();
+            } catch (e) {
+                return vscode.window.showErrorMessage(e.message);
+            }
+
+            const selected = await vscode.window.showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: '選択',
+                defaultUri: workspaceFolder.uri
+            });
+
+            if (selected && selected[0]) {
+                const selectedPath = selected[0].fsPath;
+                const workspacePath = workspaceFolder.uri.fsPath;
+                
+                // ワークスペースルートからの相対パスに変換
+                let relativePath = '';
+                if (selectedPath.startsWith(workspacePath)) {
+                    relativePath = path.relative(workspacePath, selectedPath);
+                    if (relativePath === '') {
+                        relativePath = '';
+                    }
+                } else {
+                    // ワークスペース外の場合は絶対パス
+                    relativePath = selectedPath;
+                }
+
+                const config = vscode.workspace.getConfiguration('forceGraphViewer');
+                await config.update('javaSourceDirectory', relativePath, vscode.ConfigurationTarget.Workspace);
+                vscode.window.showInformationMessage(`Javaソースディレクトリを設定しました: ${relativePath || 'ワークスペース全体'}`);
+            }
         }),
         vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
             try {

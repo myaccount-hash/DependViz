@@ -31,12 +31,25 @@ class JavaAnalyzer {
             fs.mkdirSync(dataDir, { recursive: true });
         }
 
-        // Javaソースディレクトリを探す
-        const srcMainJava = path.join(workspaceFolder.uri.fsPath, 'src', 'main', 'java');
-        const srcDir = path.join(workspaceFolder.uri.fsPath, 'src');
-        const sourcePath = fs.existsSync(srcMainJava) ? srcMainJava :
-            fs.existsSync(srcDir) ? srcDir :
-                workspaceFolder.uri.fsPath;
+        // Javaソースディレクトリを取得
+        const config = vscode.workspace.getConfiguration('forceGraphViewer');
+        const configuredDir = config.get('javaSourceDirectory', '');
+
+        let sourcePath;
+        if (configuredDir) {
+            // 設定値が指定されている場合
+            if (path.isAbsolute(configuredDir)) {
+                sourcePath = configuredDir;
+            } else {
+                sourcePath = path.join(workspaceFolder.uri.fsPath, configuredDir);
+            }
+            if (!fs.existsSync(sourcePath)) {
+                return vscode.window.showErrorMessage(`指定されたディレクトリが見つかりません: ${sourcePath}`);
+            }
+        } else {
+            // デフォルト: ワークスペース全体
+            sourcePath = workspaceFolder.uri.fsPath;
+        }
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,

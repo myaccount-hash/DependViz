@@ -80,6 +80,11 @@
         "category": "DependViz"
       },
       {
+        "command": "forceGraphViewer.selectJavaSourceDirectory",
+        "title": "Select Java Source Directory",
+        "category": "DependViz"
+      },
+      {
         "command": "forceGraphViewer.updateStackTrace",
         "title": "Update Stack Trace",
         "category": "DependViz"
@@ -321,6 +326,11 @@
           "type": "string",
           "default": "#fb923c",
           "description": "メソッド呼び出しエッジの色"
+        },
+        "forceGraphViewer.javaSourceDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Java解析を開始するディレクトリ（空の場合はワークスペース全体、相対パスはワークスペースルートからの相対パス）"
         }
       }
     }
