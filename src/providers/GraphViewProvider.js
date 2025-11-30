@@ -1,10 +1,11 @@
 const vscode = require('vscode');
 const { CDN_LIBS } = require('../constants');
 const { getHtmlForWebview, getGraphPath, loadControls, typeMatches, validateGraphData, getLinkNodeId, getNodeFilePath, computeSlice } = require('../utils/utils');
+const QueryParser = require('../utils/QueryParser');
 const fs = require('fs');
 
 class GraphDataFilter {
-    bySearch(nodes, search) { return !search ? nodes : nodes.filter(n => n.name.toLowerCase().includes(search.toLowerCase())); }
+    bySearch(nodes, search) { return QueryParser.filter(nodes, search); }
     byNodeType(nodes, controls) { return nodes.filter(n => typeMatches(n.type, controls, 'node')); }
     byEdgeType(links, controls) { return links.filter(l => typeMatches(l.type, controls, 'edge')); }
     byConnectedNodes(links, nodeIds) { return links.filter(l => nodeIds.has(getLinkNodeId(l.source)) && nodeIds.has(getLinkNodeId(l.target))); }

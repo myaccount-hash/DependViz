@@ -13,4 +13,5 @@ java-analyzer/pom.xml
 java-analyzer/target/**
 java-analyzer/.gitignore
 java-analyzer/dependency-reduced-pom.xml
+*.vsix
 

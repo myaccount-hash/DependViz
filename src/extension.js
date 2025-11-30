@@ -68,7 +68,11 @@ function activate(context) {
             await graphViewProvider.refresh();
         }),
         vscode.commands.registerCommand('forceGraphViewer.showSearchInput', async () => {
-            const search = await vscode.window.showInputBox({ prompt: 'ノード名で検索', value: filterSettingsProvider.controls.search, placeHolder: '検索...' });
+            const search = await vscode.window.showInputBox({
+                prompt: '検索クエリ (例: Test, name:/Test.*/, type:Class AND name:Util, path:/.*Service/ OR NOT type:Unknown)',
+                value: filterSettingsProvider.controls.search,
+                placeHolder: '検索... (name:, type:, path: フィールド指定可, /正規表現/, AND/OR/NOT 演算可)'
+            });
             if (search !== undefined) {
                 filterSettingsProvider.update({ key: 'search', value: search });
             }
@@ -114,7 +118,7 @@ function activate(context) {
             if (selected && selected[0]) {
                 const selectedPath = selected[0].fsPath;
                 const workspacePath = workspaceFolder.uri.fsPath;
-                
+
                 // ワークスペースルートからの相対パスに変換
                 let relativePath = '';
                 if (selectedPath.startsWith(workspacePath)) {
