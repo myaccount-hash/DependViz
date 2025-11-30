@@ -2,7 +2,7 @@
   "name": "vscode-force-graph-viewer",
   "displayName": "DependViz",
   "description": "3D force graph visualization for code analysis",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "myaccount-hash",
   "license": "MIT",
   "repository": {
@@ -154,30 +154,30 @@
         },
         "forceGraphViewer.nodeSize": {
           "type": "number",
-          "default": 1.0,
+          "default": 1,
           "minimum": 0.1,
-          "maximum": 5.0,
+          "maximum": 5,
           "description": "ノードサイズ"
         },
         "forceGraphViewer.linkWidth": {
           "type": "number",
-          "default": 1.0,
+          "default": 1,
           "minimum": 0.1,
-          "maximum": 5.0,
+          "maximum": 5,
           "description": "リンク幅"
         },
         "forceGraphViewer.nodeOpacity": {
           "type": "number",
-          "default": 1.0,
+          "default": 1,
           "minimum": 0.1,
-          "maximum": 1.0,
+          "maximum": 1,
           "description": "ノード透明度"
         },
         "forceGraphViewer.edgeOpacity": {
           "type": "number",
-          "default": 1.0,
+          "default": 1,
           "minimum": 0.1,
-          "maximum": 1.0,
+          "maximum": 1,
           "description": "エッジ透明度"
         },
         "forceGraphViewer.linkDistance": {
@@ -217,7 +217,7 @@
           "type": "number",
           "default": 0.1,
           "minimum": 0.01,
-          "maximum": 5.0,
+          "maximum": 5,
           "description": "回転速度"
         },
         "forceGraphViewer.sliceDepth": {
