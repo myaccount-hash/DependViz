@@ -18,18 +18,14 @@ Javaプロジェクトの依存関係を3d-force-graphで可視化します．
 - Maven 3.6以上
 
 ## セットアップ
-
-1. リポジトリをクローン
+依存関係をインストール
 ```bash
-git clone https://github.com/myaccount-hash/DependViz.git
-cd DependViz
+# brewの場合
+brew install node
+brew install java
 ```
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=myaccount-hash.vscode-force-graph-viewer)から拡張機能をインストール
 
-2. 依存関係のインストールとビルド
-```bash
-npm install
-npm run build
-```
 
 ## 使い方
 
@@ -117,6 +113,12 @@ VS Codeのデバッグセッションがアクティブな状態で，スタッ�
 
 - `forceGraphViewer.focusDistance`: フォーカス時のカメラ距離（範囲: 20-300）
 - `forceGraphViewer.javaSourceDirectory`: Java解析を開始するディレクトリ（空の場合はワークスペース全体）
+
+## ビルド
+```bash
+npm install
+npm run build
+```
 
 ## ライセンス
 
