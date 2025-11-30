@@ -1,0 +1,15 @@
+.vscode/**
+.vscode-test/**
+.gitignore
+.yarnrc
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+java-analyzer/src/**
+java-analyzer/pom.xml
+java-analyzer/target/**
+java-analyzer/.gitignore
+java-analyzer/dependency-reduced-pom.xml
+

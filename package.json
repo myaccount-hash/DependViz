@@ -1,0 +1,340 @@
+{
+  "name": "vscode-force-graph-viewer",
+  "displayName": "DependViz",
+  "description": "3D force graph visualization for code analysis",
+  "version": "0.1.1",
+  "publisher": "myaccount-hash",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myaccount-hash/DependViz.git"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "forceGraphViewer",
+          "title": "DependViz",
+          "icon": "resources/force-graph.svg"
+        }
+      ]
+    },
+    "views": {
+      "forceGraphViewer": [
+        {
+          "id": "forceGraphViewer.tree",
+          "name": "フィルタ"
+        },
+        {
+          "id": "forceGraphViewer.appearance",
+          "name": "表示モード"
+        },
+        {
+          "id": "forceGraphViewer.detail",
+          "name": "詳細設定"
+        },
+        {
+          "id": "forceGraphViewer.sidebar",
+          "name": "グラフビュー",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "forceGraphViewer.refresh",
+        "title": "Refresh",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.showSearchInput",
+        "title": "検索",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.toggleCheckbox",
+        "title": "Toggle",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.showSliderInput",
+        "title": "Adjust",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.showColorPicker",
+        "title": "Pick Color",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.analyzeJavaProject",
+        "title": "Analyze Java Project",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.updateStackTrace",
+        "title": "Update Stack Trace",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.forwardSlice",
+        "title": "Forward Slice",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.backwardSlice",
+        "title": "Backward Slice",
+        "category": "DependViz"
+      },
+      {
+        "command": "forceGraphViewer.clearSlice",
+        "title": "Clear Slice",
+        "category": "DependViz"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "forceGraphViewer.refresh",
+          "when": "view == forceGraphViewer.sidebar",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DependViz",
+      "properties": {
+        "forceGraphViewer.search": {
+          "type": "string",
+          "default": "",
+          "description": "検索キーワード"
+        },
+        "forceGraphViewer.nodeSizeByLoc": {
+          "type": "boolean",
+          "default": false,
+          "description": "ノードサイズをLOCで決定"
+        },
+        "forceGraphViewer.hideIsolatedNodes": {
+          "type": "boolean",
+          "default": false,
+          "description": "孤立ノードを非表示"
+        },
+        "forceGraphViewer.showStackTrace": {
+          "type": "boolean",
+          "default": false,
+          "description": "スタックトレース表示"
+        },
+        "forceGraphViewer.showNames": {
+          "type": "boolean",
+          "default": false,
+          "description": "名前を表示"
+        },
+        "forceGraphViewer.shortNames": {
+          "type": "boolean",
+          "default": false,
+          "description": "短縮名を表示"
+        },
+        "forceGraphViewer.darkMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "ダークモード"
+        },
+        "forceGraphViewer.nodeSize": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.1,
+          "maximum": 5.0,
+          "description": "ノードサイズ"
+        },
+        "forceGraphViewer.linkWidth": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.1,
+          "maximum": 5.0,
+          "description": "リンク幅"
+        },
+        "forceGraphViewer.nodeOpacity": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "description": "ノード透明度"
+        },
+        "forceGraphViewer.edgeOpacity": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "description": "エッジ透明度"
+        },
+        "forceGraphViewer.linkDistance": {
+          "type": "number",
+          "default": 30,
+          "minimum": 10,
+          "maximum": 100,
+          "description": "リンク距離"
+        },
+        "forceGraphViewer.arrowSize": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "矢印サイズ"
+        },
+        "forceGraphViewer.focusDistance": {
+          "type": "number",
+          "default": 80,
+          "minimum": 20,
+          "maximum": 300,
+          "description": "フォーカス時のカメラ距離"
+        },
+        "forceGraphViewer.nameFontSize": {
+          "type": "number",
+          "default": 12,
+          "minimum": 6,
+          "maximum": 32,
+          "description": "名前のフォントサイズ"
+        },
+        "forceGraphViewer.autoRotate": {
+          "type": "boolean",
+          "default": false,
+          "description": "自動回転"
+        },
+        "forceGraphViewer.rotateSpeed": {
+          "type": "number",
+          "default": 0.1,
+          "minimum": 0.01,
+          "maximum": 5.0,
+          "description": "回転速度"
+        },
+        "forceGraphViewer.sliceDepth": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "スライス深度"
+        },
+        "forceGraphViewer.enableForwardSlice": {
+          "type": "boolean",
+          "default": false,
+          "description": "順方向スライスを有効化"
+        },
+        "forceGraphViewer.enableBackwardSlice": {
+          "type": "boolean",
+          "default": false,
+          "description": "逆方向スライスを有効化"
+        },
+        "forceGraphViewer.showClass": {
+          "type": "boolean",
+          "default": true,
+          "description": "クラスを表示"
+        },
+        "forceGraphViewer.showAbstractClass": {
+          "type": "boolean",
+          "default": true,
+          "description": "抽象クラスを表示"
+        },
+        "forceGraphViewer.showInterface": {
+          "type": "boolean",
+          "default": true,
+          "description": "インターフェースを表示"
+        },
+        "forceGraphViewer.showUnknown": {
+          "type": "boolean",
+          "default": true,
+          "description": "不明なタイプを表示"
+        },
+        "forceGraphViewer.showObjectCreate": {
+          "type": "boolean",
+          "default": true,
+          "description": "オブジェクト作成エッジを表示"
+        },
+        "forceGraphViewer.showExtends": {
+          "type": "boolean",
+          "default": true,
+          "description": "継承エッジを表示"
+        },
+        "forceGraphViewer.showImplements": {
+          "type": "boolean",
+          "default": true,
+          "description": "実装エッジを表示"
+        },
+        "forceGraphViewer.showTypeUse": {
+          "type": "boolean",
+          "default": true,
+          "description": "型使用エッジを表示"
+        },
+        "forceGraphViewer.showMethodCall": {
+          "type": "boolean",
+          "default": true,
+          "description": "メソッド呼び出しエッジを表示"
+        },
+        "forceGraphViewer.colorClass": {
+          "type": "string",
+          "default": "#3b82f6",
+          "description": "クラスの色"
+        },
+        "forceGraphViewer.colorAbstractClass": {
+          "type": "string",
+          "default": "#a21caf",
+          "description": "抽象クラスの色"
+        },
+        "forceGraphViewer.colorInterface": {
+          "type": "string",
+          "default": "#10b981",
+          "description": "インターフェースの色"
+        },
+        "forceGraphViewer.colorUnknown": {
+          "type": "string",
+          "default": "#6b7280",
+          "description": "不明なタイプの色"
+        },
+        "forceGraphViewer.colorObjectCreate": {
+          "type": "string",
+          "default": "#facc15",
+          "description": "オブジェクト作成エッジの色"
+        },
+        "forceGraphViewer.colorExtends": {
+          "type": "string",
+          "default": "#a21caf",
+          "description": "継承エッジの色"
+        },
+        "forceGraphViewer.colorImplements": {
+          "type": "string",
+          "default": "#10b981",
+          "description": "実装エッジの色"
+        },
+        "forceGraphViewer.colorTypeUse": {
+          "type": "string",
+          "default": "#fb923c",
+          "description": "型使用エッジの色"
+        },
+        "forceGraphViewer.colorMethodCall": {
+          "type": "string",
+          "default": "#fb923c",
+          "description": "メソッド呼び出しエッジの色"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run build:java && npm run build:extension",
+    "build:java": "cd java-analyzer && mvn clean package && cp target/java-graph.jar ..",
+    "build:extension": "npm install",
+    "clean": "rm -f java-graph.jar && cd java-analyzer && mvn clean && rm -f dependency-reduced-pom.xml"
+  },
+  "dependencies": {
+    "3d-force-graph": "^1.77.0",
+    "three": "^0.177.0",
+    "three-spritetext": "^1.10.0"
+  },
+  "enableTelemetry": false
+}

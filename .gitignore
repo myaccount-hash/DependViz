@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# VS Code Extension
+*.vsix
+.vscode-test/
+
+# Java
+*.jar
+!java-analyzer/target/java-graph.jar
+
+# Build artifacts
+java-analyzer/target/
+java-analyzer/dependency-reduced-pom.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+graph.json
+data/
+

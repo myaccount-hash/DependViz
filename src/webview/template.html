@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src {{cspSource}} https: data:; script-src {{cspSource}} https://esm.sh 'nonce-{{nonce}}'; style-src {{cspSource}} 'unsafe-inline'; connect-src {{cspSource}};">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1e1e1e;
+            color: #cccccc;
+            overflow: hidden;
+        }
+        #graph-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div id="graph-container"></div>
+    <script nonce="{{nonce}}" type="module">
+        // @ts-nocheck
+        import * as THREE from "{{threeUri}}";
+        import { CSS2DRenderer, CSS2DObject } from 'https://esm.sh/three/examples/jsm/renderers/CSS2DRenderer.js';
+        import ForceGraph3D from "{{fgUri}}";
+        import SpriteText from "{{spriteUri}}";
+        window.THREE = THREE;
+        window.CSS2DRenderer = CSS2DRenderer;
+        window.CSS2DObject = CSS2DObject;
+        window.ForceGraph3D = ForceGraph3D;
+        window.SpriteText = SpriteText;
+        const DEFAULT_CONTROLS = {{defaultControls}};
+        const COLORS = {{colors}};
+        const DEBUG = {{debug}};
+        {{script}}
+    </script>
+</body>
+</html>
+
