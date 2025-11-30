@@ -9,7 +9,7 @@ import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 
-/** クラス、インターフェース、Enum、アノテーションの行数を収集するAnalyzer */
+/** クラス，インターフェース，Enum，アノテーションの行数を収集するAnalyzer */
 public class LinesOfCodeAnalyzer extends Analyzer {
 
   @Override
@@ -17,8 +17,7 @@ public class LinesOfCodeAnalyzer extends Analyzer {
     CodeGraph codeGraph = new CodeGraph();
 
     // クラス/インターフェースの行数収集
-    List<ClassOrInterfaceDeclaration> classOrInterfaces =
-        cu.findAll(ClassOrInterfaceDeclaration.class);
+    List<ClassOrInterfaceDeclaration> classOrInterfaces = cu.findAll(ClassOrInterfaceDeclaration.class);
 
     for (ClassOrInterfaceDeclaration decl : classOrInterfaces) {
       String className = getFullyQualifiedName(decl);

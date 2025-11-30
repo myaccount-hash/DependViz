@@ -134,17 +134,17 @@
         },
         "forceGraphViewer.showStackTrace": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "スタックトレース表示"
         },
         "forceGraphViewer.showNames": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "名前を表示"
         },
         "forceGraphViewer.shortNames": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "短縮名を表示"
         },
         "forceGraphViewer.darkMode": {
@@ -229,12 +229,12 @@
         },
         "forceGraphViewer.enableForwardSlice": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "順方向スライスを有効化"
         },
         "forceGraphViewer.enableBackwardSlice": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "逆方向スライスを有効化"
         },
         "forceGraphViewer.showClass": {
@@ -254,7 +254,7 @@
         },
         "forceGraphViewer.showUnknown": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "不明なタイプを表示"
         },
         "forceGraphViewer.showObjectCreate": {
@@ -330,7 +330,7 @@
         "forceGraphViewer.javaSourceDirectory": {
           "type": "string",
           "default": "",
-          "description": "Java解析を開始するディレクトリ（空の場合はワークスペース全体、相対パスはワークスペースルートからの相対パス）"
+          "description": "Java解析を開始するディレクトリ（空の場合はワークスペース全体，相対パスはワークスペースルートからの相対パス）"
         }
       }
     }
