@@ -21,25 +21,33 @@ public class Main {
   static final String OUTPUT_PATH = "data/sample.json";
 
   public static void main(String[] args) {
-    String rootPackagePath;
+    String sourcePath;
     if (args.length > 0) {
-      rootPackagePath = args[0];
+      sourcePath = args[0];
     } else {
       String currentDir = System.getProperty("user.dir");
       Path srcMainJava = Paths.get(currentDir, "src", "main", "java");
       if (Files.exists(srcMainJava)) {
-        rootPackagePath = srcMainJava.toString();
+        sourcePath = srcMainJava.toString();
       } else {
-        rootPackagePath = currentDir;
+        sourcePath = currentDir;
       }
     }
 
+    // JavaParserTypeSolver用のソースルートを決定
+    // 指定されたパス内でsrc/main/javaを探す
+    Path sourceDir = Paths.get(sourcePath);
+    Path srcMainJava = sourceDir.resolve("src/main/java");
+    String typeSolverRoot = Files.exists(srcMainJava)
+        ? srcMainJava.toString()
+        : sourcePath;
+
     CombinedTypeSolver typeSolver = new CombinedTypeSolver(
-        new ReflectionTypeSolver(), new JavaParserTypeSolver(rootPackagePath));
+        new ReflectionTypeSolver(), new JavaParserTypeSolver(typeSolverRoot));
 
     try {
-      // 全てのファイルを解析
-      CodeGraph mainCodeGraph = analyzeAllFiles(rootPackagePath, OUTPUT_PATH, typeSolver);
+      // 全てのファイルを解析（指定されたパスをそのまま使用）
+      CodeGraph mainCodeGraph = analyzeAllFiles(sourcePath, OUTPUT_PATH, typeSolver);
       // 結果をJSONに出力
       JsonUtil.writeToFile(mainCodeGraph, OUTPUT_PATH);
     } catch (Exception e) {
