@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const path = require('path');
+const fs = require('fs');
 const AppearanceSettingsProvider = require('./providers/AppearanceSettingsProvider');
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterSettingsProvider = require('./providers/FilterSettingsProvider');
@@ -36,7 +37,6 @@ function activate(context) {
         }
     };
 
-    // Provider → Extension: 通知（統一インターフェース）
     filterSettingsProvider.onDidChange(() => {
         syncControls();
         const controls = loadControls();
@@ -107,34 +107,70 @@ function activate(context) {
                 return vscode.window.showErrorMessage(e.message);
             }
 
-            const selected = await vscode.window.showOpenDialog({
-                canSelectFiles: false,
-                canSelectFolders: true,
-                canSelectMany: false,
-                openLabel: '選択',
-                defaultUri: workspaceFolder.uri
+            const workspacePath = workspaceFolder.uri.fsPath;
+            const config = vscode.workspace.getConfiguration('forceGraphViewer');
+            const currentDir = config.get('javaSourceDirectory', '');
+
+            const getDirectories = (dir, maxDepth = 2, currentDepth = 0) => {
+                if (currentDepth >= maxDepth) return [];
+                const dirs = [];
+                try {
+                    const entries = fs.readdirSync(dir, { withFileTypes: true });
+                    for (const entry of entries) {
+                        if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+                            const fullPath = path.join(dir, entry.name);
+                            const relativePath = path.relative(workspacePath, fullPath);
+                            dirs.push({ label: relativePath || 'ワークスペース全体', relativePath: relativePath || '', fullPath });
+                            if (currentDepth < maxDepth - 1) {
+                                dirs.push(...getDirectories(fullPath, maxDepth, currentDepth + 1));
+                            }
+                        }
+                    }
+                } catch (e) {
+                }
+                return dirs;
+            };
+
+            const directories = getDirectories(workspacePath);
+            const items = [
+                { label: 'ワークスペース全体', relativePath: '', description: '' },
+                ...directories.map(d => ({ label: d.label, relativePath: d.relativePath, description: d.fullPath })),
+                { label: 'パスを入力', relativePath: null, description: '' }
+            ];
+
+            const selected = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Javaソースディレクトリを選択',
+                canPickMany: false
             });
 
-            if (selected && selected[0]) {
-                const selectedPath = selected[0].fsPath;
-                const workspacePath = workspaceFolder.uri.fsPath;
+            if (!selected) return;
 
-                // ワークスペースルートからの相対パスに変換
-                let relativePath = '';
-                if (selectedPath.startsWith(workspacePath)) {
-                    relativePath = path.relative(workspacePath, selectedPath);
-                    if (relativePath === '') {
-                        relativePath = '';
+            let relativePath = '';
+            if (selected.relativePath === null) {
+                const input = await vscode.window.showInputBox({
+                    prompt: 'ディレクトリパスを入力（相対パスまたは絶対パス）',
+                    value: currentDir,
+                    placeHolder: '例: src/main/java または /absolute/path',
+                    validateInput: (value) => {
+                        if (!value) return null;
+                        const testPath = path.isAbsolute(value) ? value : path.join(workspacePath, value);
+                        if (!fs.existsSync(testPath)) {
+                            return '指定されたディレクトリが見つかりません';
+                        }
+                        if (!fs.statSync(testPath).isDirectory()) {
+                            return 'ディレクトリを指定してください';
+                        }
+                        return null;
                     }
-                } else {
-                    // ワークスペース外の場合は絶対パス
-                    relativePath = selectedPath;
-                }
-
-                const config = vscode.workspace.getConfiguration('forceGraphViewer');
-                await config.update('javaSourceDirectory', relativePath, vscode.ConfigurationTarget.Workspace);
-                vscode.window.showInformationMessage(`Javaソースディレクトリを設定しました: ${relativePath || 'ワークスペース全体'}`);
+                });
+                if (input === undefined) return;
+                relativePath = input;
+            } else {
+                relativePath = selected.relativePath;
             }
+
+            await config.update('javaSourceDirectory', relativePath, vscode.ConfigurationTarget.Workspace);
+            vscode.window.showInformationMessage(`Javaソースディレクトリを設定しました: ${relativePath || 'ワークスペース全体'}`);
         }),
         vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
             try {
