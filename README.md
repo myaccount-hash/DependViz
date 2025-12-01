@@ -2,124 +2,122 @@
 
 ![DependViz](images/DependViz.png)
 
-DependVizはVS Code拡張機能です．
-Javaプロジェクトの依存関係を3d-force-graphで可視化します．
+DependViz is a VS Code extension that visualizes Java project dependencies using 3d-force-graph.
 
-## 機能
+## Features
 
-- Javaプロジェクトのコード依存関係を3Dグラフで可視化
-- クラス，インターフェース，メソッド呼び出しなどの関係を視覚化
-- インタラクティブなグラフ操作（ズーム，回転，フィルタリング）
+- Visualize Java project code dependencies in 3D graph
+- Display relationships including classes, interfaces, and method calls
+- Interactive graph operations (zoom, rotate, filtering)
 
-## 必要な環境
+## Requirements
 
 - Node.js
-- Java 21以上
-- Maven 3.6以上
+- Java 21 or higher
+- Maven 3.6 or higher
 
-## セットアップ
-依存関係をインストール
+## Setup
+Install dependencies
 ```bash
-# brewの場合
+# Using brew
 brew install node
 brew install java
 ```
-[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=myaccount-hash.vscode-force-graph-viewer)から拡張機能をインストール
+Install the extension from [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=myaccount-hash.vscode-force-graph-viewer)
 
+## Usage
 
-## 使い方
+- Open a Java project
+- Open Command Palette (Cmd+Shift+P / Ctrl+Shift+P)
+- Execute "DependViz: Analyze Java Project"
+	- By default, searches and analyzes Java source files from the workspace root.
+	- "DependViz: Select Java Source Directory" allows specifying the directory to analyze.
+	- Analysis results are saved as `graph.json` in the workspace root.
+- Execute "DependViz: Focus on Graph View"
+- Click Refresh at the top right if the graph view is empty
 
-- Javaプロジェクトを開く
-- コマンドパレット(Cmd+Shift+P / Ctrl+Shift+P)を開く
-- 「DependViz: Analyze Java Project」を実行
-	- デフォルトではワークスペースのルートからJavaソースファイルを探索し解析を実行します．
-	- 「DependViz: Select Java Source Directory」により解析するディレクトリを指定できます．
-	- 解析結果はワークスペースのルートに`graph.json`として保存されます．
-- 「DependViz: Focus on グラフビュー View」を実行
-- グラフビューが空の場合は右上のRefreshをクリック
+## Stack Trace Feature
 
-## スタックトレース機能の利用
+When a VS Code debug session is active and stack trace mode is enabled, links between nodes are displayed based on the current stack trace, visualizing the execution path during debugging.
 
-VS Codeのデバッグセッションがアクティブな状態で，スタックトレースモードを有効にすると，現在のスタックトレースに基づいてグラフ上にノード間のリンクが表示されます．デバッグ中の実行パスを可視化できます．
+## Slicing Feature
 
-## スライシング機能
+When a node is focused, displays only dependencies related to that node. Forward slice shows dependencies going out from the selected node, backward slice shows dependencies coming into the selected node. When enabled in settings, slicing is automatically calculated on node focus.
 
-ノードをフォーカスした際に，そのノードに関連する依存関係のみを表示する機能です．順方向スライスは選択ノードから出ていく依存関係，逆方向スライスは選択ノードに入ってくる依存関係を表示します．設定で有効化すると，ノードフォーカス時に自動的にスライスが計算されます．
+## Settings
 
-## 設定項目
+### Search & Filter
 
-### 検索・フィルタ
+- `forceGraphViewer.search`: Search keyword
+- `forceGraphViewer.hideIsolatedNodes`: Hide isolated nodes
 
-- `forceGraphViewer.search`: 検索キーワード
-- `forceGraphViewer.hideIsolatedNodes`: 孤立ノードを非表示
+### Display Mode
 
-### 表示モード
+- `forceGraphViewer.darkMode`: Dark mode
+- `forceGraphViewer.showNames`: Show names
+- `forceGraphViewer.shortNames`: Show short names
+- `forceGraphViewer.showStackTrace`: Show stack trace
+- `forceGraphViewer.autoRotate`: Auto rotation
+- `forceGraphViewer.rotateSpeed`: Rotation speed (range: 0.01-5.0)
 
-- `forceGraphViewer.darkMode`: ダークモード
-- `forceGraphViewer.showNames`: 名前を表示
-- `forceGraphViewer.shortNames`: 短縮名を表示
-- `forceGraphViewer.showStackTrace`: スタックトレース表示
-- `forceGraphViewer.autoRotate`: 自動回転
-- `forceGraphViewer.rotateSpeed`: 回転速度（範囲: 0.01-5.0）
+### Node Display
 
-### ノード表示
+- `forceGraphViewer.nodeSize`: Node size (range: 0.1-5.0)
+- `forceGraphViewer.nodeSizeByLoc`: Determine node size by LOC
+- `forceGraphViewer.nodeOpacity`: Node opacity (range: 0.1-1.0)
+- `forceGraphViewer.nameFontSize`: Name font size (range: 6-32)
 
-- `forceGraphViewer.nodeSize`: ノードサイズ（範囲: 0.1-5.0）
-- `forceGraphViewer.nodeSizeByLoc`: ノードサイズをLOCで決定
-- `forceGraphViewer.nodeOpacity`: ノード透明度（範囲: 0.1-1.0）
-- `forceGraphViewer.nameFontSize`: 名前のフォントサイズ（範囲: 6-32）
+### Edge Display
 
-### エッジ表示
+- `forceGraphViewer.linkWidth`: Link width (range: 0.1-5.0)
+- `forceGraphViewer.edgeOpacity`: Edge opacity (range: 0.1-1.0)
+- `forceGraphViewer.linkDistance`: Link distance (range: 10-100)
+- `forceGraphViewer.arrowSize`: Arrow size (range: 1-20)
 
-- `forceGraphViewer.linkWidth`: リンク幅（範囲: 0.1-5.0）
-- `forceGraphViewer.edgeOpacity`: エッジ透明度（範囲: 0.1-1.0）
-- `forceGraphViewer.linkDistance`: リンク距離（範囲: 10-100）
-- `forceGraphViewer.arrowSize`: 矢印サイズ（範囲: 1-20）
+### Node Type Filter
 
-### ノードタイプフィルタ
+- `forceGraphViewer.showClass`: Show classes
+- `forceGraphViewer.showAbstractClass`: Show abstract classes
+- `forceGraphViewer.showInterface`: Show interfaces
+- `forceGraphViewer.showUnknown`: Show unknown types
 
-- `forceGraphViewer.showClass`: クラスを表示
-- `forceGraphViewer.showAbstractClass`: 抽象クラスを表示
-- `forceGraphViewer.showInterface`: インターフェースを表示
-- `forceGraphViewer.showUnknown`: 不明なタイプを表示
+### Edge Type Filter
 
-### エッジタイプフィルタ
+- `forceGraphViewer.showObjectCreate`: Show object creation edges
+- `forceGraphViewer.showExtends`: Show inheritance edges
+- `forceGraphViewer.showImplements`: Show implementation edges
+- `forceGraphViewer.showTypeUse`: Show type usage edges
+- `forceGraphViewer.showMethodCall`: Show method call edges
 
-- `forceGraphViewer.showObjectCreate`: オブジェクト作成エッジを表示
-- `forceGraphViewer.showExtends`: 継承エッジを表示
-- `forceGraphViewer.showImplements`: 実装エッジを表示
-- `forceGraphViewer.showTypeUse`: 型使用エッジを表示
-- `forceGraphViewer.showMethodCall`: メソッド呼び出しエッジを表示
+### Color Settings
 
-### 色設定
+- `forceGraphViewer.colorClass`: Class color
+- `forceGraphViewer.colorAbstractClass`: Abstract class color
+- `forceGraphViewer.colorInterface`: Interface color
+- `forceGraphViewer.colorUnknown`: Unknown type color
+- `forceGraphViewer.colorObjectCreate`: Object creation edge color
+- `forceGraphViewer.colorExtends`: Inheritance edge color
+- `forceGraphViewer.colorImplements`: Implementation edge color
+- `forceGraphViewer.colorTypeUse`: Type usage edge color
+- `forceGraphViewer.colorMethodCall`: Method call edge color
 
-- `forceGraphViewer.colorClass`: クラスの色
-- `forceGraphViewer.colorAbstractClass`: 抽象クラスの色
-- `forceGraphViewer.colorInterface`: インターフェースの色
-- `forceGraphViewer.colorUnknown`: 不明なタイプの色
-- `forceGraphViewer.colorObjectCreate`: オブジェクト作成エッジの色
-- `forceGraphViewer.colorExtends`: 継承エッジの色
-- `forceGraphViewer.colorImplements`: 実装エッジの色
-- `forceGraphViewer.colorTypeUse`: 型使用エッジの色
-- `forceGraphViewer.colorMethodCall`: メソッド呼び出しエッジの色
+### Slice Feature
 
-### スライス機能
+- `forceGraphViewer.sliceDepth`: Slice depth (range: 1-10)
+- `forceGraphViewer.enableForwardSlice`: Enable forward slice
+- `forceGraphViewer.enableBackwardSlice`: Enable backward slice
 
-- `forceGraphViewer.sliceDepth`: スライス深度（範囲: 1-10）
-- `forceGraphViewer.enableForwardSlice`: 順方向スライスを有効化
-- `forceGraphViewer.enableBackwardSlice`: 逆方向スライスを有効化
+### Other
 
-### その他
+- `forceGraphViewer.focusDistance`: Camera distance on focus (range: 20-300)
+- `forceGraphViewer.javaSourceDirectory`: Directory to start Java analysis (entire workspace if empty)
 
-- `forceGraphViewer.focusDistance`: フォーカス時のカメラ距離（範囲: 20-300）
-- `forceGraphViewer.javaSourceDirectory`: Java解析を開始するディレクトリ（空の場合はワークスペース全体）
-
-## ビルド
+## Build
 ```bash
 npm install
 npm run build
 ```
 
-## ライセンス
+## License
 
 MIT License
