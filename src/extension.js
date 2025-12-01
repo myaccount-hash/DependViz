@@ -28,9 +28,7 @@ function activate(context) {
         }
     };
 
-    filterSettingsProvider.onDidChangeTreeData(() => syncControls());
-    appearanceSettingsProvider.onDidChangeTreeData(() => syncControls());
-    detailSettingsProvider.onDidChangeTreeData(() => syncControls());
+    const onProviderChange = () => syncControls();
 
     syncControls();
 
@@ -44,11 +42,14 @@ function activate(context) {
     const commands = registerCommands(context, providers);
 
     const eventHandlers = [
+        filterSettingsProvider.onDidChangeTreeData(onProviderChange),
+        appearanceSettingsProvider.onDidChangeTreeData(onProviderChange),
+        detailSettingsProvider.onDidChangeTreeData(onProviderChange),
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('forceGraphViewer')) {
-                filterSettingsProvider.update();
-                appearanceSettingsProvider.update();
-                detailSettingsProvider.update();
+                filterSettingsProvider.refresh();
+                appearanceSettingsProvider.refresh();
+                detailSettingsProvider.refresh();
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
@@ -56,9 +57,7 @@ function activate(context) {
                 await graphViewProvider.update({ type: 'focusNode', filePath: editor.document.uri.fsPath });
             }
         }),
-        vscode.window.onDidChangeActiveColorTheme(() => {
-            syncControls();
-        })
+        vscode.window.onDidChangeActiveColorTheme(onProviderChange)
     ];
 
     context.subscriptions.push(...commands, ...eventHandlers);
