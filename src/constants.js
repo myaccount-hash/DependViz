@@ -14,8 +14,8 @@ const DEFAULT_CONTROLS = {
     focusDistance: 80,
     nameFontSize: 12,
     autoRotate: false,
-    rotateSpeed: 0.1,
-    sliceDepth: 3,
+    rotateSpeed: 0,
+    sliceDepth: 2,
     enableForwardSlice: false,
     enableBackwardSlice: false,
     showClass: true,
@@ -62,7 +62,7 @@ const ICONS = {
 };
 
 const SLIDER_RANGES = {
-    rotateSpeed: { min: 0.01, max: 5, step: 0.1 },
+    rotateSpeed: { min: 0, max: 5, step: 0.1 },
     nodeSize: { min: 0.1, max: 5, step: 0.1 },
     linkWidth: { min: 0.1, max: 5, step: 0.1 },
     opacity: { min: 0.1, max: 1, step: 0.1 },
