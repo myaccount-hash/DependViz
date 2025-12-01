@@ -6,18 +6,30 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import com.example.parser.Analyzer;
 import com.example.parser.CodeGraph;
 import com.example.parser.JsonUtil;
-import com.example.parser.analyzer.*;
+import com.example.parser.analyzer.ClassTypeAnalyzer;
+import com.example.parser.analyzer.ExtendsAnalyzer;
+import com.example.parser.analyzer.FilePathAnalyzer;
+import com.example.parser.analyzer.ImplementsAnalyzer;
+import com.example.parser.analyzer.LinesOfCodeAnalyzer;
+import com.example.parser.analyzer.MethodCallAnalyzer;
+import com.example.parser.analyzer.ObjectCreationAnalyzer;
+import com.example.parser.analyzer.TypeUseAnalyzer;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
-import com.github.javaparser.symbolsolver.resolution.typesolvers.*;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 
 public class Main {
+  private static final Logger logger = Logger.getLogger(Main.class.getName());
   static final String OUTPUT_PATH = "data/sample.json";
 
   public static void main(String[] args) {
@@ -50,8 +62,8 @@ public class Main {
       CodeGraph mainCodeGraph = analyzeAllFiles(sourcePath, OUTPUT_PATH, typeSolver);
       // 結果をJSONに出力
       JsonUtil.writeToFile(mainCodeGraph, OUTPUT_PATH);
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (IOException e) {
+      logger.log(Level.SEVERE, "Failed to analyze files or write output", e);
       System.exit(1);
     }
   }
@@ -79,12 +91,15 @@ public class Main {
   }
 
   private static Stream<CodeGraph> analyzePath(Path path, CombinedTypeSolver typeSolver, List<Analyzer> analyzers) {
-    System.out.println("Analyzing: " + path);
+    logger.info(() -> "Analyzing: " + path);
     try {
       CompilationUnit cu = createCompilationUnit(path.toString(), typeSolver);
       return analyzers.stream().map(analyzer -> analyzer.process(cu));
+    } catch (IOException e) {
+      logger.log(Level.WARNING, e, () -> "Failed to read file: " + path);
+      return Stream.empty();
     } catch (Exception e) {
-      System.err.println("Error: " + path + ": " + e.getMessage());
+      logger.log(Level.WARNING, e, () -> "Failed to parse file: " + path);
       return Stream.empty();
     }
   }

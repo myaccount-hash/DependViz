@@ -32,20 +32,24 @@
       "forceGraphViewer": [
         {
           "id": "forceGraphViewer.tree",
-          "name": "フィルタ"
+          "name": "フィルタ",
+          "icon": "$(filter)"
         },
         {
           "id": "forceGraphViewer.appearance",
-          "name": "表示モード"
+          "name": "表示モード",
+          "icon": "$(symbol-color)"
         },
         {
           "id": "forceGraphViewer.detail",
-          "name": "詳細設定"
+          "name": "詳細設定",
+          "icon": "$(settings-gear)"
         },
         {
           "id": "forceGraphViewer.sidebar",
           "name": "グラフビュー",
-          "type": "webview"
+          "type": "webview",
+          "icon": "$(graph)"
         }
       ]
     },
