@@ -2,7 +2,7 @@
   "name": "vscode-force-graph-viewer",
   "displayName": "DependViz",
   "description": "3D force graph visualization for code analysis",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "publisher": "myaccount-hash",
   "license": "MIT",
   "icon": "images/force-graph.png",
