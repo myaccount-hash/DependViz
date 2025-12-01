@@ -152,11 +152,6 @@
           "default": true,
           "description": "短縮名を表示"
         },
-        "forceGraphViewer.darkMode": {
-          "type": "boolean",
-          "default": true,
-          "description": "ダークモード"
-        },
         "forceGraphViewer.nodeSize": {
           "type": "number",
           "default": 1,

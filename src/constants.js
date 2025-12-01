@@ -5,7 +5,6 @@ const DEFAULT_CONTROLS = {
     showStackTrace: false,
     showNames: false,
     shortNames: false,
-    darkMode: true,
     nodeSize: 1.0,
     linkWidth: 1.0,
     nodeOpacity: 1.0,

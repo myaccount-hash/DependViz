@@ -4,7 +4,6 @@ const { SLIDER_RANGES } = require('../constants');
 
 const APPEARANCE_CONTROLS = [
     ['checkbox', 'スタックトレース', 'showStackTrace'],
-    ['checkbox', 'ダークモード', 'darkMode'],
     ['checkbox', '名前を表示', 'showNames'],
     ['checkbox', '短縮名を表示', 'shortNames'],
     ['checkbox', '孤立ノードを非表示', 'hideIsolatedNodes'],

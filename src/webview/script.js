@@ -62,7 +62,9 @@ class GraphState {
   setLabelRenderer(renderer) { this._labelRenderer = renderer; }
 
   getBackgroundColor() {
-    return this.controls.darkMode ? COLORS.BACKGROUND_DARK : COLORS.BACKGROUND_LIGHT;
+    const style = getComputedStyle(document.body);
+    const bgColor = style.getPropertyValue('--vscode-editor-background').trim();
+    return bgColor || (this.controls.darkMode ? COLORS.BACKGROUND_DARK : COLORS.BACKGROUND_LIGHT);
   }
 
   updateData(data) {

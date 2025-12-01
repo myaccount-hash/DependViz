@@ -57,6 +57,9 @@ function activate(context) {
             if (editor?.document.uri.scheme === 'file') {
                 await graphViewProvider.update({ type: 'focusNode', filePath: editor.document.uri.fsPath });
             }
+        }),
+        vscode.window.onDidChangeActiveColorTheme(() => {
+            syncControls();
         })
     ];
 
