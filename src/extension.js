@@ -3,7 +3,7 @@ const AppearanceSettingsProvider = require('./providers/AppearanceSettingsProvid
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterSettingsProvider = require('./providers/FilterSettingsProvider');
 const DetailSettingsProvider = require('./providers/DetailSettingsProvider');
-const { loadControls } = require('./utils/utils');
+const { ConfigurationManager } = require('./config/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./commands/stackTrace');
 
@@ -26,7 +26,7 @@ function activate(context) {
 
     filterSettingsProvider.onDidChange(() => {
         syncControls();
-        const controls = loadControls();
+        const controls = ConfigurationManager.getInstance().loadControls();
         if (controls.showStackTrace) {
             updateStackTrace(graphViewProvider);
         }

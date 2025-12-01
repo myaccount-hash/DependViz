@@ -1,5 +1,6 @@
 const vscode = require('vscode');
-const { loadControls, getWorkspaceFolder } = require('../utils/utils');
+const { getWorkspaceFolder } = require('../utils/utils');
+const { ConfigurationManager } = require('../config/ConfigurationManager');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,15 +14,14 @@ class BaseProvider {
       this._cacheFilePath = null;
    }
 
-   // 設定管理機能（オプショナル）
+   // 設定管理機能
    get controls() {
-      return loadControls();
+      return ConfigurationManager.getInstance().loadControls();
    }
 
-   _updateControls(data) {
+   async _updateControls(data) {
       if (data && typeof data === 'object' && 'key' in data && 'value' in data) {
-         const config = vscode.workspace.getConfiguration('forceGraphViewer');
-         config.update(data.key, data.value, vscode.ConfigurationTarget.Workspace);
+         await ConfigurationManager.getInstance().updateControl(data.key, data.value);
       }
    }
 
@@ -63,11 +63,11 @@ class BaseProvider {
    }
 
    // 汎用メソッド
-   update(data) {
+   async update(data) {
       // 統一された更新ロジック
       if (data && data.key && 'value' in data) {
          // { key, value } → 個別設定更新
-         this._updateControls(data);
+         await this._updateControls(data);
       } else if (Array.isArray(data)) {
          // 配列 → キャッシュ更新
          this._updateCache(data);
@@ -91,7 +91,7 @@ class BaseProvider {
    // サブクラスでオーバーライド可能（オプショナル）
    _getData() {
       // デフォルト: 設定を返す
-      return loadControls();
+      return ConfigurationManager.getInstance().loadControls();
    }
 
    _updateCache(data) {

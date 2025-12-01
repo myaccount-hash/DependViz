@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
-const { DEFAULT_CONTROLS } = require('../constants');
+const { loadControls } = require('../config/ConfigurationManager');
 
 function validateGraphData(data) {
     if (!data || typeof data !== 'object') throw new Error('data must be an object');
@@ -21,15 +21,6 @@ function getWorkspaceFolder() {
 
 function getGraphPath(filename = 'graph.json') {
     return path.join(getWorkspaceFolder().uri.fsPath, filename);
-}
-
-function loadControls() {
-    const config = vscode.workspace.getConfiguration('forceGraphViewer');
-    const controls = {};
-    for (const [key, defaultValue] of Object.entries(DEFAULT_CONTROLS)) {
-        controls[key] = config.get(key, defaultValue);
-    }
-    return controls;
 }
 
 function getTypeControlMap() {
@@ -86,7 +77,7 @@ function computeSlice(data, startNodeId, direction, maxDepth = Infinity) {
 }
 
 function getHtmlForWebview(webview, libs) {
-    const { COLORS, DEBUG } = require('../constants');
+    const { DEFAULT_CONTROLS, COLORS, DEBUG } = require('../constants');
     const nonce = Date.now().toString();
     const script = fs.readFileSync(path.join(__dirname, '../webview/script.js'), 'utf8');
     const wrappedScript = `(function(DEFAULT_CONTROLS, COLORS, DEBUG) {\n${script}\n})(DEFAULT_CONTROLS, COLORS, DEBUG);`;

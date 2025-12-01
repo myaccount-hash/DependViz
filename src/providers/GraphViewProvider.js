@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const { CDN_LIBS } = require('../constants');
-const { getHtmlForWebview, getGraphPath, loadControls, typeMatches, validateGraphData, getLinkNodeId, getNodeFilePath, computeSlice } = require('../utils/utils');
+const { getHtmlForWebview, getGraphPath, typeMatches, validateGraphData, getLinkNodeId, getNodeFilePath, computeSlice } = require('../utils/utils');
+const { ConfigurationManager } = require('../config/ConfigurationManager');
 const QueryParser = require('../utils/QueryParser');
 const fs = require('fs');
 
@@ -124,7 +125,7 @@ class GraphViewProvider {
     }
 
     _applySliceSettings() {
-        const controls = loadControls();
+        const controls = ConfigurationManager.getInstance().loadControls();
         const { enableForwardSlice, enableBackwardSlice } = controls;
 
         if (!enableForwardSlice) this._forwardSlice = null;
@@ -144,7 +145,7 @@ class GraphViewProvider {
         const node = this._findNodeByFilePath(filePath);
         if (!node) return;
 
-        const controls = loadControls();
+        const controls = ConfigurationManager.getInstance().loadControls();
         const maxDepth = controls.sliceDepth || Infinity;
         const slice = computeSlice(this._currentData, node.id, direction, maxDepth);
         const sliceData = { ...slice, maxDepth };
@@ -158,7 +159,7 @@ class GraphViewProvider {
 
     syncToWebview() {
         if (this._view) {
-            const controls = loadControls();
+            const controls = ConfigurationManager.getInstance().loadControls();
             const isDark = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ||
                           vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast;
             this._view.webview.postMessage({
@@ -171,7 +172,7 @@ class GraphViewProvider {
     }
 
     getFilteredData() {
-        const controls = loadControls();
+        const controls = ConfigurationManager.getInstance().loadControls();
         return this._filter.apply(
             this._currentData,
             controls,
@@ -198,7 +199,7 @@ class GraphViewProvider {
         if (this._view && this._currentData?.nodes?.length > 0) {
             const node = this._findNodeByFilePath(filePath);
             if (node) {
-                const controls = loadControls();
+                const controls = ConfigurationManager.getInstance().loadControls();
                 if (controls.enableForwardSlice) {
                     this._computeSliceForFilePath(filePath, 'forward');
                 }
