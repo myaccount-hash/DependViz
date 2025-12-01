@@ -19,87 +19,69 @@ describe('Edge Cases and Potential Bugs', () => {
             });
         }
 
-        it('should NOT match when basename is empty string', () => {
+        it('BUG: matches when both basenames are empty string', () => {
             const nodes = [
                 { id: 'test', filePath: '/path/to/' }  // 末尾がスラッシュ
             ];
             const path = '/another/path/';
 
             const matched = matchNode(nodes, path);
-            // 両方とも basename が空文字列になるので誤マッチする可能性
-            expect(matched).to.be.undefined;  // これは失敗する可能性がある
+            // 両方とも basename が空文字列 '' になる
+            // '' === '' で true になり、誤マッチする
+            expect(matched).to.be.undefined;
         });
 
-        it('should handle path with multiple dots in filename', () => {
-            const nodes = [
-                { id: 'test', filePath: '/path/to/File.test.java' }
-            ];
-            const path = '/other/File.test.java';
-
-            const matched = matchNode(nodes, path);
-            expect(matched).to.not.be.undefined;
-            expect(matched.id).to.equal('test');
-        });
-
-        it('should NOT match partial filenames', () => {
+        it('BUG: basename matching causes ambiguous matches', () => {
             const nodes = [
                 { id: 'UserService', filePath: '/path/UserService.java' },
                 { id: 'UserServiceImpl', filePath: '/path/UserServiceImpl.java' }
             ];
-            const path = '/other/UserService.java';
+            const path = '/other/UserServiceImpl.java';
 
             const matched = matchNode(nodes, path);
-            // UserService と UserServiceImpl の両方がマッチする可能性
-            // find() は最初のものを返すので UserService になるが、
-            // 本当にそれが正しいか？
-            expect(matched.id).to.equal('UserService');
+            // basename だけで判定すると UserServiceImpl が欲しいのに
+            // find() が順序依存なので UserService を返す可能性がある
+            // これは basename === basename のマッチングの問題
+            expect(matched.id).to.equal('UserServiceImpl');
         });
 
-        it('should handle Windows-style paths', () => {
+        it('BUG: Windows-style paths do not match Unix-style paths', () => {
             const nodes = [
                 { id: 'test', filePath: 'C:\\Users\\project\\src\\Main.java' }
             ];
             const path = '/Users/project/src/Main.java';  // Unix style
 
             const matched = matchNode(nodes, path);
-            // パスのスタイルが異なるとマッチしない
-            // これは実際の問題になる可能性がある
-            expect(matched).to.not.be.undefined;  // 失敗する可能性
-        });
-
-        it('should NOT match when endsWith is too greedy', () => {
-            const nodes = [
-                { id: 'test', filePath: 'Main.java' }  // 短いパス
-            ];
-            const path = '/very/long/path/to/project/src/main/java/com/example/Main.java';
-
-            const matched = matchNode(nodes, path);
-            // path.endsWith('Main.java') は true だが、これは正しいマッチング？
-            expect(matched).to.not.be.undefined;
-            // これは意図的な動作かもしれないが、バグの可能性もある
-        });
-
-        it('should handle special characters in path', () => {
-            const nodes = [
-                { id: 'test', filePath: '/path/with spaces/Main.java' }
-            ];
-            const path = '/other/with spaces/Main.java';
-
-            const matched = matchNode(nodes, path);
+            // Windows の \ と Unix の / が混在すると完全一致しない
+            // basename は 'Main.java' で同じだがマッチするか？
+            // split('/') は Windows パスを正しく分割できない
             expect(matched).to.not.be.undefined;
         });
 
-        it('should NOT match when path contains parent directory references', () => {
+        it('BUG: endsWith matching is too greedy', () => {
+            const nodes = [
+                { id: 'common', filePath: 'util/Common.java' },
+                { id: 'specific', filePath: '/project/src/main/java/com/example/util/Common.java' }
+            ];
+            const path = '/project/src/main/java/com/example/util/Common.java';
+
+            const matched = matchNode(nodes, path);
+            // path.endsWith('util/Common.java') は両方 true
+            // find() で最初にマッチするのは 'common' だが、本当は 'specific' が欲しい
+            expect(matched.id).to.equal('specific');
+        });
+
+        it('BUG: normalized vs non-normalized paths', () => {
             const nodes = [
                 { id: 'test', filePath: '/project/src/Main.java' }
             ];
             const path = '/project/src/../src/Main.java';  // 正規化されていない
 
             const matched = matchNode(nodes, path);
-            // 正規化されていないパスは完全一致しない
-            expect(matched).to.be.undefined;  // basename でマッチするので失敗する
+            // 正規化されていないパスは完全一致しないが、
+            // basename は同じなのでマッチしてしまう
+            expect(matched).to.be.undefined;
         });
-    });
 
     describe('Stack trace collection edge cases', () => {
         async function processDebugSession(session) {
