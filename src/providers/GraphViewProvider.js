@@ -53,6 +53,10 @@ class GraphViewProvider {
         this._view = null;
         this._currentData = { nodes: [], links: [] };
         this._filter = new GraphDataFilter();
+        this._updateInProgress = false;
+        this._pendingUpdate = null;
+        this._messageQueue = [];
+        this._webviewReady = false;
         this._forwardSlice = null;
         this._backwardSlice = null;
         this._stackTracePaths = [];
@@ -61,14 +65,41 @@ class GraphViewProvider {
 
     async resolveWebviewView(webviewView, context, token) {
         this._view = webviewView;
+        this._webviewReady = false;
         webviewView.webview.options = { enableScripts: true, localResourceRoots: [this._extensionUri] };
         webviewView.webview.html = getHtmlForWebview(webviewView.webview, CDN_LIBS);
         webviewView.webview.onDidReceiveMessage(async message => {
-            if (message.type === 'focusNode' && message.node?.filePath) {
+            if (message.type === 'ready') {
+                // Webviewの準備完了
+                this._webviewReady = true;
+                this._flushMessageQueue();
+            } else if (message.type === 'focusNode' && message.node?.filePath) {
                 await vscode.window.showTextDocument(vscode.Uri.file(message.node.filePath));
             }
         });
         await this.reloadGraphData();
+    }
+
+    _flushMessageQueue() {
+        if (this._webviewReady && this._view) {
+            while (this._messageQueue.length > 0) {
+                const message = this._messageQueue.shift();
+                this._view.webview.postMessage(message);
+            }
+        }
+    }
+
+    _postMessage(message) {
+        if (!this._view) return false;
+
+        if (this._webviewReady) {
+            this._view.webview.postMessage(message);
+            return true;
+        } else {
+            // Webview準備中はキューに追加
+            this._messageQueue.push(message);
+            return false;
+        }
     }
 
     async refresh() {
@@ -95,7 +126,30 @@ class GraphViewProvider {
         }
     }
 
-    update(data) {
+    async update(data) {
+        // 更新処理中の場合、最新の更新を保持
+        if (this._updateInProgress) {
+            this._pendingUpdate = data;
+            return;
+        }
+
+        this._updateInProgress = true;
+
+        try {
+            await this._performUpdate(data);
+
+            // 保留中の更新があれば処理
+            while (this._pendingUpdate) {
+                const pending = this._pendingUpdate;
+                this._pendingUpdate = null;
+                await this._performUpdate(pending);
+            }
+        } finally {
+            this._updateInProgress = false;
+        }
+    }
+
+    async _performUpdate(data) {
         if (!data || data.type === 'controls') {
             // 設定更新
             this._applySliceSettings();
@@ -106,7 +160,7 @@ class GraphViewProvider {
             this.syncToWebview();
         } else if (data.type === 'focusNode' && data.filePath) {
             // ノードフォーカス
-            return this.focusNode(data.filePath);
+            await this.focusNode(data.filePath);
         }
     }
 
@@ -162,7 +216,7 @@ class GraphViewProvider {
             const controls = ConfigurationManager.getInstance().loadControls();
             const isDark = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ||
                           vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast;
-            this._view.webview.postMessage({
+            this._postMessage({
                 type: 'update',
                 controls: { ...controls, darkMode: isDark },
                 data: this.getFilteredData(),
@@ -208,7 +262,7 @@ class GraphViewProvider {
                 }
 
                 this.syncToWebview();
-                this._view.webview.postMessage({ type: 'focusNodeById', nodeId: node.id });
+                this._postMessage({ type: 'focusNodeById', nodeId: node.id });
             }
         }
     }

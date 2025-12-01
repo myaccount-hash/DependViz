@@ -73,8 +73,9 @@ async function updateStackTrace(graphViewProvider) {
         }
 
         const paths = session.frames
+            .filter(f => f && f.source)  // Filter out null frames first
             .map(f => f.source?.path)
-            .filter(p => p);
+            .filter(p => p && p.trim());
 
         const uniquePaths = [...new Set(paths)];
 

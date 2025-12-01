@@ -79,6 +79,61 @@ class GraphState {
     return node.filePath || node.file;
   }
 
+  _normalizePath(path) {
+    if (!path) return '';
+    // Normalize path separators (Windows \ to Unix /)
+    let normalized = path.replace(/\\/g, '/');
+    // Remove trailing slashes
+    normalized = normalized.replace(/\/+$/, '');
+    // Normalize .. and . (simple implementation)
+    const parts = normalized.split('/').filter(p => p && p !== '.');
+    const result = [];
+    for (const part of parts) {
+      if (part === '..') {
+        if (result.length > 0 && result[result.length - 1] !== '..') {
+          result.pop();
+        } else {
+          result.push(part);
+        }
+      } else {
+        result.push(part);
+      }
+    }
+    return result.join('/');
+  }
+
+  _matchPath(nodePath, framePath) {
+    if (!nodePath || !framePath) return 0;
+
+    const normalizedNodePath = this._normalizePath(nodePath);
+    const normalizedFramePath = this._normalizePath(framePath);
+
+    // Extract basenames
+    const nodeBasename = normalizedNodePath.split('/').pop();
+    const frameBasename = normalizedFramePath.split('/').pop();
+
+    // Skip empty basenames (from trailing slashes)
+    if (!nodeBasename || !frameBasename) return 0;
+
+    // Exact match - highest priority
+    if (normalizedNodePath === normalizedFramePath) return 1000;
+
+    // endsWith match - prioritize longer matches
+    if (normalizedFramePath.endsWith(normalizedNodePath)) {
+      return 500 + normalizedNodePath.length;
+    }
+    if (normalizedNodePath.endsWith(normalizedFramePath)) {
+      return 500 + normalizedFramePath.length;
+    }
+
+    // Basename match - lowest priority (only if unique enough)
+    if (nodeBasename === frameBasename && nodeBasename.length > 0) {
+      return 100;
+    }
+
+    return 0;
+  }
+
   setStackTraceLinks(paths) {
     console.log('[StackTrace] Received paths:', paths.length, paths);
 
@@ -90,25 +145,27 @@ class GraphState {
       const path = p;
 
       // 空文字列やnullをスキップ
-      if (!path) {
-        console.warn(`[StackTrace] [${idx}] Skipping empty path`);
+      if (!path || !path.trim()) {
+        console.warn(`[StackTrace] [${idx}] Skipping empty/whitespace path`);
         return;
       }
 
-      const node = this.data.nodes.find(n => {
-        const nodePath = this._getNodeFilePath(n);
-        if (!nodePath) return false;
-        const nodeBasename = nodePath.split('/').pop();
-        const frameBasename = path.split('/').pop();
-        return nodePath === path ||
-          nodeBasename === frameBasename ||
-          path.endsWith(nodePath) ||
-          nodePath.endsWith(path);
-      });
+      // Find best matching node
+      let bestNode = null;
+      let bestScore = 0;
 
-      if (node) {
-        stackNodes.push(node);
-        console.log(`[StackTrace] [${idx}] Matched: ${path} -> ${node.id}`);
+      for (const n of this.data.nodes) {
+        const nodePath = this._getNodeFilePath(n);
+        const score = this._matchPath(nodePath, path);
+        if (score > bestScore) {
+          bestScore = score;
+          bestNode = n;
+        }
+      }
+
+      if (bestNode && bestScore > 0) {
+        stackNodes.push(bestNode);
+        console.log(`[StackTrace] [${idx}] Matched: ${path} -> ${bestNode.id} (score: ${bestScore})`);
       } else {
         unmatchedPaths.push(path);
         console.warn(`[StackTrace] [${idx}] NOT matched: ${path}`);
@@ -425,6 +482,11 @@ function waitForLibraries() {
 async function init() {
   await waitForLibraries();
   state.initGraph();
+
+  // Webview準備完了を通知
+  if (vscode) {
+    vscode.postMessage({ type: 'ready' });
+  }
 }
 
 if (document.readyState === 'loading') {

@@ -81,7 +81,13 @@ function activate(context) {
     context.subscriptions.push(...commands, ...eventHandlers);
 }
 
-function deactivate() { }
+function deactivate() {
+    // リソースクリーンアップ
+    // context.subscriptions に登録された全てのリソースは
+    // VSCode が自動的に dispose() を呼び出すため、
+    // 明示的なクリーンアップは不要
+    console.log('DependViz extension deactivated');
+}
 
 module.exports = {
     activate,
