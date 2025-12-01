@@ -111,22 +111,38 @@ function activate(context) {
             const config = vscode.workspace.getConfiguration('forceGraphViewer');
             const currentDir = config.get('javaSourceDirectory', '');
 
-            const getDirectories = (dir, maxDepth = 2, currentDepth = 0) => {
+            const getDirectories = (dir, maxDepth = 5, currentDepth = 0) => {
                 if (currentDepth >= maxDepth) return [];
                 const dirs = [];
+
+                // 除外すべきディレクトリリスト
+                const excludeDirs = new Set([
+                    'node_modules', 'target', 'build', 'out', 'dist',
+                    '.git', '.svn', '.idea', '.vscode', '__pycache__'
+                ]);
+
                 try {
                     const entries = fs.readdirSync(dir, { withFileTypes: true });
                     for (const entry of entries) {
-                        if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+                        if (entry.isDirectory() &&
+                            !entry.name.startsWith('.') &&
+                            !excludeDirs.has(entry.name)) {
+
                             const fullPath = path.join(dir, entry.name);
                             const relativePath = path.relative(workspacePath, fullPath);
-                            dirs.push({ label: relativePath || 'ワークスペース全体', relativePath: relativePath || '', fullPath });
+                            dirs.push({
+                                label: relativePath,
+                                relativePath: relativePath,
+                                fullPath
+                            });
+
                             if (currentDepth < maxDepth - 1) {
                                 dirs.push(...getDirectories(fullPath, maxDepth, currentDepth + 1));
                             }
                         }
                     }
                 } catch (e) {
+                    console.error(`Failed to read directory ${dir}:`, e);
                 }
                 return dirs;
             };
@@ -164,7 +180,22 @@ function activate(context) {
                     }
                 });
                 if (input === undefined) return;
-                relativePath = input;
+
+                // 絶対パスの場合は相対パスに変換
+                if (path.isAbsolute(input)) {
+                    relativePath = path.relative(workspacePath, input);
+                    // ワークスペース外の場合は警告
+                    if (relativePath.startsWith('..')) {
+                        const proceed = await vscode.window.showWarningMessage(
+                            'ワークスペース外のディレクトリが指定されました。このまま保存しますか？',
+                            'はい', 'キャンセル'
+                        );
+                        if (proceed !== 'はい') return;
+                        relativePath = input; // ワークスペース外なら絶対パスのまま保存
+                    }
+                } else {
+                    relativePath = input;
+                }
             } else {
                 relativePath = selected.relativePath;
             }
