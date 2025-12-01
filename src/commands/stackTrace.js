@@ -13,15 +13,8 @@ async function getAllSessions() {
             let allFrames = [];
             let stoppedThreads = 0;
 
-            // 停止中のスレッドのみからスタックトレースを取得
+            // 全スレッドからスタックトレースを取得（停止中のスレッドのみ成功する）
             for (const thread of threads) {
-                // スレッドが stopped 状態の場合のみスタックトレースを取得
-                if (thread.stopped !== true) {
-                    continue;
-                }
-
-                stoppedThreads++;
-
                 try {
                     // より深いスタックトレースを取得（デフォルト50から200に拡張）
                     const stackResponse = await session.customRequest('stackTrace', {
@@ -30,12 +23,14 @@ async function getAllSessions() {
                     });
 
                     if (stackResponse.stackFrames && stackResponse.stackFrames.length > 0) {
+                        stoppedThreads++;
                         totalFrames += stackResponse.stackFrames.length;
                         allFrames.push(...stackResponse.stackFrames);
-                        console.log(`Captured ${stackResponse.stackFrames.length} frames from thread ${thread.id} (${thread.name || 'unnamed'})`);
+                        console.log(`Captured ${stackResponse.stackFrames.length} frames from thread ${thread.id} (${thread.name || 'unnamed'}) [stopped=${thread.stopped}]`);
                     }
                 } catch (threadError) {
-                    console.warn(`Failed to get stack trace for thread ${thread.id} (${thread.name || 'unnamed'}):`, threadError.message);
+                    // 実行中のスレッドはエラーになるので無視
+                    // console.warn(`Failed to get stack trace for thread ${thread.id} (${thread.name || 'unnamed'}):`, threadError.message);
                 }
             }
 
