@@ -1,18 +1,18 @@
 const vscode = require('vscode');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
+const { CheckboxControlItem, SliderControlItem, ColorControlItem } = require('../utils/TreeItems');
 
 /**
  * TreeViewプロバイダーの基底クラス
  * - VS Code設定との連携
- * - イベント管理（onDidChangeTreeData, onDidChange）
- * - サブクラスで getChildren() と createControlItem() を実装すること
+ * - イベント管理（onDidChangeTreeData）
+ * - 共通コントロール生成ロジック
+ * - サブクラスで getRootItems() を実装すること
  */
 class BaseProvider {
    constructor() {
       this._onDidChangeTreeData = new vscode.EventEmitter();
       this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-      this._onDidChange = new vscode.EventEmitter();
-      this.onDidChange = this._onDidChange.event;
    }
 
    // 設定管理機能
@@ -34,7 +34,6 @@ class BaseProvider {
          await this._updateControls(data);
       }
       this._onDidChangeTreeData.fire();
-      this._onDidChange.fire(this.controls);
    }
 
    /**
@@ -52,21 +51,43 @@ class BaseProvider {
    }
 
    /**
-    * サブクラスで実装必須: ツリーの子要素を返す
+    * ツリーの子要素を返す（セクション構造をサポート）
     * @param {any} element - 親要素（nullの場合はルート要素）
     * @returns {any[]} 子要素の配列
     */
    getChildren(element) {
-      throw new Error('getChildren() must be implemented by subclass');
+      if (!element) return this.getRootItems();
+      if (element.contextValue === 'section' || element.contextValue === 'controlSection') {
+         return element.children;
+      }
+      return [];
    }
 
    /**
-    * サブクラスで実装必須: コントロール定義からTreeItemを生成
+    * コントロール定義からTreeItemを生成（共通実装）
     * @param {Array} controlDef - コントロール定義配列 [type, label, key, ...params]
     * @returns {TreeItem} 生成されたTreeItem
     */
    createControlItem(controlDef) {
-      throw new Error('createControlItem() must be implemented by subclass');
+      const [type, label, key, ...params] = controlDef;
+      const controls = this.controls;
+
+      if (type === 'checkbox') return new CheckboxControlItem(label, controls[key], key);
+      if (type === 'slider') {
+         const range = params[0];
+         return new SliderControlItem(label, controls[key], range.min, range.max, range.step, key);
+      }
+      if (type === 'color') return new ColorControlItem(label, controls[key], key);
+
+      throw new Error(`Unknown control type: ${type}`);
+   }
+
+   /**
+    * サブクラスで実装: ルート要素を返す
+    * @returns {any[]} ルート要素の配列
+    */
+   getRootItems() {
+      throw new Error('getRootItems() must be implemented by subclass');
    }
 }
 

@@ -1,5 +1,5 @@
 const BaseProvider = require('./BaseProvider');
-const { CheckboxControlItem, SliderControlItem, ColorControlItem, SectionItem } = require('../utils/TreeItems');
+const { SectionItem } = require('../utils/TreeItems');
 const { SLIDER_RANGES } = require('../constants');
 
 const DETAIL_SECTIONS = [
@@ -35,36 +35,10 @@ const DETAIL_SECTIONS = [
 ];
 
 class DetailSettingsProvider extends BaseProvider {
-   constructor() {
-      super();
-   }
-
-   getChildren(element) {
-      if (!element) return this.getRootItems();
-      if (element.contextValue === 'section' || element.contextValue === 'controlSection') {
-         return element.children;
-      }
-      return [];
-   }
-
    getRootItems() {
       return DETAIL_SECTIONS.map(([label, ctrls]) =>
          new SectionItem(label, ctrls.map(c => this.createControlItem(c)), 'controlSection')
       );
-   }
-
-   createControlItem(c) {
-      const [type, label, key, ...params] = c;
-      const controls = this.controls;
-
-      if (type === 'checkbox') return new CheckboxControlItem(label, controls[key], key);
-      if (type === 'slider') {
-         const range = params[0];
-         return new SliderControlItem(label, controls[key], range.min, range.max, range.step, key);
-      }
-      if (type === 'color') return new ColorControlItem(label, controls[key], key);
-
-      throw new Error(`Unknown control type: ${type}`);
    }
 }
 

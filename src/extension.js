@@ -22,17 +22,15 @@ function activate(context) {
 
     const syncControls = () => {
         graphViewProvider.update({ type: 'controls' });
-    };
-
-    filterSettingsProvider.onDidChange(() => {
-        syncControls();
         const controls = ConfigurationManager.getInstance().loadControls();
         if (controls.showStackTrace) {
             updateStackTrace(graphViewProvider);
         }
-    });
-    appearanceSettingsProvider.onDidChange(() => syncControls());
-    detailSettingsProvider.onDidChange(() => syncControls());
+    };
+
+    filterSettingsProvider.onDidChangeTreeData(() => syncControls());
+    appearanceSettingsProvider.onDidChangeTreeData(() => syncControls());
+    detailSettingsProvider.onDidChangeTreeData(() => syncControls());
 
     syncControls();
 
