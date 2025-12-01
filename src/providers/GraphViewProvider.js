@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const { CDN_LIBS } = require('../constants');
 const { getHtmlForWebview, getGraphPath, typeMatches, validateGraphData, getLinkNodeId, getNodeFilePath, computeSlice } = require('../utils/utils');
-const { ConfigurationManager } = require('../config/ConfigurationManager');
+const { ConfigurationManager } = require('../utils/ConfigurationManager');
 const QueryParser = require('../utils/QueryParser');
 const fs = require('fs');
 

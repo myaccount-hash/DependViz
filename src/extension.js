@@ -3,7 +3,7 @@ const AppearanceSettingsProvider = require('./providers/AppearanceSettingsProvid
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterSettingsProvider = require('./providers/FilterSettingsProvider');
 const DetailSettingsProvider = require('./providers/DetailSettingsProvider');
-const { ConfigurationManager } = require('./config/ConfigurationManager');
+const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./commands/stackTrace');
 

@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
-const { loadControls } = require('../config/ConfigurationManager');
+const { loadControls, typeMatches } = require('./ConfigurationManager');
 
 function validateGraphData(data) {
     if (!data || typeof data !== 'object') throw new Error('data must be an object');
@@ -21,20 +21,6 @@ function getWorkspaceFolder() {
 
 function getGraphPath(filename = 'graph.json') {
     return path.join(getWorkspaceFolder().uri.fsPath, filename);
-}
-
-function getTypeControlMap() {
-    try {
-        return require('../config/javaConfig').TYPE_CONTROL_MAP;
-    } catch {
-        return { node: {}, edge: {} };
-    }
-}
-
-function typeMatches(type, controls, category) {
-    const TYPE_CONTROL_MAP = getTypeControlMap();
-    const controlKey = TYPE_CONTROL_MAP[category]?.[type];
-    return controlKey ? controls[controlKey] : true;
 }
 
 function getLinkNodeId(linkNode) {

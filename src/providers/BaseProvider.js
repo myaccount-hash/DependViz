@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const { getWorkspaceFolder } = require('../utils/utils');
-const { ConfigurationManager } = require('../config/ConfigurationManager');
+const { ConfigurationManager } = require('../utils/ConfigurationManager');
 const fs = require('fs');
 const path = require('path');
 

@@ -3,7 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const { getWorkspaceFolder } = require('../utils/utils');
-const javaConfig = require('../config/javaConfig');
+const { JAVA_PATHS } = require('../constants');
 
 class JavaAnalyzer {
     constructor(context) {
@@ -11,9 +11,9 @@ class JavaAnalyzer {
     }
 
     async analyze() {
-        const jarPath = path.join(this.context.extensionPath, javaConfig.JAR_FILE);
+        const jarPath = path.join(this.context.extensionPath, JAVA_PATHS.JAR_FILE);
         if (!fs.existsSync(jarPath)) {
-            return vscode.window.showErrorMessage(`${javaConfig.JAR_FILE} が見つかりません`);
+            return vscode.window.showErrorMessage(`${JAVA_PATHS.JAR_FILE} が見つかりません`);
         }
 
         let workspaceFolder;
@@ -23,9 +23,9 @@ class JavaAnalyzer {
             return vscode.window.showErrorMessage(e.message);
         }
 
-        const dataDir = path.join(workspaceFolder.uri.fsPath, javaConfig.DATA_DIR);
-        const tempOutput = path.join(dataDir, javaConfig.TEMP_OUTPUT);
-        const finalOutput = path.join(workspaceFolder.uri.fsPath, javaConfig.GRAPH_OUTPUT);
+        const dataDir = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.DATA_DIR);
+        const tempOutput = path.join(dataDir, JAVA_PATHS.TEMP_OUTPUT);
+        const finalOutput = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.GRAPH_OUTPUT);
 
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true });

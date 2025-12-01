@@ -2,6 +2,25 @@ const vscode = require('vscode');
 const { DEFAULT_CONTROLS } = require('../constants');
 
 /**
+ * ノード・エッジタイプと設定キーのマッピング
+ */
+const TYPE_CONTROL_MAP = {
+    node: {
+        'Class': 'showClass',
+        'AbstractClass': 'showAbstractClass',
+        'Interface': 'showInterface',
+        'Unknown': 'showUnknown'
+    },
+    edge: {
+        'ObjectCreate': 'showObjectCreate',
+        'Extends': 'showExtends',
+        'Implements': 'showImplements',
+        'TypeUse': 'showTypeUse',
+        'MethodCall': 'showMethodCall'
+    }
+};
+
+/**
  * VS Code設定を一元管理するシングルトンクラス
  * - 設定の読み書きを統一
  * - 短期間のキャッシュでパフォーマンス向上
@@ -84,6 +103,22 @@ class ConfigurationManager {
     clearCache() {
         this._invalidateCache();
     }
+
+    /**
+     * ノード/エッジタイプに対応する設定キーを取得
+     */
+    getTypeControlKey(type, category) {
+        return TYPE_CONTROL_MAP[category]?.[type];
+    }
+
+    /**
+     * タイプが設定で有効かチェック
+     */
+    isTypeEnabled(type, category) {
+        const controls = this.loadControls();
+        const controlKey = this.getTypeControlKey(type, category);
+        return controlKey ? controls[controlKey] : true;
+    }
 }
 
 // ヘルパー関数（後方互換性のため）
@@ -95,8 +130,19 @@ async function updateControl(key, value) {
     return ConfigurationManager.getInstance().updateControl(key, value);
 }
 
+function getTypeControlMap() {
+    return TYPE_CONTROL_MAP;
+}
+
+function typeMatches(type, controls, category) {
+    const controlKey = TYPE_CONTROL_MAP[category]?.[type];
+    return controlKey ? controls[controlKey] : true;
+}
+
 module.exports = {
     ConfigurationManager,
     loadControls,
-    updateControl
+    updateControl,
+    getTypeControlMap,
+    typeMatches
 };
