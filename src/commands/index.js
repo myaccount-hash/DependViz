@@ -1,0 +1,78 @@
+const vscode = require('vscode');
+const { selectJavaSourceDirectory } = require('./directorySelection');
+const JavaAnalyzer = require('../analyzers/JavaAnalyzer');
+
+function registerCommands(context, providers) {
+    const { filterSettingsProvider, appearanceSettingsProvider, detailSettingsProvider, graphViewProvider } = providers;
+
+    const getProviderForControl = (key) => {
+        if (filterSettingsProvider.controls.hasOwnProperty(key)) return filterSettingsProvider;
+        if (appearanceSettingsProvider.controls.hasOwnProperty(key)) return appearanceSettingsProvider;
+        return detailSettingsProvider;
+    };
+
+    const createSliceCommand = (direction) => async () => {
+        const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
+        appearanceSettingsProvider.update({ key, value: true });
+    };
+
+    const commands = [
+        vscode.commands.registerCommand('forceGraphViewer.refresh', async () => {
+            filterSettingsProvider.update();
+            appearanceSettingsProvider.update();
+            detailSettingsProvider.update();
+            await graphViewProvider.refresh();
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.showSearchInput', async () => {
+            const search = await vscode.window.showInputBox({
+                prompt: '検索クエリ (例: Test, name:/Test.*/, type:Class AND name:Util, path:/.*Service/ OR NOT type:Unknown)',
+                value: filterSettingsProvider.controls.search,
+                placeHolder: '検索... (name:, type:, path: フィールド指定可, /正規表現/, AND/OR/NOT 演算可)'
+            });
+            if (search !== undefined) {
+                filterSettingsProvider.update({ key: 'search', value: search });
+            }
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.toggleCheckbox', async (key) => {
+            const provider = getProviderForControl(key);
+            provider.update({ key, value: !provider.controls[key] });
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, step, currentValue) => {
+            const value = await vscode.window.showInputBox({ prompt: `${key} (${min} - ${max})`, value: currentValue.toString(), validateInput: (v) => { const num = parseFloat(v); return isNaN(num) || num < min || num > max ? `値は ${min} から ${max} の間で入力してください` : null; } });
+            if (value !== undefined) {
+                const provider = getProviderForControl(key);
+                provider.update({ key, value: parseFloat(value) });
+            }
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.showColorPicker', async (key, currentColor) => {
+            const color = await vscode.window.showInputBox({ prompt: '色を入力 (例: #ff0000)', value: currentColor, validateInput: (v) => /^#[0-9a-fA-F]{6}$/.test(v) ? null : '有効な16進数カラーコードを入力してください (例: #ff0000)' });
+            if (color !== undefined) {
+                detailSettingsProvider.update({ key, value: color });
+            }
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.analyzeJavaProject', async () => {
+            const analyzer = new JavaAnalyzer(context);
+            await analyzer.analyze();
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.selectJavaSourceDirectory', selectJavaSourceDirectory),
+        vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
+            try {
+                const { updateStackTrace } = require('./stackTrace');
+                await updateStackTrace(graphViewProvider);
+                vscode.window.showInformationMessage('スタックトレースを更新しました');
+            } catch (e) {
+                vscode.window.showErrorMessage(`取得失敗: ${e.message}`);
+            }
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.forwardSlice', createSliceCommand('forward')),
+        vscode.commands.registerCommand('forceGraphViewer.backwardSlice', createSliceCommand('backward')),
+        vscode.commands.registerCommand('forceGraphViewer.clearSlice', () => {
+            appearanceSettingsProvider.update({ key: 'enableForwardSlice', value: false });
+            appearanceSettingsProvider.update({ key: 'enableBackwardSlice', value: false });
+        }),
+    ];
+
+    return commands;
+}
+
+module.exports = { registerCommands };

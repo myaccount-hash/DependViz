@@ -83,9 +83,15 @@ class GraphViewProvider {
     }
 
     async loadData(uri) {
-        const data = await vscode.workspace.fs.readFile(uri);
-        this._currentData = JSON.parse(data.toString());
-        return this._currentData;
+        try {
+            const data = await vscode.workspace.fs.readFile(uri);
+            this._currentData = JSON.parse(data.toString());
+            return this._currentData;
+        } catch (e) {
+            console.error('Failed to load graph data:', e);
+            vscode.window.showErrorMessage(`グラフデータの読み込みに失敗しました: ${e.message}`);
+            throw e;
+        }
     }
 
     update(data) {

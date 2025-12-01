@@ -24,7 +24,7 @@
         {
           "id": "forceGraphViewer",
           "title": "DependViz",
-          "icon": "images/force-graph.png"
+          "icon": "images/force-graph.svg"
         }
       ]
     },

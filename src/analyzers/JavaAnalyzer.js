@@ -58,20 +58,41 @@ class JavaAnalyzer {
         }, () => new Promise((resolve, reject) => {
             const process = spawn('java', ['-jar', jarPath, sourcePath], { cwd: workspaceFolder.uri.fsPath });
             let stderr = '';
+            let stdout = '';
+
+            process.stdout.on('data', (data) => {
+                stdout += data.toString();
+            });
+
             process.stderr.on('data', (data) => {
                 stderr += data.toString();
             });
+
+            process.on('error', (error) => {
+                console.error('Failed to spawn Java process:', error);
+                vscode.window.showErrorMessage(`Java実行エラー: ${error.message}`);
+                reject(error);
+            });
+
             process.on('close', async (code) => {
                 if (code !== 0) {
-                    vscode.window.showErrorMessage(`解析失敗: ${stderr || 'Unknown error'}`);
-                    reject();
+                    console.error('Java analyzer failed:', { code, stderr, stdout });
+                    vscode.window.showErrorMessage(`解析失敗 (終了コード: ${code}): ${stderr || stdout || 'Unknown error'}`);
+                    reject(new Error(`Analysis failed with code ${code}`));
                 } else if (!fs.existsSync(tempOutput)) {
+                    console.error('Output file not generated:', tempOutput);
                     vscode.window.showErrorMessage('解析失敗: 出力ファイルが生成されませんでした');
-                    reject();
+                    reject(new Error('Output file not generated'));
                 } else {
-                    fs.renameSync(tempOutput, finalOutput);
-                    vscode.window.showInformationMessage('解析完了');
-                    resolve();
+                    try {
+                        fs.renameSync(tempOutput, finalOutput);
+                        vscode.window.showInformationMessage('解析完了');
+                        resolve();
+                    } catch (e) {
+                        console.error('Failed to rename output file:', e);
+                        vscode.window.showErrorMessage(`ファイル移動エラー: ${e.message}`);
+                        reject(e);
+                    }
                 }
             });
         }));
