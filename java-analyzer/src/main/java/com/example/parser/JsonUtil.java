@@ -12,7 +12,7 @@ public class JsonUtil {
     public List<GraphNodeJson> nodes;
     public List<GraphEdgeJson> links;
   }
-
+  @SuppressWarnings("unused")
   private static class GraphNodeJson {
     public String id;
     public String name;
@@ -20,7 +20,7 @@ public class JsonUtil {
     public int linesOfCode;
     public String filePath;
   }
-
+  @SuppressWarnings("unused")
   private static class GraphEdgeJson {
     public String source;
     public String target;
