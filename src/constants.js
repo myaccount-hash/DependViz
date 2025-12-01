@@ -72,7 +72,7 @@ const SLIDER_RANGES = {
 };
 
 const DEBUG = {
-    STACK_TRACE_LEVELS: 50,
+    STACK_TRACE_LEVELS: 200,
     AUTO_ROTATE_DELAY: 1000
 };
 

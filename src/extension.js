@@ -57,7 +57,25 @@ function activate(context) {
                 await graphViewProvider.update({ type: 'focusNode', filePath: editor.document.uri.fsPath });
             }
         }),
-        vscode.window.onDidChangeActiveColorTheme(onProviderChange)
+        vscode.window.onDidChangeActiveColorTheme(onProviderChange),
+        vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
+            const controls = ConfigurationManager.getInstance().loadControls();
+            if (controls.showStackTrace && stackItem) {
+                await updateStackTrace(graphViewProvider);
+            }
+        }),
+        vscode.debug.onDidStartDebugSession(async () => {
+            const controls = ConfigurationManager.getInstance().loadControls();
+            if (controls.showStackTrace) {
+                await updateStackTrace(graphViewProvider);
+            }
+        }),
+        vscode.debug.onDidTerminateDebugSession(() => {
+            const controls = ConfigurationManager.getInstance().loadControls();
+            if (controls.showStackTrace) {
+                graphViewProvider.update({ type: 'stackTrace', paths: [] });
+            }
+        })
     ];
 
     context.subscriptions.push(...commands, ...eventHandlers);

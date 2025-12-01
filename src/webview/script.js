@@ -80,10 +80,22 @@ class GraphState {
   }
 
   setStackTraceLinks(paths) {
+    console.log('[StackTrace] Received paths:', paths.length, paths);
+
     const baseLinks = this.data.links.filter(l => !l.isStackTraceLink);
-    const stackNodes = paths.map(p => {
+    const stackNodes = [];
+    const unmatchedPaths = [];
+
+    paths.forEach((p, idx) => {
       const path = p;
-      return this.data.nodes.find(n => {
+
+      // 空文字列やnullをスキップ
+      if (!path) {
+        console.warn(`[StackTrace] [${idx}] Skipping empty path`);
+        return;
+      }
+
+      const node = this.data.nodes.find(n => {
         const nodePath = this._getNodeFilePath(n);
         if (!nodePath) return false;
         const nodeBasename = nodePath.split('/').pop();
@@ -93,9 +105,23 @@ class GraphState {
           path.endsWith(nodePath) ||
           nodePath.endsWith(path);
       });
-    }).filter(n => n);
-    const newLinks = [];
 
+      if (node) {
+        stackNodes.push(node);
+        console.log(`[StackTrace] [${idx}] Matched: ${path} -> ${node.id}`);
+      } else {
+        unmatchedPaths.push(path);
+        console.warn(`[StackTrace] [${idx}] NOT matched: ${path}`);
+      }
+    });
+
+    if (unmatchedPaths.length > 0) {
+      console.warn(`[StackTrace] ${unmatchedPaths.length} paths not matched. Sample available nodes:`,
+        this.data.nodes.slice(0, 5).map(n => ({ id: n.id, path: this._getNodeFilePath(n) }))
+      );
+    }
+
+    const newLinks = [];
     for (let i = 0; i < stackNodes.length - 1; i++) {
       newLinks.push({
         source: stackNodes[i + 1].id,
@@ -104,6 +130,8 @@ class GraphState {
         isStackTraceLink: true
       });
     }
+
+    console.log(`[StackTrace] Created ${newLinks.length} stack trace links from ${stackNodes.length} matched nodes`);
 
     this.data.links = [...baseLinks, ...newLinks];
     this.ui.stackTraceLinks = new Set(newLinks);
