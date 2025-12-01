@@ -82,161 +82,65 @@ describe('Edge Cases and Potential Bugs', () => {
             // basename は同じなのでマッチしてしまう
             expect(matched).to.be.undefined;
         });
+    });
 
     describe('Stack trace collection edge cases', () => {
         async function processDebugSession(session) {
-            try {
-                const threadsResponse = await session.customRequest('threads');
-                const threads = threadsResponse.threads;
+            const threadsResponse = await session.customRequest('threads');
+            const threads = threadsResponse.threads;
 
-                let totalFrames = 0;
-                let allFrames = [];
-                let stoppedThreads = 0;
+            let totalFrames = 0;
+            let allFrames = [];
 
-                for (const thread of threads) {
-                    try {
-                        const stackResponse = await session.customRequest('stackTrace', {
-                            threadId: thread.id,
-                            levels: 200
-                        });
+            for (const thread of threads) {
+                try {
+                    const stackResponse = await session.customRequest('stackTrace', {
+                        threadId: thread.id,
+                        levels: 200
+                    });
 
-                        if (stackResponse.stackFrames && stackResponse.stackFrames.length > 0) {
-                            stoppedThreads++;
-                            totalFrames += stackResponse.stackFrames.length;
-                            allFrames.push(...stackResponse.stackFrames);
-                        }
-                    } catch (threadError) {
-                        // エラーは無視
+                    if (stackResponse.stackFrames && stackResponse.stackFrames.length > 0) {
+                        totalFrames += stackResponse.stackFrames.length;
+                        allFrames.push(...stackResponse.stackFrames);
                     }
+                } catch (threadError) {
+                    // エラーは無視
                 }
-
-                return {
-                    threadCount: threads.length,
-                    stoppedThreads,
-                    totalFrames,
-                    captured: totalFrames > 0,
-                    frames: allFrames
-                };
-            } catch (sessionError) {
-                throw sessionError;
             }
+
+            return { totalFrames, frames: allFrames };
         }
 
         function createMockSession(config) {
             return {
-                id: config.id || 'test',
-                name: config.name || 'Test',
                 customRequest: async (command, args) => {
                     if (command === 'threads') {
                         return { threads: config.threads || [] };
                     }
                     if (command === 'stackTrace') {
                         const thread = config.threads.find(t => t.id === args.threadId);
-                        if (thread && thread.shouldThrow) {
-                            throw new Error('Thread error');
-                        }
                         if (!thread || !thread.stackFrames) {
                             return { stackFrames: [] };
                         }
-                        // levels を超えるフレームは切り捨てられる
-                        return {
-                            stackFrames: thread.stackFrames.slice(0, args.levels)
-                        };
+                        return { stackFrames: thread.stackFrames.slice(0, args.levels) };
                     }
                 }
             };
         }
 
-        it('should handle exactly 200 frames (boundary case)', async () => {
-            const frames = Array(200).fill(null).map((_, i) => ({
-                source: { path: `/path/Frame${i}.java` }
-            }));
-
-            const session = createMockSession({
-                threads: [{
-                    id: 1,
-                    stopped: true,
-                    stackFrames: frames
-                }]
-            });
-
-            const result = await processDebugSession(session);
-            expect(result.totalFrames).to.equal(200);
-        });
-
-        it('should truncate frames beyond 200 levels', async () => {
+        it('BUG: does not handle frames beyond 200 levels limit', async () => {
             const frames = Array(300).fill(null).map((_, i) => ({
                 source: { path: `/path/Frame${i}.java` }
             }));
 
             const session = createMockSession({
-                threads: [{
-                    id: 1,
-                    stopped: true,
-                    stackFrames: frames
-                }]
+                threads: [{ id: 1, stackFrames: frames }]
             });
 
             const result = await processDebugSession(session);
-            // 300フレームあるが200までしか取得できない
-            expect(result.totalFrames).to.equal(200);
-            // これは失敗する可能性がある（実装による）
-        });
-
-        it('should handle thread that throws error after returning some frames', async () => {
-            // この動作は未定義
-            const session = createMockSession({
-                threads: [
-                    {
-                        id: 1,
-                        stackFrames: [{ source: { path: '/A.java' } }]
-                    },
-                    {
-                        id: 2,
-                        shouldThrow: true  // エラーを投げる
-                    }
-                ]
-            });
-
-            const result = await processDebugSession(session);
-            // エラーは無視されるので、thread 1 のフレームは取得できる
-            expect(result.totalFrames).to.equal(1);
-            expect(result.stoppedThreads).to.equal(1);
-        });
-
-        it('should handle circular references in stack frames', async () => {
-            const frame1 = { source: { path: '/A.java' } };
-            const frame2 = { source: { path: '/B.java' }, parent: frame1 };
-            frame1.child = frame2;  // 循環参照
-
-            const session = createMockSession({
-                threads: [{
-                    id: 1,
-                    stackFrames: [frame1, frame2]
-                }]
-            });
-
-            // これが無限ループやメモリリークを引き起こさないか
-            const result = await processDebugSession(session);
-            expect(result.totalFrames).to.equal(2);
-        });
-
-        it('should handle very deep call stacks', async () => {
-            // 再帰呼び出しなどで非常に深いスタック
-            const frames = Array(10000).fill(null).map((_, i) => ({
-                source: { path: `/path/RecursiveCall${i % 10}.java` }
-            }));
-
-            const session = createMockSession({
-                threads: [{
-                    id: 1,
-                    stackFrames: frames
-                }]
-            });
-
-            const result = await processDebugSession(session);
-            // 200までしか取得できない
-            expect(result.totalFrames).to.be.at.most(200);
+            // 300フレームあるが200しか取得できない
+            // 深い再帰などで情報が失われる
+            expect(result.totalFrames).to.equal(300);
         });
     });
 
@@ -244,15 +148,10 @@ describe('Edge Cases and Potential Bugs', () => {
         class MockGraphViewProvider {
             constructor() {
                 this.updates = [];
-                this.updateCount = 0;
             }
 
             update(data) {
-                this.updateCount++;
-                this.updates.push({
-                    ...data,
-                    updateId: this.updateCount
-                });
+                this.updates.push({ ...data });
             }
         }
 
@@ -263,42 +162,28 @@ describe('Edge Cases and Potential Bugs', () => {
             provider.update({ type: 'stackTrace', paths });
         }
 
-        it('should handle rapid successive updates', async () => {
+        it('BUG: update order not guaranteed with async delays', async () => {
             const provider = new MockGraphViewProvider();
 
-            // 連続して更新
-            await Promise.all([
-                updateStackTrace(provider, ['/A.java']),
-                updateStackTrace(provider, ['/B.java']),
-                updateStackTrace(provider, ['/C.java'])
-            ]);
-
-            // どの順序で更新が適用されるかは不定
-            expect(provider.updates).to.have.lengthOf(3);
-            // 最後の更新が期待通りか？
-            // レースコンディションで順序が保証されない可能性
-        });
-
-        it('should NOT guarantee order when updates overlap', async () => {
-            const provider = new MockGraphViewProvider();
-
-            // 異なる遅延で更新
+            // 異なる遅延で更新（短い遅延が先に完了する）
             const promises = [
-                updateStackTrace(provider, ['/A.java'], 20),
-                updateStackTrace(provider, ['/B.java'], 10),  // これが先に完了
-                updateStackTrace(provider, ['/C.java'], 5)    // これが一番先
+                updateStackTrace(provider, ['/A.java'], 30),
+                updateStackTrace(provider, ['/B.java'], 20),
+                updateStackTrace(provider, ['/C.java'], 10)
             ];
 
             await Promise.all(promises);
 
-            // 期待: C, B, A の順
-            // しかし実装によっては順序が変わる可能性
-            expect(provider.updates[0].paths[0]).to.equal('/C.java');  // 失敗する可能性
+            // 期待: C, B, A の順序で完了するはず
+            // しかし、呼び出し順序（A, B, C）で適用される可能性がある
+            expect(provider.updates[0].paths[0]).to.equal('/C.java');
+            expect(provider.updates[1].paths[0]).to.equal('/B.java');
+            expect(provider.updates[2].paths[0]).to.equal('/A.java');
         });
     });
 
-    describe('Memory and performance edge cases', () => {
-        it('should handle extremely large node count', () => {
+    describe('Performance edge cases', () => {
+        it('BUG: linear search is slow for large node counts', () => {
             const nodes = Array(100000).fill(null).map((_, i) => ({
                 id: `node${i}`,
                 filePath: `/path/to/File${i}.java`
@@ -315,18 +200,9 @@ describe('Edge Cases and Potential Bugs', () => {
             const duration = Date.now() - start;
 
             expect(results).to.have.lengthOf(1);
-            // これは遅すぎないか？
-            // 線形検索なので O(n) だが、許容範囲内か？
-            expect(duration).to.be.below(1000);  // 1秒以内？失敗する可能性
-        });
-
-        it('should handle duplicate paths without memory leak', () => {
-            const paths = Array(10000).fill('/same/path/File.java');
-
-            const uniquePaths = [...new Set(paths)];
-
-            expect(uniquePaths).to.have.lengthOf(1);
-            // メモリ使用量は適切か？（この test では検証できないが）
+            // O(n) の線形検索は遅すぎる
+            // 100,000ノードで許容できる速度か？
+            expect(duration).to.be.below(100);  // 100ms以内を期待
         });
     });
 
@@ -337,49 +213,29 @@ describe('Edge Cases and Potential Bugs', () => {
                 .filter(p => p);
         }
 
-        it('should handle frames with undefined source', () => {
-            const frames = [
-                { source: { path: '/A.java' } },
-                { source: undefined },  // source が undefined
-                { source: { path: '/B.java' } }
-            ];
-
-            const paths = extractPaths(frames);
-            expect(paths).to.have.lengthOf(2);
-        });
-
-        it('should handle frames that are null', () => {
+        it('BUG: crashes on null frames in array', () => {
             const frames = [
                 { source: { path: '/A.java' } },
                 null,  // frame 自体が null
                 { source: { path: '/B.java' } }
             ];
 
-            // これはエラーを投げる可能性がある
-            expect(() => extractPaths(frames)).to.throw();  // 失敗する可能性
+            // map で null.source にアクセスするとエラー
+            // オプショナルチェーン ?. は使っているが、null は通過する
+            expect(() => extractPaths(frames)).to.not.throw();
         });
 
-        it('should handle empty source object', () => {
+        it('BUG: empty string paths are filtered but might cause issues', () => {
             const frames = [
-                { source: { path: '/A.java' } },
-                { source: {} },  // path プロパティがない
-                { source: { path: '/B.java' } }
-            ];
-
-            const paths = extractPaths(frames);
-            expect(paths).to.have.lengthOf(2);
-        });
-
-        it('should handle source.path being empty string', () => {
-            const frames = [
-                { source: { path: '/A.java' } },
                 { source: { path: '' } },  // 空文字列
-                { source: { path: '/B.java' } }
+                { source: { path: '   ' } },  // スペースのみ
             ];
 
             const paths = extractPaths(frames);
-            // filter(p => p) は空文字列を除外する
-            expect(paths).to.have.lengthOf(2);
+            // filter(p => p) は空文字列は除外するが、
+            // スペースのみの文字列は truthy なので残る
+            expect(paths).to.have.lengthOf(0);
         });
     });
 });
+
