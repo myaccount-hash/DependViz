@@ -1,9 +1,9 @@
 package com.example.parser;
 
 public class GraphEdge {
-  private GraphNode sourceNode;
-  private GraphNode targetNode;
-  private String id;
+  private final GraphNode sourceNode;
+  final private GraphNode targetNode;
+  final private String id;
   private boolean visibility;
   private String type;
 

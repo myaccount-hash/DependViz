@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GraphNode {
-  private String nodeName;
-  private List<GraphNode> referNodes;
-  private String id;
+  final private String nodeName;
+  final private List<GraphNode> referNodes;
+  final private String id;
   private String type = "Unknown";
   private int linesOfCode = -1; // 行数フィールドを追加（初期値-1）
   private String filePath = null;
@@ -16,14 +16,6 @@ public class GraphNode {
     this.referNodes = new ArrayList<>();
     this.id = nodeName;
     this.type = "Unknown";
-    this.linesOfCode = -1;
-  }
-
-  GraphNode(String nodeName, String type) {
-    this.nodeName = nodeName;
-    this.referNodes = new ArrayList<>();
-    this.id = nodeName;
-    this.type = type;
     this.linesOfCode = -1;
   }
 
