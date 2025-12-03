@@ -33,55 +33,33 @@ public class Main {
   static final String OUTPUT_PATH = "data/sample.json";
 
   public static void main(String[] args) {
-    // モード判定: --file フラグで単一ファイル解析
-    boolean singleFileMode = args.length > 0 && "--file".equals(args[0]);
-
-    String sourcePath;
-    if (singleFileMode && args.length > 1) {
-      sourcePath = args[1];
-    } else if (!singleFileMode && args.length > 0) {
-      sourcePath = args[0];
-    } else {
-      String currentDir = System.getProperty("user.dir");
-      Path srcMainJava = Paths.get(currentDir, "src", "main", "java");
-      if (Files.exists(srcMainJava)) {
-        sourcePath = srcMainJava.toString();
-      } else {
-        sourcePath = currentDir;
-      }
+    // 単一ファイル解析のみをサポート
+    // --file フラグは必須
+    if (args.length < 2 || !"--file".equals(args[0])) {
+      logger.log(Level.SEVERE, "Usage: java -jar java-graph.jar --file <file-path>");
+      System.err.println("Error: --file flag and file path are required");
+      System.exit(1);
+      return;
     }
 
-    // JavaParserTypeSolver用のソースルートを決定
-    Path sourceDir = Paths.get(sourcePath);
-    String typeSolverRoot;
+    String filePath = args[1];
 
-    if (singleFileMode) {
-      // 単一ファイルの場合、そのファイルが属するプロジェクトのソースルートを探す
-      Path fileParent = sourceDir.getParent();
-      Path srcMainJava = findSourceRoot(fileParent);
-      typeSolverRoot = srcMainJava != null ? srcMainJava.toString() : fileParent.toString();
-    } else {
-      // ディレクトリ解析の場合
-      Path srcMainJava = sourceDir.resolve("src/main/java");
-      typeSolverRoot = Files.exists(srcMainJava) ? srcMainJava.toString() : sourcePath;
-    }
+    // ファイルが属するプロジェクトのソースルートを探す
+    Path sourceFile = Paths.get(filePath);
+    Path fileParent = sourceFile.getParent();
+    Path srcMainJava = findSourceRoot(fileParent);
+    String typeSolverRoot = srcMainJava != null ? srcMainJava.toString() : fileParent.toString();
 
     CombinedTypeSolver typeSolver = new CombinedTypeSolver(
         new ReflectionTypeSolver(), new JavaParserTypeSolver(typeSolverRoot));
 
     try {
-      CodeGraph mainCodeGraph;
-      if (singleFileMode) {
-        // 単一ファイル解析
-        mainCodeGraph = analyzeSingleFile(sourcePath, typeSolver);
-      } else {
-        // 全てのファイルを解析（指定されたパスをそのまま使用）
-        mainCodeGraph = analyzeAllFiles(sourcePath, OUTPUT_PATH, typeSolver);
-      }
+      // 単一ファイル解析
+      CodeGraph codeGraph = analyzeSingleFile(filePath, typeSolver);
       // 結果をJSONに出力
-      JsonUtil.writeToFile(mainCodeGraph, OUTPUT_PATH);
+      JsonUtil.writeToFile(codeGraph, OUTPUT_PATH);
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Failed to analyze files or write output", e);
+      logger.log(Level.SEVERE, "Failed to analyze file or write output", e);
       System.exit(1);
     }
   }
@@ -124,44 +102,18 @@ public class Main {
       return codeGraph;
     }
 
-    analyzePath(path, typeSolver, analyzers).forEach(codeGraph::merge);
-    return codeGraph;
-  }
-
-  // 全てのファイルを解析するメソッド
-  static CodeGraph analyzeAllFiles(
-      String rootPath, String outputPath, CombinedTypeSolver typeSolver) throws IOException {
-    List<Analyzer> analyzers = List.of(
-        new TypeUseAnalyzer(),
-        new MethodCallAnalyzer(),
-        new ObjectCreationAnalyzer(),
-        new ExtendsAnalyzer(),
-        new ImplementsAnalyzer(),
-        new ClassTypeAnalyzer(),
-        new LinesOfCodeAnalyzer(),
-        new FilePathAnalyzer());
-
-    CodeGraph mainCodeGraph = new CodeGraph();
-    Path sourceDir = Paths.get(rootPath);
-    Files.walk(sourceDir) // ディレクトリを探索
-        .filter(path -> path.toString().endsWith(".java")) // .javaファイルのみをフィルタ
-        .flatMap(path -> analyzePath(path, typeSolver, analyzers)) // CodeGraphに変換
-        .forEach(mainCodeGraph::merge); // 全てのCodeGraphをマージ
-    return mainCodeGraph;
-  }
-
-  private static Stream<CodeGraph> analyzePath(Path path, CombinedTypeSolver typeSolver, List<Analyzer> analyzers) {
+    // ファイルを解析
     logger.info(() -> "Analyzing: " + path);
     try {
-      CompilationUnit cu = createCompilationUnit(path.toString(), typeSolver);
-      return analyzers.stream().map(analyzer -> analyzer.process(cu));
-    } catch (IOException e) {
-      logger.log(Level.WARNING, e, () -> "Failed to read file: " + path);
-      return Stream.empty();
+      CompilationUnit cu = createCompilationUnit(filePath, typeSolver);
+      analyzers.stream()
+          .map(analyzer -> analyzer.process(cu))
+          .forEach(codeGraph::merge);
     } catch (Exception e) {
       logger.log(Level.WARNING, e, () -> "Failed to parse file: " + path);
-      return Stream.empty();
     }
+
+    return codeGraph;
   }
 
   private static CompilationUnit createCompilationUnit(

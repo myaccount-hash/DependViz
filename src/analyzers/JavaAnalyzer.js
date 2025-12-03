@@ -71,25 +71,16 @@ class JavaAnalyzer {
         });
     }
 
+    /**
+     * ディレクトリ内の全Javaファイルを解析
+     * JavaScript側で各ファイルを解析してグラフを構築
+     */
     async analyze() {
-        const jarPath = path.join(this.context.extensionPath, JAVA_PATHS.JAR_FILE);
-        if (!fs.existsSync(jarPath)) {
-            return vscode.window.showErrorMessage(`${JAVA_PATHS.JAR_FILE} が見つかりません`);
-        }
-
         let workspaceFolder;
         try {
             workspaceFolder = getWorkspaceFolder();
         } catch (e) {
             return vscode.window.showErrorMessage(e.message);
-        }
-
-        const dataDir = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.DATA_DIR);
-        const tempOutput = path.join(dataDir, JAVA_PATHS.TEMP_OUTPUT);
-        const finalOutput = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.GRAPH_OUTPUT);
-
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
         }
 
         // Javaソースディレクトリを取得
@@ -98,7 +89,6 @@ class JavaAnalyzer {
 
         let sourcePath;
         if (configuredDir) {
-            // 設定値が指定されている場合
             if (path.isAbsolute(configuredDir)) {
                 sourcePath = configuredDir;
             } else {
@@ -108,55 +98,139 @@ class JavaAnalyzer {
                 return vscode.window.showErrorMessage(`指定されたディレクトリが見つかりません: ${sourcePath}`);
             }
         } else {
-            // デフォルト: ワークスペース全体
             sourcePath = workspaceFolder.uri.fsPath;
         }
 
+        // ディレクトリ内の全Javaファイルを探索
+        const javaFiles = this._findJavaFiles(sourcePath);
+
+        if (javaFiles.length === 0) {
+            return vscode.window.showWarningMessage('Javaファイルが見つかりませんでした');
+        }
+
+        // 全ファイルを解析してマージ
+        const mergedGraph = { nodes: [], links: [] };
+        let successCount = 0;
+        let errorCount = 0;
+
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'Javaプロジェクトを解析中...',
+            title: `Javaプロジェクトを解析中 (0/${javaFiles.length})...`,
             cancellable: false
-        }, () => new Promise((resolve, reject) => {
-            const process = spawn('java', ['-jar', jarPath, sourcePath], { cwd: workspaceFolder.uri.fsPath });
-            let stderr = '';
-            let stdout = '';
+        }, async (progress) => {
+            for (let i = 0; i < javaFiles.length; i++) {
+                const filePath = javaFiles[i];
+                try {
+                    const graphData = await this.analyzeFile(filePath);
+                    console.log(`[${i + 1}/${javaFiles.length}] ${filePath}: ${graphData.nodes.length} nodes, ${graphData.links.length} links`);
 
-            process.stdout.on('data', (data) => {
-                stdout += data.toString();
-            });
+                    const beforeNodes = mergedGraph.nodes.length;
+                    const beforeLinks = mergedGraph.links.length;
 
-            process.stderr.on('data', (data) => {
-                stderr += data.toString();
-            });
+                    this._mergeGraph(mergedGraph, graphData);
 
-            process.on('error', (error) => {
-                console.error('Failed to spawn Java process:', error);
-                vscode.window.showErrorMessage(`Java実行エラー: ${error.message}`);
-                reject(error);
-            });
+                    const addedNodes = mergedGraph.nodes.length - beforeNodes;
+                    const addedLinks = mergedGraph.links.length - beforeLinks;
+                    console.log(`  Merged: +${addedNodes} nodes (${beforeNodes} -> ${mergedGraph.nodes.length}), +${addedLinks} links (${beforeLinks} -> ${mergedGraph.links.length})`);
 
-            process.on('close', async (code) => {
-                if (code !== 0) {
-                    console.error('Java analyzer failed:', { code, stderr, stdout });
-                    vscode.window.showErrorMessage(`解析失敗 (終了コード: ${code}): ${stderr || stdout || 'Unknown error'}`);
-                    reject(new Error(`Analysis failed with code ${code}`));
-                } else if (!fs.existsSync(tempOutput)) {
-                    console.error('Output file not generated:', tempOutput);
-                    vscode.window.showErrorMessage('解析失敗: 出力ファイルが生成されませんでした');
-                    reject(new Error('Output file not generated'));
-                } else {
-                    try {
-                        fs.renameSync(tempOutput, finalOutput);
-                        vscode.window.showInformationMessage('解析完了');
-                        resolve();
-                    } catch (e) {
-                        console.error('Failed to rename output file:', e);
-                        vscode.window.showErrorMessage(`ファイル移動エラー: ${e.message}`);
-                        reject(e);
-                    }
+                    successCount++;
+                } catch (e) {
+                    console.error(`Failed to analyze ${filePath}:`, e);
+                    errorCount++;
                 }
-            });
-        }));
+                progress.report({
+                    message: `(${i + 1}/${javaFiles.length})`,
+                    increment: (100 / javaFiles.length)
+                });
+            }
+        });
+
+        // 結果を保存
+        const finalOutput = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.GRAPH_OUTPUT);
+        try {
+            fs.writeFileSync(finalOutput, JSON.stringify(mergedGraph, null, 2));
+            vscode.window.showInformationMessage(
+                `解析完了: ${successCount}ファイル成功, ${errorCount}ファイル失敗 (${mergedGraph.nodes.length}ノード, ${mergedGraph.links.length}リンク)`
+            );
+        } catch (e) {
+            vscode.window.showErrorMessage(`結果の保存に失敗: ${e.message}`);
+        }
+    }
+
+    /**
+     * ディレクトリ内の全Javaファイルを再帰的に探索
+     */
+    _findJavaFiles(dir) {
+        const results = [];
+        const list = fs.readdirSync(dir);
+
+        list.forEach(file => {
+            const filePath = path.join(dir, file);
+            const stat = fs.statSync(filePath);
+
+            if (stat.isDirectory()) {
+                results.push(...this._findJavaFiles(filePath));
+            } else if (file.endsWith('.java')) {
+                results.push(filePath);
+            }
+        });
+
+        return results;
+    }
+
+    /**
+     * グラフデータをマージ（重複を排除）
+     * Java側のCodeGraph.merge()ロジックと同等の処理
+     */
+    _mergeGraph(target, source) {
+        if (!source || !source.nodes || !source.links) return;
+
+        // ノードIDからノードへのマップを構築
+        const nodeMap = new Map();
+        target.nodes.forEach(node => nodeMap.set(node.id, node));
+
+        // 新しいノードを追加、または既存ノードを更新
+        source.nodes.forEach(newNode => {
+            const existingNode = nodeMap.get(newNode.id);
+            if (!existingNode) {
+                // 新規ノードを追加
+                target.nodes.push(newNode);
+                nodeMap.set(newNode.id, newNode);
+            } else {
+                // 既存ノードのプロパティを更新（Java側のマージロジックと同様）
+                // タイプがUnknownの場合は上書き
+                if (existingNode.type === 'Unknown' && newNode.type !== 'Unknown') {
+                    existingNode.type = newNode.type;
+                }
+                // 行数が-1の場合のみ上書き
+                if (existingNode.linesOfCode === -1 && newNode.linesOfCode !== -1) {
+                    existingNode.linesOfCode = newNode.linesOfCode;
+                }
+                // ファイルパスがnullの場合のみ上書き
+                if (!existingNode.filePath && newNode.filePath) {
+                    existingNode.filePath = newNode.filePath;
+                }
+            }
+        });
+
+        // リンクの重複チェック用キー生成
+        const linkKey = (link) => {
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            return `${sourceId}-${link.type}-${targetId}`;
+        };
+
+        // 既存リンクのキーセット
+        const existingLinkKeys = new Set(target.links.map(linkKey));
+
+        // 新しいリンクを追加
+        source.links.forEach(link => {
+            const key = linkKey(link);
+            if (!existingLinkKeys.has(key)) {
+                target.links.push(link);
+                existingLinkKeys.add(key);
+            }
+        });
     }
 }
 
