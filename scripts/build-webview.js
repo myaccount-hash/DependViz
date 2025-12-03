@@ -1,0 +1,24 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const TEMPLATE_PATH = path.join(__dirname, '../webview/template.html');
+const SCRIPT_PATH = path.join(__dirname, '../webview/script.js');
+const OUTPUT_PATH = path.join(__dirname, '../webview/dist/webview.html');
+
+function buildWebview() {
+  const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
+  const script = fs.readFileSync(SCRIPT_PATH, 'utf8');
+
+  const wrappedScript = `(function(DEFAULT_CONTROLS, COLORS, DEBUG) {\n${script}\n})(DEFAULT_CONTROLS, COLORS, DEBUG);`;
+  const result = template.replace(/{{script}}/g, wrappedScript);
+
+  const outputDir = path.dirname(OUTPUT_PATH);
+  fs.mkdirSync(outputDir, { recursive: true });
+  fs.writeFileSync(OUTPUT_PATH, result, 'utf8');
+  // eslint-disable-next-line no-console
+  console.log(`Webview template built -> ${OUTPUT_PATH}`);
+}
+
+buildWebview();

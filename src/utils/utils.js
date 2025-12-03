@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const { loadControls, typeMatches } = require('./ConfigurationManager');
 
+const WEBVIEW_DIST_PATH = path.join(__dirname, '../../webview/dist/webview.html');
+
 function validateGraphData(data) {
     if (!data || typeof data !== 'object') throw new Error('data must be an object');
     if (!Array.isArray(data.nodes)) throw new Error('data.nodes must be an array');
@@ -118,17 +120,19 @@ function mergeGraphData(target, source) {
 function getHtmlForWebview(webview, libs) {
     const { DEFAULT_CONTROLS, COLORS, DEBUG } = require('../constants');
     const nonce = Date.now().toString();
-    const script = fs.readFileSync(path.join(__dirname, '../webview/script.js'), 'utf8');
-    const wrappedScript = `(function(DEFAULT_CONTROLS, COLORS, DEBUG) {\n${script}\n})(DEFAULT_CONTROLS, COLORS, DEBUG);`;
-    const template = fs.readFileSync(path.join(__dirname, '../webview/template.html'), 'utf8');
+
+    if (!fs.existsSync(WEBVIEW_DIST_PATH)) {
+        throw new Error('Webview assets not found. Run "npm run build:webview" before packaging the extension.');
+    }
+
+    const template = fs.readFileSync(WEBVIEW_DIST_PATH, 'utf8');
     return template
         .replace(/{{nonce}}/g, nonce)
         .replace(/{{cspSource}}/g, webview.cspSource)
         .replace(/{{fgUri}}/g, libs.fgUri)
         .replace(/{{defaultControls}}/g, JSON.stringify(DEFAULT_CONTROLS))
         .replace(/{{colors}}/g, JSON.stringify(COLORS))
-        .replace(/{{debug}}/g, JSON.stringify(DEBUG))
-        .replace(/{{script}}/g, wrappedScript);
+        .replace(/{{debug}}/g, JSON.stringify(DEBUG));
 }
 
 module.exports = {

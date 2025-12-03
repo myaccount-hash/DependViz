@@ -304,7 +304,8 @@
   "scripts": {
     "build": "npm run build:java && npm run build:extension",
     "build:java": "cd java-analyzer && mvn clean package && cp target/java-graph.jar ..",
-    "build:extension": "npm install",
+    "build:extension": "npm install && npm run build:webview",
+    "build:webview": "node scripts/build-webview.js",
     "clean": "rm -f java-graph.jar && cd java-analyzer && mvn clean && rm -f dependency-reduced-pom.xml",
     "debug:lsp": "node test/lsp-debug.js",
     "test": "npm run test:unit",

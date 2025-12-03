@@ -98,6 +98,7 @@ class GraphState {
     const parts2 = norm2.split('/').filter(Boolean);
     if (parts1.length === 0 || parts2.length === 0) return false;
     const minLen = Math.min(parts1.length, parts2.length);
+    if (minLen < 2) return false;
     for (let i = 1; i <= minLen; i++) {
       const suffix1 = parts1.slice(-i).join('/');
       const suffix2 = parts2.slice(-i).join('/');
@@ -200,12 +201,25 @@ function updateGraph() {
   const links = state.data.links || [];
 
   const nodeVisualCache = new Map();
-  nodes.forEach(node => { node.neighbors = []; node.links = []; nodeVisualCache.set(node, state.getNodeVisualProps(node)); });
+  const nodeById = new Map();
+  nodes.forEach(node => {
+    node.neighbors = [];
+    node.links = [];
+    nodeVisualCache.set(node, state.getNodeVisualProps(node));
+    if (node.id != null) {
+      nodeById.set(node.id, node);
+    }
+  });
+
   const linkVisualCache = new Map();
   links.forEach(link => {
     linkVisualCache.set(link, state.getLinkVisualProps(link));
-    const a = nodes.find(n => n.id === link.source || n === link.source);
-    const b = nodes.find(n => n.id === link.target || n === link.target);
+
+    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+
+    const a = nodeById.get(sourceId);
+    const b = nodeById.get(targetId);
     if (!a || !b) return;
 
     a.neighbors.push(b);
@@ -335,25 +349,26 @@ function matchesSearchQuery(node, query) {
   if (!query) return true;
   const q = query.toLowerCase();
 
-  // Simple field:value search
+  // field:value が含まれている場合は拡張検索モード
   if (q.includes(':')) {
-    const queries = q.split(/\s+AND\s+|\s+OR\s+/).map(s => s.trim());
-    const hasAnd = q.includes(' AND ');
-    const hasOr = q.includes(' OR ');
+    const hasAnd = q.includes(' and ');
+    const hasOr = q.includes(' or ');
+    const parts = q.split(/\s+and\s+|\s+or\s+/).map(s => s.trim());
 
-    const results = queries.map(subQ => {
-      if (subQ.startsWith('NOT ')) {
+    const results = parts.map(subQ => {
+      if (subQ.startsWith('not ')) {
         return !evaluateFieldQuery(node, subQ.substring(4));
       }
       return evaluateFieldQuery(node, subQ);
     });
 
-    if (hasAnd) return results.every(r => r);
-    if (hasOr) return results.some(r => r);
+    if (hasAnd && !hasOr) return results.every(Boolean);
+    if (hasOr && !hasAnd) return results.some(Boolean);
+    if (hasAnd && hasOr) return results.every(Boolean);
     return results[0];
   }
 
-  // Simple text search
+  // シンプルなテキスト検索
   return (node.name && node.name.toLowerCase().includes(q)) ||
          (node.id && node.id.toLowerCase().includes(q));
 }
@@ -362,9 +377,9 @@ function evaluateFieldQuery(node, query) {
   const match = query.match(/^(\w+):(.+)$/);
   if (!match) return false;
 
-  const [, field, value] = match;
-  const isRegex = value.startsWith('/') && value.endsWith('/');
-  const searchValue = isRegex ? value.slice(1, -1) : value;
+  const [, field, rawValue] = match;
+  const isRegex = rawValue.startsWith('/') && rawValue.endsWith('/');
+  const searchValue = isRegex ? rawValue.slice(1, -1) : rawValue;
 
   let nodeValue = '';
   if (field === 'name') nodeValue = node.name || '';
@@ -483,4 +498,3 @@ setTimeout(() => {
     console.error('[DependViz] Failed to initialize graph on startup');
   }
 }, 100);
-
