@@ -182,20 +182,7 @@ class GraphViewProvider {
     }
 
     _applySliceSettings() {
-        const controls = ConfigurationManager.getInstance().loadControls();
-        const { enableForwardSlice, enableBackwardSlice } = controls;
-
-        if (!enableForwardSlice) this._forwardSlice = null;
-        if (!enableBackwardSlice) this._backwardSlice = null;
-
-        if (this._lastFocusedFilePath) {
-            if (enableForwardSlice && !this._forwardSlice) {
-                this._computeSliceForFilePath(this._lastFocusedFilePath, 'forward');
-            }
-            if (enableBackwardSlice && !this._backwardSlice) {
-                this._computeSliceForFilePath(this._lastFocusedFilePath, 'backward');
-            }
-        }
+        this._updateSlicesForFocusedNode(true);
     }
 
     _computeSliceForFilePath(filePath, direction) {
@@ -211,6 +198,28 @@ class GraphViewProvider {
             this._forwardSlice = sliceData;
         } else if (direction === 'backward') {
             this._backwardSlice = sliceData;
+        }
+    }
+
+    _updateSlicesForFocusedNode(force = false) {
+        const controls = ConfigurationManager.getInstance().loadControls();
+
+        if (!this._lastFocusedFilePath) {
+            this._forwardSlice = null;
+            this._backwardSlice = null;
+            return;
+        }
+
+        if (!controls.enableForwardSlice) {
+            this._forwardSlice = null;
+        } else if (force || !this._forwardSlice) {
+            this._computeSliceForFilePath(this._lastFocusedFilePath, 'forward');
+        }
+
+        if (!controls.enableBackwardSlice) {
+            this._backwardSlice = null;
+        } else if (force || !this._backwardSlice) {
+            this._computeSliceForFilePath(this._lastFocusedFilePath, 'backward');
         }
     }
 
@@ -247,13 +256,7 @@ class GraphViewProvider {
         if (this._view && this._currentData?.nodes?.length > 0) {
             const node = this._findNodeByFilePath(filePath);
             if (node) {
-                const controls = ConfigurationManager.getInstance().loadControls();
-                if (controls.enableForwardSlice) {
-                    this._computeSliceForFilePath(filePath, 'forward');
-                }
-                if (controls.enableBackwardSlice) {
-                    this._computeSliceForFilePath(filePath, 'backward');
-                }
+                this._updateSlicesForFocusedNode(true);
 
                 this.syncToWebview();
                 this._postMessage({ type: 'focusNodeById', nodeId: node.id });

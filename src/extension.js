@@ -35,7 +35,8 @@ function activate(context) {
 
     const providers = {
         settingsProvider,
-        graphViewProvider
+        graphViewProvider,
+        javaAnalyzer
     };
 
     const commands = registerCommands(context, providers);

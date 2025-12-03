@@ -133,18 +133,19 @@ class JavaAnalyzer {
         }
     }
 
-    /**
-     * 単一ファイルを解析（互換性のため）
-     */
     async analyzeFile(filePath) {
+        return this._analyzeFileInternal(filePath, { openDocument: true });
+    }
+
+    async _analyzeFileInternal(filePath, { openDocument = false } = {}) {
         const fileUri = vscode.Uri.file(filePath).toString();
 
-        // ファイルを開いてLanguage Serverに解析させる
-        const document = await vscode.workspace.openTextDocument(filePath);
-        await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true });
+        if (openDocument) {
+            const document = await vscode.workspace.openTextDocument(filePath);
+            await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true });
+        }
 
-        // グラフデータを取得
-        return await this.getFileDependencyGraph(fileUri);
+        return this.getFileDependencyGraph(fileUri);
     }
 
     /**
@@ -176,7 +177,7 @@ class JavaAnalyzer {
                 for (let i = 0; i < javaFiles.length; i++) {
                     const file = javaFiles[i];
                     try {
-                        const graphData = await this.getFileDependencyGraph(file.toString());
+                        const graphData = await this._analyzeFileInternal(file.fsPath);
                         mergeGraphData(mergedGraph, graphData);
                         successCount++;
                     } catch (error) {

@@ -81,7 +81,7 @@ async function updateStackTrace(graphViewProvider) {
 
         console.log(`Updating stack trace visualization: ${paths.length} frames from ${uniquePaths.length} unique files`);
 
-        graphViewProvider.update({ type: 'stackTrace', paths });
+        graphViewProvider.update({ type: 'stackTrace', paths: uniquePaths });
     } catch (e) {
         console.error('Failed to update stack trace:', e.message, e.stack);
         graphViewProvider.update({ type: 'stackTrace', paths: [] });

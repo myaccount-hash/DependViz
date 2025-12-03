@@ -1,8 +1,7 @@
 const vscode = require('vscode');
-const JavaAnalyzer = require('../analyzers/JavaAnalyzer');
 
 function registerCommands(context, providers) {
-    const { settingsProvider, graphViewProvider } = providers;
+    const { settingsProvider, graphViewProvider, javaAnalyzer } = providers;
 
     const createSliceCommand = (direction) => async () => {
         const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
@@ -40,8 +39,7 @@ function registerCommands(context, providers) {
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeJavaProject', async () => {
-            const analyzer = new JavaAnalyzer(context);
-            const graphData = await analyzer.analyze();
+            const graphData = await javaAnalyzer.analyze();
             if (graphData) {
                 graphViewProvider.setGraphData(graphData);
             }
@@ -58,12 +56,11 @@ function registerCommands(context, providers) {
             }
 
             try {
-                const analyzer = new JavaAnalyzer(context);
                 const graphData = await vscode.window.withProgress({
                     location: vscode.ProgressLocation.Notification,
                     title: 'ファイルを解析中...',
                     cancellable: false
-                }, () => analyzer.analyzeFile(filePath));
+                }, () => javaAnalyzer.analyzeFile(filePath));
 
                 // グラフデータをマージ
                 graphViewProvider.mergeGraphData(graphData);
