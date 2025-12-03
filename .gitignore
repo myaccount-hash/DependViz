@@ -22,7 +22,8 @@ java-analyzer/target/
 java-analyzer/dependency-reduced-pom.xml
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/launch.json
 .idea/
 *.swp
 *.swo
@@ -35,5 +36,4 @@ Thumbs.db
 # Generated files
 graph.json
 data/
-
 
