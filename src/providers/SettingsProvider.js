@@ -1,6 +1,6 @@
 const vscode = require('vscode');
-const BaseProvider = require('./BaseProvider');
-const { SectionItem } = require('../utils/TreeItems');
+const { SectionItem, CheckboxControlItem, SliderControlItem, ColorControlItem } = require('../utils/TreeItems');
+const { ConfigurationManager } = require('../utils/ConfigurationManager');
 const { SLIDER_RANGES } = require('../constants');
 
 // フィルタ設定
@@ -71,7 +71,45 @@ const DETAIL_SECTIONS = [
  * 統合された設定プロバイダー
  * - フィルタ、表示モード、詳細設定を1つのプロバイダーで管理
  */
-class SettingsProvider extends BaseProvider {
+class SettingsProvider {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+
+    get controls() {
+        return ConfigurationManager.getInstance().loadControls();
+    }
+
+    async _updateControls(data) {
+        if (data && typeof data === 'object' && 'key' in data && 'value' in data) {
+            await ConfigurationManager.getInstance().updateControl(data.key, data.value);
+        }
+    }
+
+    async update(data) {
+        if (data && data.key && 'value' in data) {
+            await this._updateControls(data);
+        }
+        this._onDidChangeTreeData.fire();
+    }
+
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+
+    getTreeItem(element) {
+        return element;
+    }
+
+    getChildren(element) {
+        if (!element) return this.getRootItems();
+        if (element.contextValue === 'section' || element.contextValue === 'controlSection') {
+            return element.children;
+        }
+        return [];
+    }
+
     getRootItems() {
         // すべてのセクションを統合
         const allSections = [
@@ -88,7 +126,14 @@ class SettingsProvider extends BaseProvider {
     createControlItem(c) {
         const [type, label, key] = c;
         if (type === 'search') return new SearchControlItem(label, this.controls[key]);
-        return super.createControlItem(c);
+        if (type === 'checkbox') return new CheckboxControlItem(label, this.controls[key], key);
+        if (type === 'slider') {
+            const range = c[3];
+            return new SliderControlItem(label, this.controls[key], range.min, range.max, range.step, key);
+        }
+        if (type === 'color') return new ColorControlItem(label, this.controls[key], key);
+
+        throw new Error(`Unknown control type: ${type}`);
     }
 }
 
