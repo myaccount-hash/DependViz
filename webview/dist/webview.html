@@ -187,7 +187,7 @@ class GraphState {
       arrowSize: this.controls.arrowSize
     });
 
-    // Apply focus dimming
+    // Apply focus dimming and highlighting
     if (this.ui.focusedNode) {
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
       const targetId = typeof link.target === 'object' ? link.target.id : link.target;
@@ -195,7 +195,11 @@ class GraphState {
 
       const isConnectedToFocus = sourceId === focusedId || targetId === focusedId;
 
-      if (!isConnectedToFocus) {
+      if (isConnectedToFocus) {
+        // Add particles to focused edges
+        props.particles = 3;
+        props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
+      } else {
         props.opacity = (props.opacity || 1) * 0.1;
       }
     }
@@ -436,7 +440,7 @@ function updateGraph(options = {}) {
         const props = getNodeProps(node);
         if (!props) return;
         const label = props.label || node.name || node.id;
-        const fontSize = state.controls.nameFontSize / globalScale;
+        const fontSize = state.controls.textSize || 12;
         ctx.font = `${fontSize}px Sans-Serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -511,7 +515,7 @@ function updateVisuals() {
         const props = getNodeProps(node);
         if (!props) return;
         const label = props.label || node.name || node.id;
-        const fontSize = state.controls.nameFontSize / globalScale;
+        const fontSize = state.controls.textSize || 12;
         ctx.font = `${fontSize}px Sans-Serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -533,6 +537,10 @@ function updateVisuals() {
       const props = getLinkProps(link);
       const color = props ? props.color : COLORS.EDGE_DEFAULT;
       return applyOpacityToColor(color, props?.opacity);
+    })
+    .linkDirectionalParticles(link => {
+      const props = getLinkProps(link);
+      return props ? (props.particles || 0) : 0;
     });
 }
 

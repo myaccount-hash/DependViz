@@ -184,12 +184,12 @@
           "maximum": 20,
           "description": "矢印サイズ"
         },
-        "forceGraphViewer.nameFontSize": {
+        "forceGraphViewer.textSize": {
           "type": "number",
           "default": 12,
-          "minimum": 6,
-          "maximum": 32,
-          "description": "名前のフォントサイズ"
+          "minimum": 8,
+          "maximum": 24,
+          "description": "テキストサイズ"
         },
         "forceGraphViewer.sliceDepth": {
           "type": "number",

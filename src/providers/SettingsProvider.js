@@ -47,7 +47,7 @@ const DETAIL_SECTIONS = [
       ['slider', 'ノード透明度', 'nodeOpacity', SLIDER_RANGES.opacity],
       ['slider', 'エッジ透明度', 'edgeOpacity', SLIDER_RANGES.opacity],
       ['slider', '矢印サイズ', 'arrowSize', SLIDER_RANGES.arrowSize],
-      ['slider', '名前フォントサイズ', 'nameFontSize', { min: 6, max: 32, step: 1 }]
+      ['slider', 'テキストサイズ', 'textSize', SLIDER_RANGES.textSize]
    ]],
    ['レイアウト', [
       ['slider', 'リンク距離', 'linkDistance', SLIDER_RANGES.linkDistance]

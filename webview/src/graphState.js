@@ -152,7 +152,7 @@ class GraphState {
       arrowSize: this.controls.arrowSize
     });
 
-    // Apply focus dimming
+    // Apply focus dimming and highlighting
     if (this.ui.focusedNode) {
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
       const targetId = typeof link.target === 'object' ? link.target.id : link.target;
@@ -160,7 +160,11 @@ class GraphState {
 
       const isConnectedToFocus = sourceId === focusedId || targetId === focusedId;
 
-      if (!isConnectedToFocus) {
+      if (isConnectedToFocus) {
+        // Add particles to focused edges
+        props.particles = 3;
+        props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
+      } else {
         props.opacity = (props.opacity || 1) * 0.1;
       }
     }
