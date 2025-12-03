@@ -1,15 +1,15 @@
 const messageHandlers = {
   data: msg => {
     state.updateData(msg.data);
-    updateGraph();
+    updateGraph({ reheatSimulation: true });
   },
   controls: msg => {
     state.updateControls(msg.controls);
-    updateGraph();
+    updateVisuals();
   },
   stackTrace: msg => {
     state.ui.stackTraceLinks = new Set(msg.paths.map(p => p.link));
-    updateGraph();
+    updateVisuals();
   },
   focusNode: msg => {
     const filePath = msg.filePath || (msg.node && msg.node.filePath);
@@ -21,6 +21,8 @@ const messageHandlers = {
     focusNodeById(msg);
   },
   update: msg => {
+    const hasDataChange = !!msg.data;
+
     if (msg.data) {
       state.updateData(msg.data);
     }
@@ -30,7 +32,12 @@ const messageHandlers = {
     if (msg.stackTracePaths) {
       state.ui.stackTraceLinks = new Set(msg.stackTracePaths.map(p => p.link));
     }
-    updateGraph();
+
+    if (hasDataChange) {
+      updateGraph({ reheatSimulation: true });
+    } else {
+      updateVisuals();
+    }
   }
 };
 

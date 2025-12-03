@@ -128,6 +128,18 @@ class GraphState {
       label: this._computeNodeLabel(node),
       opacity: this.controls.nodeOpacity
     });
+
+    // Apply focus dimming
+    if (this.ui.focusedNode) {
+      const isFocused = node.id === this.ui.focusedNode.id;
+      const isNeighbor = this.ui.focusedNode.neighbors &&
+                         this.ui.focusedNode.neighbors.some(n => n.id === node.id);
+
+      if (!isFocused && !isNeighbor) {
+        props.opacity = (props.opacity || 1) * 0.2;
+      }
+    }
+
     return { ...props, size: (props.sizeMultiplier || 1) * this.controls.nodeSize };
   }
 
@@ -139,6 +151,20 @@ class GraphState {
       opacity: this.controls.edgeOpacity,
       arrowSize: this.controls.arrowSize
     });
+
+    // Apply focus dimming
+    if (this.ui.focusedNode) {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      const focusedId = this.ui.focusedNode.id;
+
+      const isConnectedToFocus = sourceId === focusedId || targetId === focusedId;
+
+      if (!isConnectedToFocus) {
+        props.opacity = (props.opacity || 1) * 0.1;
+      }
+    }
+
     return { ...props, width: (props.widthMultiplier || 1) * this.controls.linkWidth };
   }
 
