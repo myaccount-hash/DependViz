@@ -4,7 +4,7 @@ const GraphViewProvider = require('./providers/GraphViewProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./commands/stackTrace');
-const JavaAnalyzerLSP = require('./analyzers/JavaAnalyzerLSP');
+const JavaAnalyzer = require('./analyzers/JavaAnalyzer');
 
 process.env.VSCODE_DISABLE_TELEMETRY = '1';
 
@@ -16,7 +16,7 @@ function activate(context) {
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
 
     // Java Analyzer (Language Client) を初期化（起動はコマンド実行時にオンデマンドで行う）
-    javaAnalyzer = new JavaAnalyzerLSP(context);
+    javaAnalyzer = new JavaAnalyzer(context);
 
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);

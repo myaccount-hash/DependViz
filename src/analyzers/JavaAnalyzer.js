@@ -1,163 +1,217 @@
 const vscode = require('vscode');
 const path = require('path');
-const { spawn } = require('child_process');
-const fs = require('fs');
-const { getWorkspaceFolder, findJavaFiles, mergeGraphData } = require('../utils/utils');
-const { JAVA_PATHS } = require('../constants');
+const { LanguageClient, TransportKind } = require('vscode-languageclient/node');
+const { getWorkspaceFolder } = require('../utils/utils');
 
+/**
+ * JavaAnalyzer - LSP版
+ * Language Serverを使用してJavaプロジェクトを解析
+ */
 class JavaAnalyzer {
     constructor(context) {
         this.context = context;
+        this.client = null;
+        this.outputChannel = null;
     }
 
     /**
-     * 単一ファイルを解析
-     * @param {string} filePath - 解析対象のJavaファイルのパス
-     * @returns {Promise<Object>} - グラフデータ { nodes, links }
+     * Language Clientを起動
+     */
+    async startLanguageClient() {
+        if (this.client) {
+            // 既に存在する場合、準備完了を待つ
+            if (this.client.needsStart()) {
+                await this.client.start();
+            }
+            return;
+        }
+
+        if (!this.outputChannel) {
+            this.outputChannel = vscode.window.createOutputChannel('DependViz Java Language Server');
+        }
+        const outputChannel = this.outputChannel;
+
+        try {
+            const workspaceFolder = getWorkspaceFolder();
+            const jarPath = path.join(this.context.extensionPath, 'java-graph.jar');
+            const loggingConfig = path.join(this.context.extensionPath, 'logging.properties');
+            const baseArgs = [
+                `-Djava.util.logging.config.file=${loggingConfig}`,
+                '-jar',
+                jarPath
+            ];
+
+            // サーバーオプション（debug時もstdoutを汚さないようrunと同一設定）
+            const serverOptions = {
+                run: {
+                    command: 'java',
+                    args: baseArgs,
+                    transport: TransportKind.stdio,
+                    options: { stdio: 'pipe' }
+                },
+                debug: {
+                    command: 'java',
+                    args: baseArgs,
+                    transport: TransportKind.stdio,
+                    options: { stdio: 'pipe' }
+                }
+            };
+
+            // クライアントオプション
+            const clientOptions = {
+                documentSelector: [{ scheme: 'file', language: 'java' }],
+                synchronize: {
+                    fileEvents: vscode.workspace.createFileSystemWatcher('**/*.java')
+                },
+                workspaceFolder: workspaceFolder,
+                outputChannel: outputChannel,
+                traceOutputChannel: outputChannel,
+                revealOutputChannelOn: 4 // Never
+            };
+
+            // Language Clientを作成
+            this.client = new LanguageClient(
+                'dependvizJavaAnalyzer',
+                'DependViz Java Analyzer',
+                serverOptions,
+                clientOptions
+            );
+
+            // エラーハンドラを設定
+            this.client.onDidChangeState((event) => {
+                console.log(`Language Server state changed: ${event.oldState} -> ${event.newState}`);
+                outputChannel.appendLine(`State: ${event.oldState} -> ${event.newState}`);
+            });
+
+            this.client.onNotification('window/logMessage', (params) => {
+                outputChannel.appendLine(`[Server Log] ${params.message}`);
+            });
+
+            // クライアントを起動して初期化を待つ
+            console.log('Starting Language Server...');
+            outputChannel.appendLine('Starting Language Server...');
+            outputChannel.appendLine(`JAR path: ${jarPath}`);
+
+            await this.client.start();
+            console.log('Java Language Server started and ready');
+            outputChannel.appendLine('Language Server is ready');
+        } catch (error) {
+            const errorMsg = `Failed to start Language Server: ${error.message}\nStack: ${error.stack}`;
+            console.error(errorMsg);
+            outputChannel.appendLine(errorMsg);
+            outputChannel.show();
+            this.client = null;
+            throw error;
+        }
+    }
+
+    /**
+     * Language Clientを停止
+     */
+    async stopLanguageClient() {
+        if (this.client) {
+            await this.client.stop();
+            this.client = null;
+            console.log('Java Language Server stopped');
+        }
+    }
+
+    /**
+     * プロジェクト全体の依存関係グラフを取得
+     */
+    async getDependencyGraph() {
+        if (!this.client) {
+            await this.startLanguageClient();
+        }
+
+        try {
+            const result = await this.client.sendRequest('dependviz/getDependencyGraph');
+            return JSON.parse(result);
+        } catch (error) {
+            console.error('Failed to get dependency graph:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 単一ファイルの依存関係グラフを取得
+     */
+    async getFileDependencyGraph(fileUri) {
+        if (!this.client) {
+            await this.startLanguageClient();
+        }
+
+        try {
+            const result = await this.client.sendRequest('dependviz/getFileDependencyGraph', fileUri);
+            return JSON.parse(result);
+        } catch (error) {
+            console.error('Failed to get file dependency graph:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 単一ファイルを解析（互換性のため）
      */
     async analyzeFile(filePath) {
-        const jarPath = path.join(this.context.extensionPath, JAVA_PATHS.JAR_FILE);
-        if (!fs.existsSync(jarPath)) {
-            throw new Error(`${JAVA_PATHS.JAR_FILE} が見つかりません`);
-        }
+        const fileUri = vscode.Uri.file(filePath).toString();
 
-        if (!fs.existsSync(filePath)) {
-            throw new Error(`ファイルが見つかりません: ${filePath}`);
-        }
+        // ファイルを開いてLanguage Serverに解析させる
+        const document = await vscode.workspace.openTextDocument(filePath);
+        await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true });
 
-        let workspaceFolder;
+        // グラフデータを取得
+        return await this.getFileDependencyGraph(fileUri);
+    }
+
+    /**
+     * プロジェクト全体を解析（既存APIとの互換性のため）
+     */
+    async analyze() {
         try {
-            workspaceFolder = getWorkspaceFolder();
-        } catch (e) {
-            throw new Error(e.message);
-        }
+            // Language Clientを起動
+            await this.startLanguageClient();
 
-        const dataDir = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.DATA_DIR);
-        const tempOutput = path.join(dataDir, JAVA_PATHS.TEMP_OUTPUT);
+            // すべてのJavaファイルを開いてLanguage Serverに解析させる
+            const workspaceFolder = getWorkspaceFolder();
+            const javaFiles = await vscode.workspace.findFiles('**/*.java', '**/node_modules/**');
 
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-
-        return new Promise((resolve, reject) => {
-            const process = spawn('java', ['-jar', jarPath, '--file', filePath], {
-                cwd: workspaceFolder.uri.fsPath
-            });
-            let stderr = '';
-
-            process.stderr.on('data', (data) => {
-                stderr += data.toString();
-            });
-
-            process.on('error', (error) => {
-                reject(new Error(`Java実行エラー: ${error.message}`));
-            });
-
-            process.on('close', (code) => {
-                if (code !== 0) {
-                    reject(new Error(`解析失敗 (終了コード: ${code}): ${stderr || 'Unknown error'}`));
-                } else if (!fs.existsSync(tempOutput)) {
-                    reject(new Error('解析失敗: 出力ファイルが生成されませんでした'));
-                } else {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: `Javaプロジェクトを解析中 (0/${javaFiles.length})...`,
+                cancellable: false
+            }, async (progress) => {
+                for (let i = 0; i < javaFiles.length; i++) {
+                    const file = javaFiles[i];
                     try {
-                        const data = JSON.parse(fs.readFileSync(tempOutput, 'utf8'));
-                        fs.unlinkSync(tempOutput); // 一時ファイルを削除
-                        resolve(data);
-                    } catch (e) {
-                        reject(new Error(`JSON読み込みエラー: ${e.message}`));
+                        // ファイルを開く（Language Serverが自動的に解析）
+                        const document = await vscode.workspace.openTextDocument(file);
+                        await vscode.languages.setTextDocumentLanguage(document, 'java');
+
+                        progress.report({
+                            message: `(${i + 1}/${javaFiles.length})`,
+                            increment: (100 / javaFiles.length)
+                        });
+                    } catch (error) {
+                        console.error(`Failed to open file: ${file.fsPath}`, error);
                     }
                 }
             });
-        });
-    }
 
-    /**
-     * ディレクトリ内の全Javaファイルを解析
-     * JavaScript側で各ファイルを解析してグラフを構築
-     */
-    async analyze() {
-        let workspaceFolder;
-        try {
-            workspaceFolder = getWorkspaceFolder();
-        } catch (e) {
-            return vscode.window.showErrorMessage(e.message);
-        }
+            // 全体のグラフデータを取得
+            const graphData = await this.getDependencyGraph();
 
-        // Javaソースディレクトリを取得
-        const config = vscode.workspace.getConfiguration('forceGraphViewer');
-        const configuredDir = config.get('javaSourceDirectory', '');
-
-        let sourcePath;
-        if (configuredDir) {
-            if (path.isAbsolute(configuredDir)) {
-                sourcePath = configuredDir;
-            } else {
-                sourcePath = path.join(workspaceFolder.uri.fsPath, configuredDir);
-            }
-            if (!fs.existsSync(sourcePath)) {
-                return vscode.window.showErrorMessage(`指定されたディレクトリが見つかりません: ${sourcePath}`);
-            }
-        } else {
-            sourcePath = workspaceFolder.uri.fsPath;
-        }
-
-        // ディレクトリ内の全Javaファイルを探索
-        const javaFiles = findJavaFiles(sourcePath);
-
-        if (javaFiles.length === 0) {
-            return vscode.window.showWarningMessage('Javaファイルが見つかりませんでした');
-        }
-
-        // 全ファイルを解析してマージ
-        const mergedGraph = { nodes: [], links: [] };
-        let successCount = 0;
-        let errorCount = 0;
-
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: `Javaプロジェクトを解析中 (0/${javaFiles.length})...`,
-            cancellable: false
-        }, async (progress) => {
-            for (let i = 0; i < javaFiles.length; i++) {
-                const filePath = javaFiles[i];
-                try {
-                    const graphData = await this.analyzeFile(filePath);
-                    console.log(`[${i + 1}/${javaFiles.length}] ${filePath}: ${graphData.nodes.length} nodes, ${graphData.links.length} links`);
-
-                    const beforeNodes = mergedGraph.nodes.length;
-                    const beforeLinks = mergedGraph.links.length;
-
-                    mergeGraphData(mergedGraph, graphData);
-
-                    const addedNodes = mergedGraph.nodes.length - beforeNodes;
-                    const addedLinks = mergedGraph.links.length - beforeLinks;
-                    console.log(`  Merged: +${addedNodes} nodes (${beforeNodes} -> ${mergedGraph.nodes.length}), +${addedLinks} links (${beforeLinks} -> ${mergedGraph.links.length})`);
-
-                    successCount++;
-                } catch (e) {
-                    console.error(`Failed to analyze ${filePath}:`, e);
-                    errorCount++;
-                }
-                progress.report({
-                    message: `(${i + 1}/${javaFiles.length})`,
-                    increment: (100 / javaFiles.length)
-                });
-            }
-        });
-
-        // 結果を保存
-        const finalOutput = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.GRAPH_OUTPUT);
-        try {
-            fs.writeFileSync(finalOutput, JSON.stringify(mergedGraph, null, 2));
             vscode.window.showInformationMessage(
-                `解析完了: ${successCount}ファイル成功, ${errorCount}ファイル失敗 (${mergedGraph.nodes.length}ノード, ${mergedGraph.links.length}リンク)`
+                `解析完了: ${javaFiles.length}ファイル (${graphData.nodes.length}ノード, ${graphData.links.length}リンク)`
             );
-        } catch (e) {
-            vscode.window.showErrorMessage(`結果の保存に失敗: ${e.message}`);
+
+            return graphData;
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`解析失敗: ${error.message}`);
+            throw error;
         }
     }
-
 }
 
 module.exports = JavaAnalyzer;
-

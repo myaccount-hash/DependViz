@@ -1,5 +1,4 @@
 const vscode = require('vscode');
-const { selectJavaSourceDirectory } = require('./directorySelection');
 const JavaAnalyzer = require('../analyzers/JavaAnalyzer');
 
 function registerCommands(context, providers) {
@@ -42,7 +41,10 @@ function registerCommands(context, providers) {
         }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeJavaProject', async () => {
             const analyzer = new JavaAnalyzer(context);
-            await analyzer.analyze();
+            const graphData = await analyzer.analyze();
+            if (graphData) {
+                graphViewProvider.setGraphData(graphData);
+            }
         }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeCurrentFile', async () => {
             const editor = vscode.window.activeTextEditor;
@@ -70,7 +72,6 @@ function registerCommands(context, providers) {
                 vscode.window.showErrorMessage(`解析失敗: ${e.message}`);
             }
         }),
-        vscode.commands.registerCommand('forceGraphViewer.selectJavaSourceDirectory', selectJavaSourceDirectory),
         vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
             try {
                 const { updateStackTrace } = require('./stackTrace');

@@ -19,10 +19,6 @@ function getWorkspaceFolder() {
     return workspaceFolder;
 }
 
-function getGraphPath(filename = 'graph.json') {
-    return path.join(getWorkspaceFolder().uri.fsPath, filename);
-}
-
 function getLinkNodeId(linkNode) {
     return typeof linkNode === 'object' ? linkNode.id : linkNode;
 }
@@ -162,7 +158,6 @@ module.exports = {
     validateGraphData,
     validateArray,
     getWorkspaceFolder,
-    getGraphPath,
     loadControls,
     typeMatches,
     getLinkNodeId,

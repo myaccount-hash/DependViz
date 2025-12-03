@@ -1,9 +1,8 @@
 const vscode = require('vscode');
 const { CDN_LIBS } = require('../constants');
-const { getHtmlForWebview, getGraphPath, typeMatches, validateGraphData, getLinkNodeId, getNodeFilePath, computeSlice, mergeGraphData } = require('../utils/utils');
+const { getHtmlForWebview, typeMatches, validateGraphData, getLinkNodeId, getNodeFilePath, computeSlice, mergeGraphData } = require('../utils/utils');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
 const QueryParser = require('../utils/QueryParser');
-const fs = require('fs');
 
 class GraphDataFilter {
     bySearch(nodes, search) { return QueryParser.filter(nodes, search); }
@@ -77,7 +76,7 @@ class GraphViewProvider {
                 await vscode.window.showTextDocument(vscode.Uri.file(message.node.filePath));
             }
         });
-        await this.reloadGraphData();
+        this.syncToWebview();
     }
 
     _flushMessageQueue() {
@@ -103,27 +102,8 @@ class GraphViewProvider {
     }
 
     async refresh() {
-        await this.reloadGraphData();
-    }
-
-    async reloadGraphData() {
-        const graphPath = getGraphPath();
-        if (fs.existsSync(graphPath)) {
-            await this.loadData(vscode.Uri.file(graphPath));
-            this.syncToWebview();
-        }
-    }
-
-    async loadData(uri) {
-        try {
-            const data = await vscode.workspace.fs.readFile(uri);
-            this._currentData = JSON.parse(data.toString());
-            return this._currentData;
-        } catch (e) {
-            console.error('Failed to load graph data:', e);
-            vscode.window.showErrorMessage(`グラフデータの読み込みに失敗しました: ${e.message}`);
-            throw e;
-        }
+        this._applySliceSettings();
+        this.syncToWebview();
     }
 
     /**
@@ -133,6 +113,19 @@ class GraphViewProvider {
      */
     mergeGraphData(newData) {
         mergeGraphData(this._currentData, newData);
+        this.syncToWebview();
+    }
+
+    /**
+     * グラフデータ全体を置き換える
+     * @param {Object} data - 完全なグラフデータ { nodes, links }
+     */
+    setGraphData(data) {
+        validateGraphData(data);
+        this._currentData = {
+            nodes: data.nodes ?? [],
+            links: data.links ?? []
+        };
         this.syncToWebview();
     }
 
@@ -250,18 +243,6 @@ class GraphViewProvider {
 
     async focusNode(filePath) {
         this._lastFocusedFilePath = filePath;
-
-        const fileUri = vscode.Uri.file(filePath);
-        const fileWorkspace = vscode.workspace.getWorkspaceFolder(fileUri);
-
-        if (fileWorkspace && this._currentData?.nodes?.length > 0) {
-            const firstNodePath = getNodeFilePath(this._currentData.nodes[0]);
-            const dataInCorrectWorkspace = firstNodePath && firstNodePath.startsWith(fileWorkspace.uri.fsPath);
-
-            if (!dataInCorrectWorkspace) {
-                await this.reloadGraphData();
-            }
-        }
 
         if (this._view && this._currentData?.nodes?.length > 0) {
             const node = this._findNodeByFilePath(filePath);

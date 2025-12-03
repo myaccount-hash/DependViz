@@ -69,11 +69,4 @@ const DEBUG = {
     STACK_TRACE_LEVELS: 200
 };
 
-const JAVA_PATHS = {
-    JAR_FILE: 'java-graph.jar',
-    DATA_DIR: 'data',
-    TEMP_OUTPUT: 'sample.json',
-    GRAPH_OUTPUT: 'graph.json'
-};
-
-module.exports = { DEFAULT_CONTROLS, CDN_LIBS, COLORS, ICONS, SLIDER_RANGES, DEBUG, JAVA_PATHS };
+module.exports = { DEFAULT_CONTROLS, CDN_LIBS, COLORS, ICONS, SLIDER_RANGES, DEBUG };

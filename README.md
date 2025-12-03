@@ -31,10 +31,18 @@ Install the extension from [Visual Studio Marketplace](https://marketplace.visua
 - Open Command Palette (Cmd+Shift+P / Ctrl+Shift+P)
 - Execute "DependViz: Analyze Java Project"
 	- By default, searches and analyzes Java source files from the workspace root.
-	- "DependViz: Select Java Source Directory" allows specifying the directory to analyze.
-	- Analysis results are saved as `graph.json` in the workspace root.
 - Execute "DependViz: Focus on Graph View"
 - Click Refresh at the top right if the graph view is empty
+
+### LSP Debug Session
+
+To debug only the Java Language Server without launching VS Code, run:
+
+```bash
+npm run debug:lsp -- /path/to/java/project
+```
+
+The script launches `java-graph.jar`, performs an `initialize` handshake, and issues DependViz custom requests so you can inspect server logs and crashes directly from the terminal.
 
 ## Stack Trace Feature
 
@@ -110,7 +118,6 @@ When a node is focused, displays only dependencies related to that node. Forward
 ### Other
 
 - `forceGraphViewer.focusDistance`: Camera distance on focus (range: 20-300)
-- `forceGraphViewer.javaSourceDirectory`: Directory to start Java analysis (entire workspace if empty)
 
 ## Build
 ```bash
