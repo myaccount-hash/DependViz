@@ -1,8 +1,6 @@
 const vscode = require('vscode');
-const AppearanceSettingsProvider = require('./providers/AppearanceSettingsProvider');
+const SettingsProvider = require('./providers/SettingsProvider');
 const GraphViewProvider = require('./providers/GraphViewProvider');
-const FilterSettingsProvider = require('./providers/FilterSettingsProvider');
-const DetailSettingsProvider = require('./providers/DetailSettingsProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./commands/stackTrace');
@@ -10,14 +8,10 @@ const { updateStackTrace } = require('./commands/stackTrace');
 process.env.VSCODE_DISABLE_TELEMETRY = '1';
 
 function activate(context) {
-    const appearanceSettingsProvider = new AppearanceSettingsProvider();
+    const settingsProvider = new SettingsProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
-    const filterSettingsProvider = new FilterSettingsProvider();
-    const detailSettingsProvider = new DetailSettingsProvider();
 
-    vscode.window.createTreeView('forceGraphViewer.tree', { treeDataProvider: filterSettingsProvider });
-    vscode.window.createTreeView('forceGraphViewer.appearance', { treeDataProvider: appearanceSettingsProvider });
-    vscode.window.createTreeView('forceGraphViewer.detail', { treeDataProvider: detailSettingsProvider });
+    vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
     const syncControls = () => {
@@ -33,23 +27,17 @@ function activate(context) {
     syncControls();
 
     const providers = {
-        filterSettingsProvider,
-        appearanceSettingsProvider,
-        detailSettingsProvider,
+        settingsProvider,
         graphViewProvider
     };
 
     const commands = registerCommands(context, providers);
 
     const eventHandlers = [
-        filterSettingsProvider.onDidChangeTreeData(onProviderChange),
-        appearanceSettingsProvider.onDidChangeTreeData(onProviderChange),
-        detailSettingsProvider.onDidChangeTreeData(onProviderChange),
+        settingsProvider.onDidChangeTreeData(onProviderChange),
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('forceGraphViewer')) {
-                filterSettingsProvider.refresh();
-                appearanceSettingsProvider.refresh();
-                detailSettingsProvider.refresh();
+                settingsProvider.refresh();
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {

@@ -31,18 +31,8 @@
     "views": {
       "forceGraphViewer": [
         {
-          "id": "forceGraphViewer.tree",
-          "name": "フィルタ",
-          "icon": "$(filter)"
-        },
-        {
-          "id": "forceGraphViewer.appearance",
-          "name": "表示モード",
-          "icon": "$(symbol-color)"
-        },
-        {
-          "id": "forceGraphViewer.detail",
-          "name": "詳細設定",
+          "id": "forceGraphViewer.settings",
+          "name": "設定",
           "icon": "$(settings-gear)"
         },
         {
