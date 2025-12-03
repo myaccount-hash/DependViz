@@ -25,23 +25,16 @@ public class DependVizTextDocumentService
   private static final Logger logger =
       Logger.getLogger(DependVizTextDocumentService.class.getName());
 
-  private final DependVizLanguageServer server;
-  private LanguageClient client;
-
   // ファイルパスごとにCodeGraphをキャッシュ
   private final Map<String, CodeGraph> graphCache = new HashMap<>();
 
   // 解析エンジン
   private AnalysisEngine analysisEngine;
 
-  public DependVizTextDocumentService(DependVizLanguageServer server) {
-    this.server = server;
-  }
+  public DependVizTextDocumentService(DependVizLanguageServer server) {}
 
   @Override
-  public void connect(LanguageClient client) {
-    this.client = client;
-  }
+  public void connect(LanguageClient client) {}
 
   public void setWorkspaceRoot(String workspaceRoot) {
     // ワークスペースルートが設定されたら解析エンジンを初期化
