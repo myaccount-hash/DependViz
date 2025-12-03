@@ -39,7 +39,8 @@ public abstract class Analyzer {
 
   // エラーハンドリング（オーバーライド可能）
   protected void handleError(Node node, Exception e) {
-    logger.warning("Failed to process node: " + node + " - " + e.getMessage());
+    logger.warning(
+        () -> "Failed to process node: " + node + " - " + e.getMessage());
   }
 
   // 先祖のクラスノードを探索するユーティリティ

@@ -27,7 +27,6 @@ public class DependVizTextDocumentService
 
   private final DependVizLanguageServer server;
   private LanguageClient client;
-  private String workspaceRoot;
 
   // ファイルパスごとにCodeGraphをキャッシュ
   private final Map<String, CodeGraph> graphCache = new HashMap<>();
@@ -45,12 +44,11 @@ public class DependVizTextDocumentService
   }
 
   public void setWorkspaceRoot(String workspaceRoot) {
-    this.workspaceRoot = workspaceRoot;
     // ワークスペースルートが設定されたら解析エンジンを初期化
     try {
       String rootPath = URI.create(workspaceRoot).getPath();
       this.analysisEngine = new AnalysisEngine(rootPath);
-      logger.info("Analysis engine initialized for workspace: " + rootPath);
+      logger.info(() -> "Analysis engine initialized for workspace: " + rootPath);
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Failed to initialize analysis engine", e);
     }
@@ -59,7 +57,7 @@ public class DependVizTextDocumentService
   @Override
   public void didOpen(DidOpenTextDocumentParams params) {
     String uri = params.getTextDocument().getUri();
-    logger.info("Document opened: " + uri);
+    logger.info(() -> "Document opened: " + uri);
 
     // Javaファイルのみ処理
     if (!uri.endsWith(".java")) {
@@ -70,14 +68,14 @@ public class DependVizTextDocumentService
       String filePath = URI.create(uri).getPath();
       analyzeFile(filePath);
     } catch (Exception e) {
-      logger.log(Level.SEVERE, "Failed to analyze opened file: " + uri, e);
+      logger.log(Level.SEVERE, e, () -> "Failed to analyze opened file: " + uri);
     }
   }
 
   @Override
   public void didChange(DidChangeTextDocumentParams params) {
     String uri = params.getTextDocument().getUri();
-    logger.info("Document changed: " + uri);
+    logger.info(() -> "Document changed: " + uri);
 
     // 変更時は再解析
     if (!uri.endsWith(".java")) {
@@ -88,28 +86,28 @@ public class DependVizTextDocumentService
       String filePath = URI.create(uri).getPath();
       analyzeFile(filePath);
     } catch (Exception e) {
-      logger.log(Level.SEVERE, "Failed to analyze changed file: " + uri, e);
+      logger.log(Level.SEVERE, e, () -> "Failed to analyze changed file: " + uri);
     }
   }
 
   @Override
   public void didClose(DidCloseTextDocumentParams params) {
     String uri = params.getTextDocument().getUri();
-    logger.info("Document closed: " + uri);
+    logger.info(() -> "Document closed: " + uri);
 
     // クローズ時はキャッシュから削除
     try {
       String filePath = URI.create(uri).getPath();
       graphCache.remove(filePath);
     } catch (Exception e) {
-      logger.log(Level.WARNING, "Failed to handle closed file: " + uri, e);
+      logger.log(Level.WARNING, e, () -> "Failed to handle closed file: " + uri);
     }
   }
 
   @Override
   public void didSave(DidSaveTextDocumentParams params) {
     String uri = params.getTextDocument().getUri();
-    logger.info("Document saved: " + uri);
+    logger.info(() -> "Document saved: " + uri);
   }
 
   /**
@@ -126,11 +124,12 @@ public class DependVizTextDocumentService
       graphCache.put(filePath, graph);
 
       logger.info(
-          String.format(
-              "Analyzed file: %s (%d nodes, %d edges)",
-              filePath, graph.getGraphNodes().size(), graph.getGraphEdges().size()));
+          () ->
+              String.format(
+                  "Analyzed file: %s (%d nodes, %d edges)",
+                  filePath, graph.getGraphNodes().size(), graph.getGraphEdges().size()));
     } catch (Exception e) {
-      logger.log(Level.SEVERE, "Failed to analyze file: " + filePath, e);
+      logger.log(Level.SEVERE, e, () -> "Failed to analyze file: " + filePath);
     }
   }
 
@@ -158,7 +157,7 @@ public class DependVizTextDocumentService
             GraphDataJson json = toJsonObject(graph);
             return mapper.writeValueAsString(json);
           } catch (JsonProcessingException e) {
-            logger.log(Level.SEVERE, "Failed to serialize file dependency graph", e);
+            logger.log(Level.SEVERE, e, () -> "Failed to serialize file dependency graph");
             return "{\"nodes\": [], \"links\": []}";
           }
         });

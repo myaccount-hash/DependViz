@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -48,7 +49,7 @@ public class DependVizLanguageServer
 
     // ワークスペースルートを取得
     String workspaceRoot = resolveWorkspaceRoot(params);
-    logger.info("Workspace root: " + workspaceRoot);
+    logger.log(Level.INFO, "Workspace root: {0}", workspaceRoot);
 
     // TextDocumentServiceにワークスペースルートを設定
     textDocumentService.setWorkspaceRoot(workspaceRoot);
@@ -118,7 +119,7 @@ public class DependVizLanguageServer
     logger.info("Language Server started, listening on stdin/stdout");
     try {
       launcher.startListening().get();
-    } catch (Exception e) {
+    } catch (InterruptedException | ExecutionException e) {
       logger.log(Level.SEVERE, "Language server terminated with error", e);
     }
   }
