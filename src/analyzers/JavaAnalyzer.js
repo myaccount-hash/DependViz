@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const path = require('path');
 const { LanguageClient, TransportKind } = require('vscode-languageclient/node');
 const { getWorkspaceFolder, mergeGraphData } = require('../utils/utils');
+const { normalizeAnalyzerResponse } = require('../messaging/AnalyzerProtocol');
 
 /**
  * JavaAnalyzer - LSP版
@@ -126,7 +127,7 @@ class JavaAnalyzer {
 
         try {
             const result = await this.client.sendRequest('dependviz/getFileDependencyGraph', fileUri);
-            return JSON.parse(result);
+            return normalizeAnalyzerResponse(result);
         } catch (error) {
             console.error('Failed to get file dependency graph:', error);
             throw error;
