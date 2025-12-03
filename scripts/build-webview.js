@@ -4,12 +4,23 @@ const fs = require('fs');
 const path = require('path');
 
 const TEMPLATE_PATH = path.join(__dirname, '../webview/template.html');
-const SCRIPT_PATH = path.join(__dirname, '../webview/script.js');
 const OUTPUT_PATH = path.join(__dirname, '../webview/dist/webview.html');
+const SRC_DIR = path.join(__dirname, '../webview/src');
+
+const SCRIPT_FILES = [
+  'core.js',
+  'graphState.js',
+  'filters.js',
+  'renderer.js',
+  'messaging.js',
+  'init.js'
+];
 
 function buildWebview() {
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-  const script = fs.readFileSync(SCRIPT_PATH, 'utf8');
+  const script = SCRIPT_FILES
+    .map(file => fs.readFileSync(path.join(SRC_DIR, file), 'utf8'))
+    .join('\n\n');
 
   const wrappedScript = `(function(DEFAULT_CONTROLS, COLORS, DEBUG) {\n${script}\n})(DEFAULT_CONTROLS, COLORS, DEBUG);`;
   const result = template.replace(/{{script}}/g, wrappedScript);
