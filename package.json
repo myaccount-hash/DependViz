@@ -184,31 +184,12 @@
           "maximum": 20,
           "description": "矢印サイズ"
         },
-        "forceGraphViewer.focusDistance": {
-          "type": "number",
-          "default": 80,
-          "minimum": 20,
-          "maximum": 300,
-          "description": "フォーカス時のカメラ距離"
-        },
         "forceGraphViewer.nameFontSize": {
           "type": "number",
           "default": 12,
           "minimum": 6,
           "maximum": 32,
           "description": "名前のフォントサイズ"
-        },
-        "forceGraphViewer.autoRotate": {
-          "type": "boolean",
-          "default": false,
-          "description": "自動回転"
-        },
-        "forceGraphViewer.rotateSpeed": {
-          "type": "number",
-          "default": 0.1,
-          "minimum": 0.01,
-          "maximum": 5,
-          "description": "回転速度"
         },
         "forceGraphViewer.sliceDepth": {
           "type": "number",
@@ -334,9 +315,7 @@
     "test:watch": "mocha 'test/**/*.test.js' --watch"
   },
   "dependencies": {
-    "3d-force-graph": "^1.77.0",
-    "three": "^0.177.0",
-    "three-spritetext": "^1.10.0"
+    "force-graph": "^1.44.0"
   },
   "devDependencies": {
     "mocha": "^10.0.0",

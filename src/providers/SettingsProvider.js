@@ -50,12 +50,7 @@ const DETAIL_SECTIONS = [
       ['slider', '名前フォントサイズ', 'nameFontSize', { min: 6, max: 32, step: 1 }]
    ]],
    ['レイアウト', [
-      ['slider', 'リンク距離', 'linkDistance', SLIDER_RANGES.linkDistance],
-      ['slider', 'フォーカス距離', 'focusDistance', { min: 20, max: 300, step: 10 }]
-   ]],
-   ['アニメーション', [
-      ['checkbox', '自動回転', 'autoRotate'],
-      ['slider', '回転速度', 'rotateSpeed', SLIDER_RANGES.rotateSpeed]
+      ['slider', 'リンク距離', 'linkDistance', SLIDER_RANGES.linkDistance]
    ]],
    ['ノード色', [
       ['color', 'Class', 'colorClass'],

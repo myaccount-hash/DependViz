@@ -71,9 +71,7 @@ function getHtmlForWebview(webview, libs) {
     return template
         .replace(/{{nonce}}/g, nonce)
         .replace(/{{cspSource}}/g, webview.cspSource)
-        .replace(/{{threeUri}}/g, libs.threeUri)
         .replace(/{{fgUri}}/g, libs.fgUri)
-        .replace(/{{spriteUri}}/g, libs.spriteUri)
         .replace(/{{defaultControls}}/g, JSON.stringify(DEFAULT_CONTROLS))
         .replace(/{{colors}}/g, JSON.stringify(COLORS))
         .replace(/{{debug}}/g, JSON.stringify(DEBUG))

@@ -22,19 +22,22 @@
     <div id="graph-container"></div>
     <script nonce="{{nonce}}" type="module">
         // @ts-nocheck
-        import * as THREE from "{{threeUri}}";
-        import { CSS2DRenderer, CSS2DObject } from 'https://esm.sh/three/examples/jsm/renderers/CSS2DRenderer.js';
-        import ForceGraph3D from "{{fgUri}}";
-        import SpriteText from "{{spriteUri}}";
-        window.THREE = THREE;
-        window.CSS2DRenderer = CSS2DRenderer;
-        window.CSS2DObject = CSS2DObject;
-        window.ForceGraph3D = ForceGraph3D;
-        window.SpriteText = SpriteText;
-        const DEFAULT_CONTROLS = {{defaultControls}};
-        const COLORS = {{colors}};
-        const DEBUG = {{debug}};
-        {{script}}
+        console.log('[Template] Loading ForceGraph from:', "{{fgUri}}");
+        import("{{fgUri}}").then(module => {
+            console.log('[Template] ForceGraph module loaded:', module);
+            window.ForceGraph = module.default || module.ForceGraph || module;
+            console.log('[Template] window.ForceGraph set to:', typeof window.ForceGraph);
+
+            const DEFAULT_CONTROLS = {{defaultControls}};
+            const COLORS = {{colors}};
+            const DEBUG = {{debug}};
+
+            console.log('[Template] Executing main script...');
+            {{script}}
+        }).catch(error => {
+            console.error('[Template] Failed to load ForceGraph:', error);
+            document.body.innerHTML = '<div style="color: red; padding: 20px;">Failed to load graph library: ' + error.message + '</div>';
+        });
     </script>
 </body>
 </html>

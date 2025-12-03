@@ -5,16 +5,13 @@ const DEFAULT_CONTROLS = {
     showStackTrace: true,
     showNames: true,
     shortNames: true,
-    nodeSize: 1.0,
+    nodeSize: 5.0,
     linkWidth: 1.0,
     nodeOpacity: 1.0,
     edgeOpacity: 1.0,
     linkDistance: 30,
     arrowSize: 5,
-    focusDistance: 80,
     nameFontSize: 12,
-    autoRotate: false,
-    rotateSpeed: 0.1,
     sliceDepth: 3,
     enableForwardSlice: true,
     enableBackwardSlice: true,
@@ -39,9 +36,7 @@ const DEFAULT_CONTROLS = {
 };
 
 const CDN_LIBS = {
-    threeUri: 'https://esm.sh/three@0.177.0',
-    fgUri: 'https://esm.sh/3d-force-graph@1.77.0',
-    spriteUri: 'https://esm.sh/three-spritetext@1.10.0'
+    fgUri: 'https://esm.sh/force-graph@1.44.0'
 };
 
 
@@ -62,18 +57,16 @@ const ICONS = {
 };
 
 const SLIDER_RANGES = {
-    rotateSpeed: { min: 0, max: 5, step: 0.1 },
-    nodeSize: { min: 0.1, max: 5, step: 0.1 },
+    nodeSize: { min: 0.1, max: 20, step: 0.1 },
     linkWidth: { min: 0.1, max: 5, step: 0.1 },
     opacity: { min: 0.1, max: 1, step: 0.1 },
-    linkDistance: { min: 10, max: 100, step: 5 },
+    linkDistance: { min: 10, max: 200, step: 5 },
     arrowSize: { min: 1, max: 20, step: 1 },
     sliceDepth: { min: 1, max: 10, step: 1 }
 };
 
 const DEBUG = {
-    STACK_TRACE_LEVELS: 200,
-    AUTO_ROTATE_DELAY: 1000
+    STACK_TRACE_LEVELS: 200
 };
 
 const JAVA_PATHS = {

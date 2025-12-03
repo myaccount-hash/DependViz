@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test 2D Force Graph</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1e1e1e;
+            color: #cccccc;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+        #graph-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #debug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        #debug h3 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        #debug p {
+            margin: 5px 0;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+    </style>
+</head>
+<body>
+    <div id="debug">
+        <h3>2D Force Graph Test</h3>
+        <p id="status">Loading...</p>
+        <p id="library-status">-</p>
+        <p id="graph-status">-</p>
+        <p id="data-status">-</p>
+    </div>
+    <div id="graph-container"></div>
+
+    <script type="module">
+        const status = document.getElementById('status');
+        const libStatus = document.getElementById('library-status');
+        const graphStatus = document.getElementById('graph-status');
+        const dataStatus = document.getElementById('data-status');
+
+        console.log('[Test] Starting test...');
+        status.textContent = 'Importing ForceGraph...';
+
+        try {
+            // Import force-graph
+            const ForceGraph = (await import('https://esm.sh/force-graph@1.44.0')).default;
+            console.log('[Test] ForceGraph imported:', ForceGraph);
+            libStatus.innerHTML = '<span class="success">✓ Library loaded</span>';
+            status.textContent = 'Creating graph...';
+
+            // Create sample data
+            const sampleData = {
+                nodes: [
+                    { id: 'A', name: 'Node A' },
+                    { id: 'B', name: 'Node B' },
+                    { id: 'C', name: 'Node C' },
+                    { id: 'D', name: 'Node D' }
+                ],
+                links: [
+                    { source: 'A', target: 'B' },
+                    { source: 'B', target: 'C' },
+                    { source: 'C', target: 'D' },
+                    { source: 'D', target: 'A' }
+                ]
+            };
+            dataStatus.innerHTML = `<span class="success">✓ Data: ${sampleData.nodes.length} nodes, ${sampleData.links.length} links</span>`;
+
+            // Create graph
+            const container = document.getElementById('graph-container');
+            console.log('[Test] Container:', container);
+
+            const graph = ForceGraph()(container)
+                .backgroundColor('#1e1e1e')
+                .nodeColor(() => '#3b82f6')
+                .nodeLabel('name')
+                .linkColor(() => '#6b7280')
+                .graphData(sampleData);
+
+            console.log('[Test] Graph created:', graph);
+            graphStatus.innerHTML = '<span class="success">✓ Graph rendered</span>';
+            status.innerHTML = '<span class="success">✓ Test successful!</span>';
+
+            console.log('[Test] Test completed successfully');
+        } catch (error) {
+            console.error('[Test] Error:', error);
+            status.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+            if (!libStatus.textContent.includes('✓')) {
+                libStatus.innerHTML = `<span class="error">✗ Library failed: ${error.message}</span>`;
+            } else if (!graphStatus.textContent.includes('✓')) {
+                graphStatus.innerHTML = `<span class="error">✗ Graph failed: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

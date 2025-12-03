@@ -7,17 +7,9 @@ class GraphState {
     this.ui = {
       highlightLinks: new Set(),
       stackTraceLinks: new Set(),
-      focusedNode: null,
-      isUserInteracting: false
-    };
-    this.rotation = {
-      frame: null,
-      startTime: null,
-      startAngle: null,
-      timeout: null
+      focusedNode: null
     };
     this._graph = null;
-    this._labelRenderer = null;
     this.nodeRules = [
       (node, ctx) => {
         const map = {
@@ -56,15 +48,13 @@ class GraphState {
   }
 
   get graph() { return this._graph; }
-  get labelRenderer() { return this._labelRenderer; }
 
   setGraph(graph) { this._graph = graph; }
-  setLabelRenderer(renderer) { this._labelRenderer = renderer; }
 
   getBackgroundColor() {
     const style = getComputedStyle(document.body);
     const bgColor = style.getPropertyValue('--vscode-editor-background').trim();
-    return bgColor || (this.controls.darkMode ? COLORS.BACKGROUND_DARK : COLORS.BACKGROUND_LIGHT);
+    return bgColor || COLORS.BACKGROUND_DARK;
   }
 
   updateData(data) {
@@ -81,11 +71,8 @@ class GraphState {
 
   _normalizePath(path) {
     if (!path) return '';
-    // Normalize path separators (Windows \ to Unix /)
     let normalized = path.replace(/\\/g, '/');
-    // Remove trailing slashes
     normalized = normalized.replace(/\/+$/, '');
-    // Normalize .. and . (simple implementation)
     const parts = normalized.split('/').filter(p => p && p !== '.');
     const result = [];
     for (const part of parts) {
@@ -102,103 +89,39 @@ class GraphState {
     return result.join('/');
   }
 
-  _matchPath(nodePath, framePath) {
-    if (!nodePath || !framePath) return 0;
-
-    const normalizedNodePath = this._normalizePath(nodePath);
-    const normalizedFramePath = this._normalizePath(framePath);
-
-    // Extract basenames
-    const nodeBasename = normalizedNodePath.split('/').pop();
-    const frameBasename = normalizedFramePath.split('/').pop();
-
-    // Skip empty basenames (from trailing slashes)
-    if (!nodeBasename || !frameBasename) return 0;
-
-    // Exact match - highest priority
-    if (normalizedNodePath === normalizedFramePath) return 1000;
-
-    // endsWith match - prioritize longer matches
-    if (normalizedFramePath.endsWith(normalizedNodePath)) {
-      return 500 + normalizedNodePath.length;
+  _pathsMatch(path1, path2) {
+    if (!path1 || !path2) return false;
+    const norm1 = this._normalizePath(path1);
+    const norm2 = this._normalizePath(path2);
+    if (norm1 === norm2) return true;
+    const parts1 = norm1.split('/').filter(Boolean);
+    const parts2 = norm2.split('/').filter(Boolean);
+    if (parts1.length === 0 || parts2.length === 0) return false;
+    const minLen = Math.min(parts1.length, parts2.length);
+    for (let i = 1; i <= minLen; i++) {
+      const suffix1 = parts1.slice(-i).join('/');
+      const suffix2 = parts2.slice(-i).join('/');
+      if (suffix1 === suffix2) return true;
     }
-    if (normalizedNodePath.endsWith(normalizedFramePath)) {
-      return 500 + normalizedFramePath.length;
-    }
-
-    // Basename match - lowest priority (only if unique enough)
-    if (nodeBasename === frameBasename && nodeBasename.length > 0) {
-      return 100;
-    }
-
-    return 0;
+    return false;
   }
 
-  setStackTraceLinks(paths) {
-    console.log('[StackTrace] Received paths:', paths.length, paths);
-
-    const baseLinks = this.data.links.filter(l => !l.isStackTraceLink);
-    const stackNodes = [];
-    const unmatchedPaths = [];
-
-    paths.forEach((p, idx) => {
-      const path = p;
-
-      // 空文字列やnullをスキップ
-      if (!path || !path.trim()) {
-        console.warn(`[StackTrace] [${idx}] Skipping empty/whitespace path`);
-        return;
-      }
-
-      // Find best matching node
-      let bestNode = null;
-      let bestScore = 0;
-
-      for (const n of this.data.nodes) {
-        const nodePath = this._getNodeFilePath(n);
-        const score = this._matchPath(nodePath, path);
-        if (score > bestScore) {
-          bestScore = score;
-          bestNode = n;
-        }
-      }
-
-      if (bestNode && bestScore > 0) {
-        stackNodes.push(bestNode);
-        console.log(`[StackTrace] [${idx}] Matched: ${path} -> ${bestNode.id} (score: ${bestScore})`);
-      } else {
-        unmatchedPaths.push(path);
-        console.warn(`[StackTrace] [${idx}] NOT matched: ${path}`);
-      }
-    });
-
-    if (unmatchedPaths.length > 0) {
-      console.warn(`[StackTrace] ${unmatchedPaths.length} paths not matched. Sample available nodes:`,
-        this.data.nodes.slice(0, 5).map(n => ({ id: n.id, path: this._getNodeFilePath(n) }))
-      );
-    }
-
-    const newLinks = [];
-    for (let i = 0; i < stackNodes.length - 1; i++) {
-      newLinks.push({
-        source: stackNodes[i + 1].id,
-        target: stackNodes[i].id,
-        type: 'StackTrace',
-        isStackTraceLink: true
-      });
-    }
-
-    console.log(`[StackTrace] Created ${newLinks.length} stack trace links from ${stackNodes.length} matched nodes`);
-
-    this.data.links = [...baseLinks, ...newLinks];
-    this.ui.stackTraceLinks = new Set(newLinks);
+  _computeNodeLabel(node) {
+    if (!node.name) return node.id || '';
+    if (!this.controls.shortNames) return node.name;
+    const lastDot = node.name.lastIndexOf('.');
+    return lastDot !== -1 ? node.name.substring(lastDot + 1) : node.name;
   }
 
-  clearHighlights() {
-    this.ui.highlightLinks.clear();
+  _applyRules(item, rules, defaults) {
+    const result = { ...defaults };
+    for (const rule of rules) {
+      const ruleResult = rule(item, this);
+      if (ruleResult) Object.assign(result, ruleResult);
+    }
+    return result;
   }
 
-  // ノード表示プロパティの統合計算
   getNodeVisualProps(node) {
     const props = this._applyRules(node, this.nodeRules, {
       color: COLORS.NODE_DEFAULT,
@@ -209,13 +132,6 @@ class GraphState {
     return { ...props, size: (props.sizeMultiplier || 1) * this.controls.nodeSize };
   }
 
-  _computeNodeLabel(node) {
-    const name = node.name;
-    if (!this.controls.shortNames || !name) return name;
-    return name.split('.').pop();
-  }
-
-  // リンク表示プロパティの統合計算
   getLinkVisualProps(link) {
     const props = this._applyRules(link, this.linkRules, {
       color: COLORS.EDGE_DEFAULT,
@@ -227,77 +143,68 @@ class GraphState {
     return { ...props, width: (props.widthMultiplier || 1) * this.controls.linkWidth };
   }
 
-  _applyRules(target, rules, base) {
-    const ctx = { controls: this.controls, ui: this.ui };
-    return rules.reduce((acc, rule) => {
-      const result = rule(target, ctx);
-      return result ? { ...acc, ...result } : acc;
-    }, { ...base });
-  }
-
-  cancelRotation() {
-    if (this.rotation.frame) {
-      cancelAnimationFrame(this.rotation.frame);
-      this.rotation.frame = null;
-    }
-    clearTimeout(this.rotation.timeout);
-  }
-
   initGraph() {
+    console.log('[DependViz] Initializing graph...');
     const container = document.getElementById('graph-container');
-    if (!container || typeof ForceGraph3D === 'undefined') return false;
+    console.log('[DependViz] Container:', container);
+    console.log('[DependViz] ForceGraph available:', typeof ForceGraph !== 'undefined');
 
-    const renderer = new window.CSS2DRenderer();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.domElement.style.position = 'absolute';
-    renderer.domElement.style.top = '0';
-    renderer.domElement.style.pointerEvents = 'none';
-    container.appendChild(renderer.domElement);
-    this.setLabelRenderer(renderer);
-
-    const g = ForceGraph3D({ extraRenderers: [renderer] })(container)
-      .backgroundColor(this.getBackgroundColor())
-      .linkDirectionalArrowLength(5)
-      .linkDirectionalArrowRelPos(1)
-      .onNodeClick(node => {
-        if (!node || !vscode) return;
-        const filePath = state._getNodeFilePath(node);
-        if (filePath) {
-          vscode.postMessage({
-            type: 'focusNode',
-            node: {
-              id: node.id,
-              filePath: filePath,
-              name: node.name
-            }
-          });
-        }
-      });
-    this.setGraph(g);
-
-    const controls = g.controls();
-    if (controls) {
-      controls.addEventListener('start', () => {
-        this.ui.isUserInteracting = true;
-        this.cancelRotation();
-        updateAutoRotation();
-      });
-      controls.addEventListener('end', () => {
-        this.cancelRotation();
-        this.rotation.timeout = setTimeout(() => {
-          this.ui.isUserInteracting = false;
-          updateAutoRotation();
-        }, DEBUG.AUTO_ROTATE_DELAY);
-      });
+    if (!container) {
+      console.error('[DependViz] Container not found!');
+      return false;
     }
-    return true;
+
+    if (typeof ForceGraph === 'undefined') {
+      console.error('[DependViz] ForceGraph is undefined!');
+      return false;
+    }
+
+    try {
+      console.log('[DependViz] Creating ForceGraph instance...');
+      const g = ForceGraph()(container)
+        .backgroundColor(this.getBackgroundColor())
+        .linkDirectionalArrowLength(5)
+        .linkDirectionalArrowRelPos(1)
+        .onNodeClick(node => {
+          if (!node || !vscode) return;
+          const filePath = state._getNodeFilePath(node);
+          if (filePath) {
+            vscode.postMessage({
+              type: 'focusNode',
+              node: {
+                id: node.id,
+                filePath: filePath,
+                name: node.name
+              }
+            });
+          }
+        });
+      this.setGraph(g);
+      console.log('[DependViz] Graph initialized successfully');
+      return true;
+    } catch (error) {
+      console.error('[DependViz] Error initializing graph:', error);
+      return false;
+    }
   }
 }
 
 const state = new GraphState();
 
 function updateGraph() {
-  if (!state.graph && !state.initGraph()) return;
+  console.log('[DependViz] updateGraph called, graph exists:', !!state.graph);
+  if (!state.graph) {
+    console.log('[DependViz] Graph not initialized, attempting to initialize...');
+    if (!state.initGraph()) {
+      console.error('[DependViz] Failed to initialize graph');
+      return;
+    }
+  }
+
+  console.log('[DependViz] Updating graph with data:', {
+    nodes: state.data.nodes?.length || 0,
+    links: state.data.links?.length || 0
+  });
 
   state.graph.backgroundColor(state.getBackgroundColor());
 
@@ -319,88 +226,176 @@ function updateGraph() {
     b.links.push(link);
   });
 
-  state.graph.graphData({ nodes, links });
+  const getNodeProps = node => nodeVisualCache.get(node);
+  const getLinkProps = link => linkVisualCache.get(link);
 
-  const getNodeProps = node => nodeVisualCache.get(node) || state.getNodeVisualProps(node);
-  const getLinkProps = link => linkVisualCache.get(link) || state.getLinkVisualProps(link);
+  const filteredData = applyFilter(nodes, links);
 
-  // 統合された表示プロパティを使用
-  state.graph
-    .nodeLabel(node => getNodeProps(node).label)
-    .nodeColor(node => getNodeProps(node).color)
-    .nodeVal(node => getNodeProps(node).size)
-    .nodeOpacity(state.controls.nodeOpacity)
-    .linkColor(link => getLinkProps(link).color)
-    .linkWidth(link => getLinkProps(link).width)
-    .linkOpacity(state.controls.edgeOpacity)
-    .linkDirectionalArrowLength(state.controls.arrowSize)
-    .linkDirectionalParticles(link => getLinkProps(link).particles)
-    .linkDirectionalParticleWidth(2);
+  state.graph.graphData(filteredData);
 
   if (state.controls.showNames) {
-    state.graph.nodeThreeObject(node => {
-      const props = getNodeProps(node);
-      const div = document.createElement('div');
-      div.textContent = props.label;
-      Object.assign(div.style, {
-        fontSize: `${state.controls.nameFontSize}px`,
-        fontFamily: 'sans-serif',
-        padding: '2px 4px',
-        borderRadius: '2px',
-        pointerEvents: 'none',
-        color: props.color
-      });
-      const label = new window.CSS2DObject(div);
-      label.position.set(0, -8, 0);
-      return label;
-    }).nodeThreeObjectExtend(true);
+    state.graph
+      .nodeCanvasObject((node, ctx, globalScale) => {
+        const props = getNodeProps(node);
+        if (!props) return;
+        const label = props.label || node.name || node.id;
+        const fontSize = state.controls.nameFontSize / globalScale;
+        ctx.font = `${fontSize}px Sans-Serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = props.color || COLORS.NODE_DEFAULT;
+        ctx.fillText(label, node.x, node.y);
+      })
+      .nodeCanvasObjectMode(() => 'after');
   } else {
-    state.graph.nodeThreeObject(null).nodeThreeObjectExtend(false);
+    state.graph.nodeCanvasObjectMode(() => null);
   }
+
+  state.graph
+    .nodeLabel(node => {
+      const props = getNodeProps(node);
+      return props ? props.label : node.name || node.id;
+    })
+    .nodeColor(node => {
+      const props = getNodeProps(node);
+      return props ? props.color : COLORS.NODE_DEFAULT;
+    })
+    .nodeVal(node => {
+      const props = getNodeProps(node);
+      return props ? props.size : state.controls.nodeSize;
+    })
+    .linkColor(link => {
+      const props = getLinkProps(link);
+      return props ? props.color : COLORS.EDGE_DEFAULT;
+    })
+    .linkWidth(link => {
+      const props = getLinkProps(link);
+      return props ? props.width : state.controls.linkWidth;
+    })
+    .linkDirectionalArrowLength(state.controls.arrowSize)
+    .linkDirectionalParticles(link => {
+      const props = getLinkProps(link);
+      return props ? (props.particles || 0) : 0;
+    })
+    .linkDirectionalParticleWidth(2);
 
   const linkForce = state.graph.d3Force('link');
   if (linkForce) linkForce.distance(state.controls.linkDistance);
   if (state.graph?.d3ReheatSimulation) setTimeout(() => state.graph.d3ReheatSimulation(), 100);
-
-  updateAutoRotation();
 }
 
-function updateAutoRotation() {
-  state.cancelRotation();
-  if (!state.graph) return;
+function applyFilter(nodes, links) {
+  const controls = state.controls;
 
-  if (state.controls.autoRotate && !state.ui.isUserInteracting) {
-    const pos = state.graph.cameraPosition();
-    state.rotation.startAngle = Math.atan2(pos.x, pos.z);
-    state.rotation.startTime = Date.now();
+  let filteredNodes = nodes.filter(node => {
+    if (!controls[`show${node.type}`]) return false;
+    if (controls.hideIsolatedNodes && (!node.neighbors || node.neighbors.length === 0)) return false;
+    if (controls.search && !matchesSearchQuery(node, controls.search)) return false;
+    return true;
+  });
 
-    const rotate = () => {
-      const camera = state.graph.camera();
-      const controls = state.graph.controls();
-      if (camera && controls) {
-        if (state.ui.focusedNode) controls.target.set(state.ui.focusedNode.x || 0, state.ui.focusedNode.y || 0, state.ui.focusedNode.z || 0);
-        const elapsed = (Date.now() - state.rotation.startTime) * 0.001;
-        const angle = state.rotation.startAngle + elapsed * state.controls.rotateSpeed;
-        const distance = Math.sqrt(camera.position.x ** 2 + camera.position.z ** 2);
-        camera.position.x = distance * Math.sin(angle);
-        camera.position.z = distance * Math.cos(angle);
-        camera.lookAt(controls.target);
-      }
-      state.rotation.frame = requestAnimationFrame(rotate);
-    };
-    rotate();
-  } else if (state.ui.focusedNode) {
-    const keepFocus = () => {
-      const controls = state.graph.controls();
-      if (controls && state.ui.focusedNode) controls.target.set(state.ui.focusedNode.x || 0, state.ui.focusedNode.y || 0, state.ui.focusedNode.z || 0);
-      state.rotation.frame = requestAnimationFrame(keepFocus);
-    };
-    keepFocus();
+  if (state.ui.focusedNode && (controls.enableForwardSlice || controls.enableBackwardSlice)) {
+    const sliceNodes = new Set();
+    sliceNodes.add(state.ui.focusedNode.id);
+
+    if (controls.enableForwardSlice) {
+      traverseSlice(state.ui.focusedNode, 'forward', controls.sliceDepth, sliceNodes, nodes, links);
+    }
+    if (controls.enableBackwardSlice) {
+      traverseSlice(state.ui.focusedNode, 'backward', controls.sliceDepth, sliceNodes, nodes, links);
+    }
+
+    filteredNodes = filteredNodes.filter(node => sliceNodes.has(node.id));
   }
+
+  const nodeIds = new Set(filteredNodes.map(n => n.id));
+  const filteredLinks = links.filter(link => {
+    if (!controls[`show${link.type}`]) return false;
+    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+    return nodeIds.has(sourceId) && nodeIds.has(targetId);
+  });
+
+  return { nodes: filteredNodes, links: filteredLinks };
+}
+
+function traverseSlice(node, direction, depth, visited, allNodes, allLinks) {
+  if (depth <= 0) return;
+
+  const relevantLinks = allLinks.filter(link => {
+    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+    return direction === 'forward' ? sourceId === node.id : targetId === node.id;
+  });
+
+  relevantLinks.forEach(link => {
+    const nextNodeId = direction === 'forward'
+      ? (typeof link.target === 'object' ? link.target.id : link.target)
+      : (typeof link.source === 'object' ? link.source.id : link.source);
+
+    if (!visited.has(nextNodeId)) {
+      visited.add(nextNodeId);
+      const nextNode = allNodes.find(n => n.id === nextNodeId);
+      if (nextNode) {
+        traverseSlice(nextNode, direction, depth - 1, visited, allNodes, allLinks);
+      }
+    }
+  });
+}
+
+function matchesSearchQuery(node, query) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+
+  // Simple field:value search
+  if (q.includes(':')) {
+    const queries = q.split(/\s+AND\s+|\s+OR\s+/).map(s => s.trim());
+    const hasAnd = q.includes(' AND ');
+    const hasOr = q.includes(' OR ');
+
+    const results = queries.map(subQ => {
+      if (subQ.startsWith('NOT ')) {
+        return !evaluateFieldQuery(node, subQ.substring(4));
+      }
+      return evaluateFieldQuery(node, subQ);
+    });
+
+    if (hasAnd) return results.every(r => r);
+    if (hasOr) return results.some(r => r);
+    return results[0];
+  }
+
+  // Simple text search
+  return (node.name && node.name.toLowerCase().includes(q)) ||
+         (node.id && node.id.toLowerCase().includes(q));
+}
+
+function evaluateFieldQuery(node, query) {
+  const match = query.match(/^(\w+):(.+)$/);
+  if (!match) return false;
+
+  const [, field, value] = match;
+  const isRegex = value.startsWith('/') && value.endsWith('/');
+  const searchValue = isRegex ? value.slice(1, -1) : value;
+
+  let nodeValue = '';
+  if (field === 'name') nodeValue = node.name || '';
+  else if (field === 'type') nodeValue = node.type || '';
+  else if (field === 'path') nodeValue = node.filePath || node.file || '';
+
+  if (isRegex) {
+    try {
+      return new RegExp(searchValue, 'i').test(nodeValue);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  return nodeValue.toLowerCase().includes(searchValue.toLowerCase());
 }
 
 function handleResize() {
-  if (!state.graph || !state.labelRenderer) return;
+  if (!state.graph) return;
   const container = document.getElementById('graph-container');
   if (!container) return;
 
@@ -408,89 +403,113 @@ function handleResize() {
   const height = container.clientHeight;
 
   state.graph.width(width).height(height);
-  state.labelRenderer.setSize(width, height);
+}
 
-  const camera = state.graph.camera();
-  if (camera) {
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
+function focusNodeByPath(filePath) {
+  if (!filePath) return;
+  const node = state.data.nodes.find(n => state._pathsMatch(state._getNodeFilePath(n), filePath));
+  if (node) {
+    state.ui.focusedNode = node;
+    if (state.graph && node.x !== undefined && node.y !== undefined) {
+      state.graph.centerAt(node.x, node.y, 1000);
+      state.graph.zoom(3, 1000);
+    }
+    updateGraph();
   }
+}
+
+function focusNodeById(msg) {
+  const nodeId = msg.nodeId || (msg.node && msg.node.id);
+  const node = state.data.nodes.find(n => n.id === nodeId);
+
+  if (!node) return;
+
+  if (node.x === undefined || node.y === undefined) {
+    setTimeout(() => focusNodeById(msg), 100);
+    return;
+  }
+
+  state.ui.focusedNode = node;
+  state.graph.centerAt(node.x, node.y, 1000);
+  state.graph.zoom(3, 1000);
+  updateGraph();
+}
+
+const messageHandlers = {
+  data: msg => {
+    console.log('[DependViz] Received data message:', msg);
+    state.updateData(msg.data);
+    updateGraph();
+  },
+  controls: msg => {
+    console.log('[DependViz] Received controls message');
+    state.updateControls(msg.controls);
+    updateGraph();
+  },
+  stackTrace: msg => {
+    console.log('[DependViz] Received stackTrace message');
+    state.ui.stackTraceLinks = new Set(msg.paths.map(p => p.link));
+    updateGraph();
+  },
+  focusNode: msg => {
+    console.log('[DependViz] Received focusNode message:', msg);
+    const filePath = msg.filePath || (msg.node && msg.node.filePath);
+    if (filePath) {
+      focusNodeByPath(filePath);
+    }
+  },
+  focusNodeById: msg => {
+    console.log('[DependViz] Received focusNodeById message:', msg);
+    focusNodeById(msg);
+  },
+  update: msg => {
+    console.log('[DependViz] Received update message:', {
+      hasData: !!msg.data,
+      hasControls: !!msg.controls,
+      nodesCount: msg.data?.nodes?.length || 0,
+      linksCount: msg.data?.links?.length || 0
+    });
+    if (msg.data) {
+      state.updateData(msg.data);
+    }
+    if (msg.controls) {
+      state.updateControls(msg.controls);
+    }
+    if (msg.stackTracePaths) {
+      state.ui.stackTraceLinks = new Set(msg.stackTracePaths.map(p => p.link));
+    }
+    updateGraph();
+  }
+};
+
+if (vscode) {
+  window.addEventListener('message', event => {
+    console.log('[DependViz] Message received:', event.data.type);
+    const msg = event.data;
+    const handler = messageHandlers[msg.type];
+    if (handler) {
+      handler(msg);
+    } else {
+      console.warn('[DependViz] Unknown message type:', msg.type);
+    }
+  });
+
+  // Notify ready
+  console.log('[DependViz] Sending ready message');
+  vscode.postMessage({ type: 'ready' });
 }
 
 window.addEventListener('resize', handleResize);
 
-const messageHandlers = {
-  update: (msg) => {
-    state.updateControls(msg.controls);
-    if (msg.data) state.updateData(msg.data);
-    if (msg.stackTracePaths && Array.isArray(msg.stackTracePaths)) {
-      state.setStackTraceLinks(msg.stackTracePaths);
-    }
+// Initialize
+console.log('[DependViz] Starting initialization in 100ms...');
+setTimeout(() => {
+  console.log('[DependViz] Initialization timeout triggered');
+  if (state.initGraph()) {
+    console.log('[DependViz] Graph initialized, calling updateGraph');
     updateGraph();
-  },
-
-  focusNodeById: (msg) => {
-    if (!state.graph || !state.data.nodes || !state.data.nodes.length) return;
-    const node = state.data.nodes.find(n => n.id === msg.nodeId);
-    if (!node) return;
-
-    if (node.links && state.ui.stackTraceLinks.size === 0) {
-      state.clearHighlights();
-      node.links.forEach(l => state.ui.highlightLinks.add(l));
-    }
-
-    state.ui.focusedNode = node;
-    state.graph.linkWidth(state.graph.linkWidth()).linkDirectionalParticles(state.graph.linkDirectionalParticles());
-
-    if (node.x === undefined || node.y === undefined || node.z === undefined) {
-      setTimeout(() => messageHandlers.focusNodeById(msg), 100);
-      return;
-    }
-
-    const nodeDistance = Math.hypot(node.x, node.y, node.z);
-    const focusDistance = state.controls.focusDistance;
-    const cameraPos = nodeDistance > 0
-      ? {
-        x: node.x * (1 + focusDistance / nodeDistance),
-        y: node.y * (1 + focusDistance / nodeDistance),
-        z: node.z * (1 + focusDistance / nodeDistance)
-      }
-      : { x: focusDistance, y: 0, z: 0 };
-
-    state.graph.cameraPosition(cameraPos, node, DEBUG.AUTO_ROTATE_DELAY);
-    setTimeout(() => updateAutoRotation(), DEBUG.AUTO_ROTATE_DELAY);
+  } else {
+    console.error('[DependViz] Failed to initialize graph on startup');
   }
-};
+}, 100);
 
-window.addEventListener('message', event => {
-  const { type, ...data } = event.data;
-  messageHandlers[type]?.({ ...data, type });
-});
-
-function waitForLibraries() {
-  return new Promise((resolve) => {
-    const check = setInterval(() => {
-      if (typeof ForceGraph3D !== 'undefined' && window.CSS2DRenderer) {
-        clearInterval(check);
-        resolve(true);
-      }
-    }, 100);
-    setTimeout(() => { clearInterval(check); resolve(false); }, 10000);
-  });
-}
-
-async function init() {
-  await waitForLibraries();
-  state.initGraph();
-
-  // Webview準備完了を通知
-  if (vscode) {
-    vscode.postMessage({ type: 'ready' });
-  }
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
