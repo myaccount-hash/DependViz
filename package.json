@@ -307,8 +307,9 @@
     "build:extension": "npm install",
     "clean": "rm -f java-graph.jar && cd java-analyzer && mvn clean && rm -f dependency-reduced-pom.xml",
     "debug:lsp": "node test/lsp-debug.js",
-    "test": "mocha 'test/**/*.test.js'",
-    "test:watch": "mocha 'test/**/*.test.js' --watch"
+    "test": "npm run test:unit",
+    "test:unit": "mocha \"test/unit/**/*.test.js\"",
+    "test:watch": "mocha \"test/unit/**/*.test.js\" --watch"
   },
   "dependencies": {
     "force-graph": "^1.44.0",
