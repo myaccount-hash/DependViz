@@ -44,6 +44,32 @@ function registerCommands(context, providers) {
             const analyzer = new JavaAnalyzer(context);
             await analyzer.analyze();
         }),
+        vscode.commands.registerCommand('forceGraphViewer.analyzeCurrentFile', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                return vscode.window.showErrorMessage('アクティブなエディタがありません');
+            }
+
+            const filePath = editor.document.uri.fsPath;
+            if (!filePath.endsWith('.java')) {
+                return vscode.window.showErrorMessage('Javaファイルではありません');
+            }
+
+            try {
+                const analyzer = new JavaAnalyzer(context);
+                const graphData = await vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'ファイルを解析中...',
+                    cancellable: false
+                }, () => analyzer.analyzeFile(filePath));
+
+                // グラフデータをマージ
+                graphViewProvider.mergeGraphData(graphData);
+                vscode.window.showInformationMessage(`解析完了: ${graphData.nodes.length}ノード, ${graphData.links.length}リンク`);
+            } catch (e) {
+                vscode.window.showErrorMessage(`解析失敗: ${e.message}`);
+            }
+        }),
         vscode.commands.registerCommand('forceGraphViewer.selectJavaSourceDirectory', selectJavaSourceDirectory),
         vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
             try {

@@ -75,6 +75,11 @@
         "category": "DependViz"
       },
       {
+        "command": "forceGraphViewer.analyzeCurrentFile",
+        "title": "Analyze Current Java File",
+        "category": "DependViz"
+      },
+      {
         "command": "forceGraphViewer.selectJavaSourceDirectory",
         "title": "Select Java Source Directory",
         "category": "DependViz"

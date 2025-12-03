@@ -126,6 +126,41 @@ class GraphViewProvider {
         }
     }
 
+    /**
+     * グラフデータをインクリメンタルにマージ
+     * 既存のノード・リンクと新しいデータを統合
+     * @param {Object} newData - 追加するグラフデータ { nodes, links }
+     */
+    mergeGraphData(newData) {
+        if (!newData || !newData.nodes || !newData.links) {
+            throw new Error('Invalid graph data');
+        }
+
+        // 既存ノードのIDセット
+        const existingNodeIds = new Set(this._currentData.nodes.map(n => n.id));
+
+        // 新しいノードを追加（重複を避ける）
+        const newNodes = newData.nodes.filter(node => !existingNodeIds.has(node.id));
+        this._currentData.nodes.push(...newNodes);
+
+        // リンクの重複チェック用キー生成
+        const linkKey = (link) => {
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            return `${sourceId}-${link.type}-${targetId}`;
+        };
+
+        // 既存リンクのキーセット
+        const existingLinkKeys = new Set(this._currentData.links.map(linkKey));
+
+        // 新しいリンクを追加（重複を避ける）
+        const newLinks = newData.links.filter(link => !existingLinkKeys.has(linkKey(link)));
+        this._currentData.links.push(...newLinks);
+
+        // Webviewに更新を送信
+        this.syncToWebview();
+    }
+
     async update(data) {
         // 更新処理中の場合、最新の更新を保持
         if (this._updateInProgress) {

@@ -10,6 +10,67 @@ class JavaAnalyzer {
         this.context = context;
     }
 
+    /**
+     * 単一ファイルを解析
+     * @param {string} filePath - 解析対象のJavaファイルのパス
+     * @returns {Promise<Object>} - グラフデータ { nodes, links }
+     */
+    async analyzeFile(filePath) {
+        const jarPath = path.join(this.context.extensionPath, JAVA_PATHS.JAR_FILE);
+        if (!fs.existsSync(jarPath)) {
+            throw new Error(`${JAVA_PATHS.JAR_FILE} が見つかりません`);
+        }
+
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`ファイルが見つかりません: ${filePath}`);
+        }
+
+        let workspaceFolder;
+        try {
+            workspaceFolder = getWorkspaceFolder();
+        } catch (e) {
+            throw new Error(e.message);
+        }
+
+        const dataDir = path.join(workspaceFolder.uri.fsPath, JAVA_PATHS.DATA_DIR);
+        const tempOutput = path.join(dataDir, JAVA_PATHS.TEMP_OUTPUT);
+
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        return new Promise((resolve, reject) => {
+            const process = spawn('java', ['-jar', jarPath, '--file', filePath], {
+                cwd: workspaceFolder.uri.fsPath
+            });
+            let stderr = '';
+
+            process.stderr.on('data', (data) => {
+                stderr += data.toString();
+            });
+
+            process.on('error', (error) => {
+                reject(new Error(`Java実行エラー: ${error.message}`));
+            });
+
+            process.on('close', (code) => {
+                if (code !== 0) {
+                    reject(new Error(`解析失敗 (終了コード: ${code}): ${stderr || 'Unknown error'}`));
+                } else if (!fs.existsSync(tempOutput)) {
+                    reject(new Error('解析失敗: 出力ファイルが生成されませんでした'));
+                } else {
+                    try {
+                        const data = JSON.parse(fs.readFileSync(tempOutput, 'utf8'));
+                        fs.unlinkSync(tempOutput); // 一時ファイルを削除
+                        resolve(data);
+                    } catch (e) {
+                        reject(new Error(`JSON読み込みエラー: ${e.message}`));
+                    }
+                }
+            });
+        });
+    }
+
     async analyze() {
         const jarPath = path.join(this.context.extensionPath, JAVA_PATHS.JAR_FILE);
         if (!fs.existsSync(jarPath)) {
