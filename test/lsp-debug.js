@@ -69,6 +69,42 @@ connection.onNotification('window/logMessage', (params) => {
 
 connection.listen();
 
+const EXCLUDE_DIRS = new Set([
+    'node_modules',
+    'target',
+    'build',
+    'out',
+    '.git',
+    '.svn',
+    '.idea',
+    '.vscode'
+]);
+
+function findFirstJavaFile(dir) {
+    let entries = [];
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (error) {
+        console.warn(`[DependViz LSP Debug] Unable to read directory ${dir}: ${error.message}`);
+        return null;
+    }
+
+    for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue;
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            if (EXCLUDE_DIRS.has(entry.name)) {
+                continue;
+            }
+            const nested = findFirstJavaFile(fullPath);
+            if (nested) return nested;
+        } else if (entry.isFile() && entry.name.endsWith('.java')) {
+            return fullPath;
+        }
+    }
+    return null;
+}
+
 async function run() {
     const rootUri = pathToFileURL(workspaceRoot).toString();
     try {
@@ -85,14 +121,23 @@ async function run() {
         connection.sendNotification('initialized', {});
 
         // Try issuing custom requests to verify they succeed.
-        const graph = await connection.sendRequest('dependviz/getDependencyGraph');
-        try {
-            const parsed = JSON.parse(graph);
-            console.log('[DependViz LSP Debug] dependency graph nodes:', parsed.nodes?.length || 0);
-            console.log('[DependViz LSP Debug] dependency graph links:', parsed.links?.length || 0);
-        } catch (parseError) {
-            console.warn('[DependViz LSP Debug] failed to parse graph response:', parseError);
-            console.log(graph);
+        const sampleFile = findFirstJavaFile(workspaceRoot);
+        if (!sampleFile) {
+            console.warn('[DependViz LSP Debug] No Java files were found in this workspace.');
+        } else {
+            console.log(`[DependViz LSP Debug] Requesting graph for ${sampleFile}`);
+            const graph = await connection.sendRequest(
+                'dependviz/getFileDependencyGraph',
+                pathToFileURL(sampleFile).toString()
+            );
+            try {
+                const parsed = JSON.parse(graph);
+                console.log('[DependViz LSP Debug] nodes:', parsed.nodes?.length || 0);
+                console.log('[DependViz LSP Debug] links:', parsed.links?.length || 0);
+            } catch (parseError) {
+                console.warn('[DependViz LSP Debug] failed to parse graph response:', parseError);
+                console.log(graph);
+            }
         }
 
         // Clean shutdown

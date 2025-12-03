@@ -59,29 +59,6 @@ function computeSlice(data, startNodeId, direction, maxDepth = Infinity) {
 }
 
 /**
- * ディレクトリ内の全Javaファイルを再帰的に探索
- * @param {string} dir - 探索開始ディレクトリ
- * @returns {string[]} - Javaファイルパスの配列
- */
-function findJavaFiles(dir) {
-    const results = [];
-    const list = fs.readdirSync(dir);
-
-    list.forEach(file => {
-        const filePath = path.join(dir, file);
-        const stat = fs.statSync(filePath);
-
-        if (stat.isDirectory()) {
-            results.push(...findJavaFiles(filePath));
-        } else if (file.endsWith('.java')) {
-            results.push(filePath);
-        }
-    });
-
-    return results;
-}
-
-/**
  * グラフデータをマージ（重複を排除）
  * Java側のCodeGraph.merge()ロジックと同等の処理
  * @param {Object} target - マージ先のグラフデータ
@@ -164,6 +141,5 @@ module.exports = {
     getNodeFilePath,
     getHtmlForWebview,
     computeSlice,
-    findJavaFiles,
     mergeGraphData
 };

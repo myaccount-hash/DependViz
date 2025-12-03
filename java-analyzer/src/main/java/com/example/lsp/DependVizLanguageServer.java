@@ -35,11 +35,6 @@ public class DependVizLanguageServer
 
   // カスタムリクエストハンドラの実装
   @Override
-  public CompletableFuture<String> getDependencyGraph() {
-    return textDocumentService.getDependencyGraph();
-  }
-
-  @Override
   public CompletableFuture<String> getFileDependencyGraph(String uri) {
     return textDocumentService.getFileDependencyGraph(uri);
   }

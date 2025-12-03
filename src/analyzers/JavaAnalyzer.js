@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const { LanguageClient, TransportKind } = require('vscode-languageclient/node');
-const { getWorkspaceFolder } = require('../utils/utils');
+const { getWorkspaceFolder, mergeGraphData } = require('../utils/utils');
 
 /**
  * JavaAnalyzer - LSP版
@@ -117,23 +117,6 @@ class JavaAnalyzer {
     }
 
     /**
-     * プロジェクト全体の依存関係グラフを取得
-     */
-    async getDependencyGraph() {
-        if (!this.client) {
-            await this.startLanguageClient();
-        }
-
-        try {
-            const result = await this.client.sendRequest('dependviz/getDependencyGraph');
-            return JSON.parse(result);
-        } catch (error) {
-            console.error('Failed to get dependency graph:', error);
-            throw error;
-        }
-    }
-
-    /**
      * 単一ファイルの依存関係グラフを取得
      */
     async getFileDependencyGraph(fileUri) {
@@ -172,40 +155,47 @@ class JavaAnalyzer {
             // Language Clientを起動
             await this.startLanguageClient();
 
-            // すべてのJavaファイルを開いてLanguage Serverに解析させる
-            const workspaceFolder = getWorkspaceFolder();
+            getWorkspaceFolder();
             const javaFiles = await vscode.workspace.findFiles('**/*.java', '**/node_modules/**');
+
+            if (javaFiles.length === 0) {
+                vscode.window.showWarningMessage('Javaファイルが見つかりませんでした');
+                return { nodes: [], links: [] };
+            }
+
+            const mergedGraph = { nodes: [], links: [] };
+            let successCount = 0;
+            let errorCount = 0;
 
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: `Javaプロジェクトを解析中 (0/${javaFiles.length})...`,
                 cancellable: false
             }, async (progress) => {
+                const increment = 100 / javaFiles.length;
                 for (let i = 0; i < javaFiles.length; i++) {
                     const file = javaFiles[i];
                     try {
-                        // ファイルを開く（Language Serverが自動的に解析）
-                        const document = await vscode.workspace.openTextDocument(file);
-                        await vscode.languages.setTextDocumentLanguage(document, 'java');
-
+                        const graphData = await this.getFileDependencyGraph(file.toString());
+                        mergeGraphData(mergedGraph, graphData);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Failed to analyze file: ${file.fsPath}`, error);
+                        errorCount++;
+                    } finally {
                         progress.report({
                             message: `(${i + 1}/${javaFiles.length})`,
-                            increment: (100 / javaFiles.length)
+                            increment
                         });
-                    } catch (error) {
-                        console.error(`Failed to open file: ${file.fsPath}`, error);
                     }
                 }
             });
 
-            // 全体のグラフデータを取得
-            const graphData = await this.getDependencyGraph();
-
             vscode.window.showInformationMessage(
-                `解析完了: ${javaFiles.length}ファイル (${graphData.nodes.length}ノード, ${graphData.links.length}リンク)`
+                `解析完了: ${successCount}ファイル成功, ${errorCount}ファイル失敗 (${mergedGraph.nodes.length}ノード, ${mergedGraph.links.length}リンク)`
             );
 
-            return graphData;
+            return mergedGraph;
 
         } catch (error) {
             vscode.window.showErrorMessage(`解析失敗: ${error.message}`);

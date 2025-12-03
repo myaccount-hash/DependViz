@@ -31,9 +31,6 @@ public class DependVizTextDocumentService
   // ファイルパスごとにCodeGraphをキャッシュ
   private final Map<String, CodeGraph> graphCache = new HashMap<>();
 
-  // プロジェクト全体のグラフ
-  private CodeGraph mergedGraph = new CodeGraph();
-
   // 解析エンジン
   private AnalysisEngine analysisEngine;
 
@@ -103,7 +100,6 @@ public class DependVizTextDocumentService
     try {
       String filePath = URI.create(uri).getPath();
       graphCache.remove(filePath);
-      rebuildMergedGraph();
     } catch (Exception e) {
       logger.log(Level.WARNING, "Failed to handle closed file: " + uri, e);
     }
@@ -132,44 +128,9 @@ public class DependVizTextDocumentService
           String.format(
               "Analyzed file: %s (%d nodes, %d edges)",
               filePath, graph.getGraphNodes().size(), graph.getGraphEdges().size()));
-
-      // マージグラフを再構築
-      rebuildMergedGraph();
-
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Failed to analyze file: " + filePath, e);
     }
-  }
-
-  /**
-   * キャッシュされた全ファイルのグラフをマージして全体グラフを再構築
-   */
-  private void rebuildMergedGraph() {
-    mergedGraph = new CodeGraph();
-    for (CodeGraph graph : graphCache.values()) {
-      mergedGraph.merge(graph);
-    }
-    logger.info(
-        String.format(
-            "Merged graph rebuilt: %d nodes, %d edges",
-            mergedGraph.getGraphNodes().size(), mergedGraph.getGraphEdges().size()));
-  }
-
-  /**
-   * カスタムリクエスト: 全体のグラフデータを取得
-   */
-  public CompletableFuture<String> getDependencyGraph() {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try {
-            ObjectMapper mapper = new ObjectMapper();
-            GraphDataJson json = toJsonObject(mergedGraph);
-            return mapper.writeValueAsString(json);
-          } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to serialize dependency graph", e);
-            return "{\"nodes\": [], \"links\": []}";
-          }
-        });
   }
 
   /**
