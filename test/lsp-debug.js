@@ -16,7 +16,7 @@ const {
 
 const workspaceRoot = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
 const repoRoot = path.resolve(__dirname, '..');
-const jarPath = path.join(repoRoot, 'java-graph.jar');
+const jarPath = path.join(repoRoot, 'java', 'target', 'java-graph.jar');
 const loggingConfig = path.join(repoRoot, 'logging.properties');
 
 if (!fs.existsSync(jarPath)) {

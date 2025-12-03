@@ -15,8 +15,8 @@ package-lock.json
 
 # Java
 *.jar
-!java/target/java-graph.jar
 
+# Build artifacts
 # Build artifacts
 java/target/
 java/dependency-reduced-pom.xml
@@ -36,4 +36,3 @@ Thumbs.db
 # Generated files
 graph.json
 data/
-

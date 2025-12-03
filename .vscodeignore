@@ -11,7 +11,8 @@ vsc-extension-quickstart.md
 java/src/**
 java/pom.xml
 java/target/**
+!java/target/
+!java/target/java-graph.jar
 java/.gitignore
 java/dependency-reduced-pom.xml
 *.vsix
-

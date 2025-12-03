@@ -34,7 +34,7 @@ class JavaAnalyzer {
 
         try {
             const workspaceFolder = getWorkspaceFolder();
-            const jarPath = path.join(this.context.extensionPath, 'java-graph.jar');
+            const jarPath = path.join(this.context.extensionPath, 'java', 'target', 'java-graph.jar');
             const loggingConfig = path.join(this.context.extensionPath, 'logging.properties');
             const baseArgs = [
                 `-Djava.util.logging.config.file=${loggingConfig}`,

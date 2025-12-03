@@ -42,7 +42,7 @@ To debug only the Java Language Server without launching VS Code, run:
 npm run debug:lsp -- /path/to/java/project
 ```
 
-The script launches `java-graph.jar`, performs an `initialize` handshake, and issues DependViz custom requests so you can inspect server logs and crashes directly from the terminal.
+The script launches `java/target/java-graph.jar`, performs an `initialize` handshake, and issues DependViz custom requests so you can inspect server logs and crashes directly from the terminal. Build the analyzer beforehand via `npm run build:java` (or `npm run build`) so the jar exists.
 
 ## Stack Trace Feature
 
