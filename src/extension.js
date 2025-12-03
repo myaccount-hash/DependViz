@@ -4,12 +4,19 @@ const GraphViewProvider = require('./providers/GraphViewProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./commands/stackTrace');
+const JavaAnalyzerLSP = require('./analyzers/JavaAnalyzerLSP');
 
 process.env.VSCODE_DISABLE_TELEMETRY = '1';
+
+// グローバルなLanguage Client インスタンス
+let javaAnalyzer = null;
 
 function activate(context) {
     const settingsProvider = new SettingsProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
+
+    // Java Analyzer (Language Client) を初期化（起動はコマンド実行時にオンデマンドで行う）
+    javaAnalyzer = new JavaAnalyzerLSP(context);
 
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
@@ -69,7 +76,12 @@ function activate(context) {
     context.subscriptions.push(...commands, ...eventHandlers);
 }
 
-function deactivate() {
+async function deactivate() {
+    // Language Clientを停止
+    if (javaAnalyzer) {
+        await javaAnalyzer.stopLanguageClient();
+    }
+
     // リソースクリーンアップ
     // context.subscriptions に登録された全てのリソースは
     // VSCode が自動的に dispose() を呼び出すため、

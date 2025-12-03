@@ -320,7 +320,8 @@
     "test:watch": "mocha 'test/**/*.test.js' --watch"
   },
   "dependencies": {
-    "force-graph": "^1.44.0"
+    "force-graph": "^1.44.0",
+    "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
     "mocha": "^10.0.0",
