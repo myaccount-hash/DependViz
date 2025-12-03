@@ -8,7 +8,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import com.example.parser.Analyzer;
 import com.example.parser.CodeGraph;
@@ -93,12 +92,12 @@ public class Main {
     Path path = Paths.get(filePath);
 
     if (!Files.exists(path)) {
-      logger.log(Level.SEVERE, "File not found: " + filePath);
+      logger.log(Level.SEVERE, "File not found: {0}", filePath);
       return codeGraph;
     }
 
     if (!path.toString().endsWith(".java")) {
-      logger.log(Level.SEVERE, "Not a Java file: " + filePath);
+      logger.log(Level.SEVERE, "Not a Java file: {0}", filePath);
       return codeGraph;
     }
 

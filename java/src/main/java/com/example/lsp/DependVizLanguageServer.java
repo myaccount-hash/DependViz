@@ -2,16 +2,19 @@ package com.example.lsp;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -44,7 +47,7 @@ public class DependVizLanguageServer
     logger.info("Initializing DependViz Language Server");
 
     // ワークスペースルートを取得
-    String workspaceRoot = params.getRootUri();
+    String workspaceRoot = resolveWorkspaceRoot(params);
     logger.info("Workspace root: " + workspaceRoot);
 
     // TextDocumentServiceにワークスペースルートを設定
@@ -118,5 +121,22 @@ public class DependVizLanguageServer
     } catch (Exception e) {
       logger.log(Level.SEVERE, "Language server terminated with error", e);
     }
+  }
+
+  private String resolveWorkspaceRoot(InitializeParams params) {
+    List<WorkspaceFolder> folders = params.getWorkspaceFolders();
+    if (folders != null && !folders.isEmpty()) {
+      return folders.get(0).getUri();
+    }
+    return fallbackWorkspaceRoot(params);
+  }
+
+  @SuppressWarnings("deprecation")
+  private String fallbackWorkspaceRoot(InitializeParams params) {
+    String rootUri = params.getRootUri();
+    if (rootUri != null && !rootUri.isEmpty()) {
+      return rootUri;
+    }
+    return params.getRootPath();
   }
 }

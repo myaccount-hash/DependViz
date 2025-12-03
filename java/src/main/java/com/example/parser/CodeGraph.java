@@ -8,8 +8,8 @@ public class CodeGraph {
   private List<GraphEdge> graphEdges;
 
   public CodeGraph() {
-    this.graphNodes = new ArrayList<GraphNode>();
-    this.graphEdges = new ArrayList<GraphEdge>();
+    this.graphNodes = new ArrayList<>();
+    this.graphEdges = new ArrayList<>();
   }
 
   public List<GraphNode> getGraphNodes() {

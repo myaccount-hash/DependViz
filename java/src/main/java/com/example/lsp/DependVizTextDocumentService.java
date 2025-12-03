@@ -1,16 +1,12 @@
 package com.example.lsp;
 
-import com.example.parser.AnalysisEngine;
-import com.example.parser.CodeGraph;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
@@ -18,6 +14,11 @@ import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
+
+import com.example.parser.AnalysisEngine;
+import com.example.parser.CodeGraph;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DependVizTextDocumentService
     implements TextDocumentService, LanguageClientAware {
@@ -156,7 +157,7 @@ public class DependVizTextDocumentService
             ObjectMapper mapper = new ObjectMapper();
             GraphDataJson json = toJsonObject(graph);
             return mapper.writeValueAsString(json);
-          } catch (Exception e) {
+          } catch (JsonProcessingException e) {
             logger.log(Level.SEVERE, "Failed to serialize file dependency graph", e);
             return "{\"nodes\": [], \"links\": []}";
           }
