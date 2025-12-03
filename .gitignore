@@ -15,11 +15,11 @@ package-lock.json
 
 # Java
 *.jar
-!java-analyzer/target/java-graph.jar
+!java/target/java-graph.jar
 
 # Build artifacts
-java-analyzer/target/
-java-analyzer/dependency-reduced-pom.xml
+java/target/
+java/dependency-reduced-pom.xml
 
 # IDE
 .vscode/*

@@ -8,10 +8,10 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
-java-analyzer/src/**
-java-analyzer/pom.xml
-java-analyzer/target/**
-java-analyzer/.gitignore
-java-analyzer/dependency-reduced-pom.xml
+java/src/**
+java/pom.xml
+java/target/**
+java/.gitignore
+java/dependency-reduced-pom.xml
 *.vsix
 
