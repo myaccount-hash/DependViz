@@ -217,11 +217,6 @@ class GraphViewProvider {
             const isDark = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ||
                           vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast;
             const data = this.getFilteredData();
-            console.log('[GraphViewProvider] Syncing to webview:', {
-                nodesCount: data?.nodes?.length || 0,
-                linksCount: data?.links?.length || 0,
-                controlsKeys: Object.keys(controls).length
-            });
             this._postMessage({
                 type: 'update',
                 controls: { ...controls, darkMode: isDark },

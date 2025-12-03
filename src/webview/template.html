@@ -22,17 +22,13 @@
     <div id="graph-container"></div>
     <script nonce="{{nonce}}" type="module">
         // @ts-nocheck
-        console.log('[Template] Loading ForceGraph from:', "{{fgUri}}");
         import("{{fgUri}}").then(module => {
-            console.log('[Template] ForceGraph module loaded:', module);
             window.ForceGraph = module.default || module.ForceGraph || module;
-            console.log('[Template] window.ForceGraph set to:', typeof window.ForceGraph);
 
             const DEFAULT_CONTROLS = {{defaultControls}};
             const COLORS = {{colors}};
             const DEBUG = {{debug}};
 
-            console.log('[Template] Executing main script...');
             {{script}}
         }).catch(error => {
             console.error('[Template] Failed to load ForceGraph:', error);

@@ -144,10 +144,7 @@ class GraphState {
   }
 
   initGraph() {
-    console.log('[DependViz] Initializing graph...');
     const container = document.getElementById('graph-container');
-    console.log('[DependViz] Container:', container);
-    console.log('[DependViz] ForceGraph available:', typeof ForceGraph !== 'undefined');
 
     if (!container) {
       console.error('[DependViz] Container not found!');
@@ -160,7 +157,6 @@ class GraphState {
     }
 
     try {
-      console.log('[DependViz] Creating ForceGraph instance...');
       const g = ForceGraph()(container)
         .backgroundColor(this.getBackgroundColor())
         .linkDirectionalArrowLength(5)
@@ -180,7 +176,6 @@ class GraphState {
           }
         });
       this.setGraph(g);
-      console.log('[DependViz] Graph initialized successfully');
       return true;
     } catch (error) {
       console.error('[DependViz] Error initializing graph:', error);
@@ -192,19 +187,12 @@ class GraphState {
 const state = new GraphState();
 
 function updateGraph() {
-  console.log('[DependViz] updateGraph called, graph exists:', !!state.graph);
   if (!state.graph) {
-    console.log('[DependViz] Graph not initialized, attempting to initialize...');
     if (!state.initGraph()) {
       console.error('[DependViz] Failed to initialize graph');
       return;
     }
   }
-
-  console.log('[DependViz] Updating graph with data:', {
-    nodes: state.data.nodes?.length || 0,
-    links: state.data.links?.length || 0
-  });
 
   state.graph.backgroundColor(state.getBackgroundColor());
 
@@ -437,38 +425,27 @@ function focusNodeById(msg) {
 
 const messageHandlers = {
   data: msg => {
-    console.log('[DependViz] Received data message:', msg);
     state.updateData(msg.data);
     updateGraph();
   },
   controls: msg => {
-    console.log('[DependViz] Received controls message');
     state.updateControls(msg.controls);
     updateGraph();
   },
   stackTrace: msg => {
-    console.log('[DependViz] Received stackTrace message');
     state.ui.stackTraceLinks = new Set(msg.paths.map(p => p.link));
     updateGraph();
   },
   focusNode: msg => {
-    console.log('[DependViz] Received focusNode message:', msg);
     const filePath = msg.filePath || (msg.node && msg.node.filePath);
     if (filePath) {
       focusNodeByPath(filePath);
     }
   },
   focusNodeById: msg => {
-    console.log('[DependViz] Received focusNodeById message:', msg);
     focusNodeById(msg);
   },
   update: msg => {
-    console.log('[DependViz] Received update message:', {
-      hasData: !!msg.data,
-      hasControls: !!msg.controls,
-      nodesCount: msg.data?.nodes?.length || 0,
-      linksCount: msg.data?.links?.length || 0
-    });
     if (msg.data) {
       state.updateData(msg.data);
     }
@@ -484,7 +461,6 @@ const messageHandlers = {
 
 if (vscode) {
   window.addEventListener('message', event => {
-    console.log('[DependViz] Message received:', event.data.type);
     const msg = event.data;
     const handler = messageHandlers[msg.type];
     if (handler) {
@@ -494,19 +470,14 @@ if (vscode) {
     }
   });
 
-  // Notify ready
-  console.log('[DependViz] Sending ready message');
   vscode.postMessage({ type: 'ready' });
 }
 
 window.addEventListener('resize', handleResize);
 
 // Initialize
-console.log('[DependViz] Starting initialization in 100ms...');
 setTimeout(() => {
-  console.log('[DependViz] Initialization timeout triggered');
   if (state.initGraph()) {
-    console.log('[DependViz] Graph initialized, calling updateGraph');
     updateGraph();
   } else {
     console.error('[DependViz] Failed to initialize graph on startup');
