@@ -631,23 +631,21 @@ function updateGraph3D(state, options = {}) {
     .nodeColor(node => {
       const props = getNodeProps(node);
       const color = props ? props.color : COLORS.NODE_DEFAULT;
-      return color; // 3Dでは透明度はnodeOpacityで制御
+      return applyOpacityToColor(color, props?.opacity);
     })
     .nodeVal(node => {
       const props = getNodeProps(node);
       return props ? props.size : state.controls.nodeSize;
     })
-    .nodeOpacity(state.controls.nodeOpacity)
     .linkColor(link => {
       const props = getLinkProps(link);
       const color = props ? props.color : COLORS.EDGE_DEFAULT;
-      return color;
+      return applyOpacityToColor(color, props?.opacity);
     })
     .linkWidth(link => {
       const props = getLinkProps(link);
       return props ? props.width : state.controls.linkWidth;
     })
-    .linkOpacity(state.controls.edgeOpacity)
     .linkDirectionalArrowLength(state.controls.arrowSize)
     .linkDirectionalParticles(link => {
       const props = getLinkProps(link);
@@ -657,6 +655,34 @@ function updateGraph3D(state, options = {}) {
 
   const linkForce = state.graph.d3Force('link');
   if (linkForce) linkForce.distance(state.controls.linkDistance);
+
+  // 2D風のレイアウト: Z軸方向の力を弱める
+  const chargeForce = state.graph.d3Force('charge');
+  if (chargeForce) chargeForce.strength(-120);
+
+  // Z軸を平面に保つ力を追加（カスタムforce）
+  state.graph.d3Force('z', () => {
+    let nodes;
+    const strength = 0.1;
+    const z = 0;
+
+    function force(alpha) {
+      if (!nodes) return;
+      for (let i = 0, n = nodes.length; i < n; ++i) {
+        const node = nodes[i];
+        if (node.z !== undefined) {
+          node.vz = node.vz || 0;
+          node.vz += (z - node.z) * strength * alpha;
+        }
+      }
+    }
+
+    force.initialize = function(_) {
+      nodes = _;
+    };
+
+    return force;
+  });
 
   if (reheatSimulation && state.graph?.d3ReheatSimulation) {
     setTimeout(() => state.graph.d3ReheatSimulation(), 100);
@@ -687,12 +713,12 @@ function updateVisuals3D(state) {
     .nodeColor(node => {
       const props = getNodeProps(node);
       const color = props ? props.color : COLORS.NODE_DEFAULT;
-      return color;
+      return applyOpacityToColor(color, props?.opacity);
     })
     .linkColor(link => {
       const props = getLinkProps(link);
       const color = props ? props.color : COLORS.EDGE_DEFAULT;
-      return color;
+      return applyOpacityToColor(color, props?.opacity);
     })
     .linkDirectionalParticles(link => {
       const props = getLinkProps(link);
@@ -708,15 +734,27 @@ function focusNode3D(state, node) {
     return;
   }
 
+  // 現在のカメラ位置を取得
+  const currentCameraPos = state.graph.cameraPosition();
+
+  // 現在のカメラと注目点との距離を計算
+  const currentDistance = currentCameraPos
+    ? Math.hypot(
+        currentCameraPos.x - (state.ui.focusedNode?.x || 0),
+        currentCameraPos.y - (state.ui.focusedNode?.y || 0),
+        currentCameraPos.z - (state.ui.focusedNode?.z || 0)
+      )
+    : state.controls.focusDistance;
+
+  // その距離を保持して新しいノードにフォーカス
   const nodeDistance = Math.hypot(node.x, node.y, node.z);
-  const focusDistance = state.controls.focusDistance;
   const cameraPos = nodeDistance > 0
     ? {
-      x: node.x * (1 + focusDistance / nodeDistance),
-      y: node.y * (1 + focusDistance / nodeDistance),
-      z: node.z * (1 + focusDistance / nodeDistance)
+      x: node.x * (1 + currentDistance / nodeDistance),
+      y: node.y * (1 + currentDistance / nodeDistance),
+      z: node.z * (1 + currentDistance / nodeDistance)
     }
-    : { x: focusDistance, y: 0, z: 0 };
+    : { x: currentDistance, y: 0, z: 0 };
 
   state.graph.cameraPosition(cameraPos, node, DEBUG.AUTO_ROTATE_DELAY);
   setTimeout(() => updateAutoRotation(state), DEBUG.AUTO_ROTATE_DELAY);
