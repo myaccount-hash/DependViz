@@ -422,13 +422,18 @@ class CSS3DLabelRenderer extends LabelRenderer {
       const props = getNodeProps(node);
       const div = document.createElement('div');
       div.textContent = this.getLabel(node, props);
+
+      // 透明度を色とopacityの両方で反映
+      const opacity = props.opacity !== undefined ? props.opacity : 1;
+
       Object.assign(div.style, {
         fontSize: `${this.getFontSize()}px`,
         fontFamily: 'sans-serif',
         padding: '2px 4px',
         borderRadius: '2px',
         pointerEvents: 'none',
-        color: props.color
+        color: props.color,
+        opacity: opacity.toString()
       });
       const label = new window.CSS2DObject(div);
       label.position.set(0, -8, 0);
