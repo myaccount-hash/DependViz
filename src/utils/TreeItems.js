@@ -56,5 +56,17 @@ class SectionItem extends vscode.TreeItem {
     }
 }
 
-module.exports = { CheckboxControlItem, SliderControlItem, ColorControlItem, SectionItem };
+class ButtonControlItem extends vscode.TreeItem {
+    constructor(label, commandName, commandArgs = []) {
+        super(label, vscode.TreeItemCollapsibleState.None);
+        this.contextValue = 'buttonControl';
+        this.command = {
+            command: commandName,
+            title: label,
+            arguments: commandArgs
+        };
+    }
+}
+
+module.exports = { CheckboxControlItem, SliderControlItem, ColorControlItem, SectionItem, ButtonControlItem };
 

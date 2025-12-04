@@ -22,8 +22,12 @@
     <div id="graph-container"></div>
     <script nonce="{{nonce}}" type="module">
         // @ts-nocheck
-        import("{{fgUri}}").then(module => {
-            window.ForceGraph = module.default || module.ForceGraph || module;
+        Promise.all([
+            import("{{fgUri}}"),
+            import("{{fg3dUri}}")
+        ]).then(([fg2dModule, fg3dModule]) => {
+            window.ForceGraph = fg2dModule.default || fg2dModule.ForceGraph || fg2dModule;
+            window.ForceGraph3D = fg3dModule.default || fg3dModule.ForceGraph3D || fg3dModule;
 
             const DEFAULT_CONTROLS = {{defaultControls}};
             const COLORS = {{colors}};

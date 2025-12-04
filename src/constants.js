@@ -1,5 +1,6 @@
 const DEFAULT_CONTROLS = {
     search: '',
+    is3DMode: false,
     nodeSizeByLoc: false,
     hideIsolatedNodes: false,
     showStackTrace: true,
@@ -36,7 +37,8 @@ const DEFAULT_CONTROLS = {
 };
 
 const CDN_LIBS = {
-    fgUri: 'https://esm.sh/force-graph@1.44.0'
+    fgUri: 'https://esm.sh/force-graph@1.44.0',
+    fg3dUri: 'https://esm.sh/3d-force-graph@1.73.6'
 };
 
 

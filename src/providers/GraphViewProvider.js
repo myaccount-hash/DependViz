@@ -121,6 +121,20 @@ class GraphViewProvider {
             this._webviewBridge.sendFocusNodeById(node.id);
         }
     }
+
+    async toggle3DMode() {
+        if (!this._view) {
+            console.warn('[GraphViewProvider] Cannot toggle 3D mode - view not available');
+            return;
+        }
+
+        // 現在の設定を取得して反転
+        const currentMode = ConfigurationManager.getInstance().loadControls().is3DMode;
+        await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
+
+        // Webviewに通知
+        this._webviewBridge.sendToggle3DMode();
+    }
 }
 
 module.exports = GraphViewProvider;

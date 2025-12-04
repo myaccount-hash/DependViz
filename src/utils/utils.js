@@ -130,6 +130,7 @@ function getHtmlForWebview(webview, libs) {
         .replace(/{{nonce}}/g, nonce)
         .replace(/{{cspSource}}/g, webview.cspSource)
         .replace(/{{fgUri}}/g, libs.fgUri)
+        .replace(/{{fg3dUri}}/g, libs.fg3dUri)
         .replace(/{{defaultControls}}/g, JSON.stringify(DEFAULT_CONTROLS))
         .replace(/{{colors}}/g, JSON.stringify(COLORS))
         .replace(/{{debug}}/g, JSON.stringify(DEBUG));

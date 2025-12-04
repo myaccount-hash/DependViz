@@ -84,6 +84,9 @@ function registerCommands(context, providers) {
             settingsProvider.update({ key: 'enableForwardSlice', value: false });
             settingsProvider.update({ key: 'enableBackwardSlice', value: false });
         }),
+        vscode.commands.registerCommand('forceGraphViewer.toggle3DMode', async () => {
+            await graphViewProvider.toggle3DMode();
+        }),
     ];
 
     return commands;

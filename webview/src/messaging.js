@@ -38,6 +38,10 @@ const messageHandlers = {
     } else {
       updateVisuals();
     }
+  },
+  toggle3DMode: msg => {
+    state.toggleMode();
+    updateGraph({ reheatSimulation: true });
   }
 };
 

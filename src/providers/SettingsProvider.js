@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { SectionItem, CheckboxControlItem, SliderControlItem, ColorControlItem } = require('../utils/TreeItems');
+const { SectionItem, CheckboxControlItem, SliderControlItem, ColorControlItem, ButtonControlItem } = require('../utils/TreeItems');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
 const { SLIDER_RANGES } = require('../constants');
 
@@ -25,6 +25,9 @@ const FILTER_SECTIONS = [
 
 // 表示設定
 const APPEARANCE_SECTIONS = [
+    ['モード', [
+        ['button', '2D/3D切り替え', 'forceGraphViewer.toggle3DMode']
+    ]],
     ['表示設定', [
         ['checkbox', 'スタックトレース', 'showStackTrace'],
         ['checkbox', '名前を表示', 'showNames'],
@@ -132,6 +135,7 @@ class SettingsProvider {
             return new SliderControlItem(label, this.controls[key], range.min, range.max, range.step, key);
         }
         if (type === 'color') return new ColorControlItem(label, this.controls[key], key);
+        if (type === 'button') return new ButtonControlItem(label, key);
 
         throw new Error(`Unknown control type: ${type}`);
     }

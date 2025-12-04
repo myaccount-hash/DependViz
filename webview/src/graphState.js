@@ -180,13 +180,15 @@ class GraphState {
       return false;
     }
 
-    if (typeof ForceGraph === 'undefined') {
-      console.error('[DependViz] ForceGraph is undefined!');
+    const GraphConstructor = this.controls.is3DMode ? ForceGraph3D : ForceGraph;
+
+    if (typeof GraphConstructor === 'undefined') {
+      console.error(`[DependViz] ${this.controls.is3DMode ? 'ForceGraph3D' : 'ForceGraph'} is undefined!`);
       return false;
     }
 
     try {
-      const g = ForceGraph()(container)
+      const g = GraphConstructor()(container)
         .backgroundColor(this.getBackgroundColor())
         .linkDirectionalArrowLength(5)
         .linkDirectionalArrowRelPos(1)
@@ -210,5 +212,10 @@ class GraphState {
       console.error('[DependViz] Error initializing graph:', error);
       return false;
     }
+  }
+
+  toggleMode() {
+    // 設定値は外部（GraphViewProvider）で更新されるので、ここではグラフをリセットするだけ
+    this._graph = null;
   }
 }

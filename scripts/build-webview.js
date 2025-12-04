@@ -11,6 +11,8 @@ const SCRIPT_FILES = [
   'core.js',
   'graphState.js',
   'filters.js',
+  'renderer2d.js',
+  'renderer3d.js',
   'renderer.js',
   'messaging.js',
   'init.js'

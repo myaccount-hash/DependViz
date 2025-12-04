@@ -22,8 +22,12 @@
     <div id="graph-container"></div>
     <script nonce="{{nonce}}" type="module">
         // @ts-nocheck
-        import("{{fgUri}}").then(module => {
-            window.ForceGraph = module.default || module.ForceGraph || module;
+        Promise.all([
+            import("{{fgUri}}"),
+            import("{{fg3dUri}}")
+        ]).then(([fg2dModule, fg3dModule]) => {
+            window.ForceGraph = fg2dModule.default || fg2dModule.ForceGraph || fg2dModule;
+            window.ForceGraph3D = fg3dModule.default || fg3dModule.ForceGraph3D || fg3dModule;
 
             const DEFAULT_CONTROLS = {{defaultControls}};
             const COLORS = {{colors}};
@@ -215,13 +219,15 @@ class GraphState {
       return false;
     }
 
-    if (typeof ForceGraph === 'undefined') {
-      console.error('[DependViz] ForceGraph is undefined!');
+    const GraphConstructor = this.controls.is3DMode ? ForceGraph3D : ForceGraph;
+
+    if (typeof GraphConstructor === 'undefined') {
+      console.error(`[DependViz] ${this.controls.is3DMode ? 'ForceGraph3D' : 'ForceGraph'} is undefined!`);
       return false;
     }
 
     try {
-      const g = ForceGraph()(container)
+      const g = GraphConstructor()(container)
         .backgroundColor(this.getBackgroundColor())
         .linkDirectionalArrowLength(5)
         .linkDirectionalArrowRelPos(1)
@@ -245,6 +251,11 @@ class GraphState {
       console.error('[DependViz] Error initializing graph:', error);
       return false;
     }
+  }
+
+  toggleMode() {
+    // 設定値は外部（GraphViewProvider）で更新されるので、ここではグラフをリセットするだけ
+    this._graph = null;
   }
 }
 
@@ -359,39 +370,14 @@ function evaluateFieldQuery(node, query) {
 }
 
 
-const state = new GraphState();
+// 2D専用レンダラー
 
-function applyOpacityToColor(color, opacity) {
-  if (opacity === undefined || opacity === 1) return color;
-
-  // Handle hex colors
-  if (color.startsWith('#')) {
-    const hex = color.slice(1);
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  }
-
-  // Handle rgb/rgba
-  if (color.startsWith('rgb')) {
-    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
-    if (match) {
-      return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${opacity})`;
-    }
-  }
-
-  return color;
-}
-
-function updateGraph(options = {}) {
+function updateGraph2D(state, options = {}) {
   const { reheatSimulation = false } = options;
 
   if (!state.graph) {
-    if (!state.initGraph()) {
-      console.error('[DependViz] Failed to initialize graph');
-      return;
-    }
+    console.error('[DependViz] Graph not initialized');
+    return;
   }
 
   state.graph.backgroundColor(state.getBackgroundColor());
@@ -399,41 +385,14 @@ function updateGraph(options = {}) {
   const nodes = state.data.nodes || [];
   const links = state.data.links || [];
 
-  const nodeVisualCache = new Map();
-  const nodeById = new Map();
-  nodes.forEach(node => {
-    node.neighbors = [];
-    node.links = [];
-    nodeVisualCache.set(node, state.getNodeVisualProps(node));
-    if (node.id != null) {
-      nodeById.set(node.id, node);
-    }
-  });
-
-  const linkVisualCache = new Map();
-  links.forEach(link => {
-    linkVisualCache.set(link, state.getLinkVisualProps(link));
-
-    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-
-    const a = nodeById.get(sourceId);
-    const b = nodeById.get(targetId);
-    if (!a || !b) return;
-
-    a.neighbors.push(b);
-    b.neighbors.push(a);
-    a.links.push(link);
-    b.links.push(link);
-  });
-
+  const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, state);
   const getNodeProps = node => nodeVisualCache.get(node);
   const getLinkProps = link => linkVisualCache.get(link);
 
   const filteredData = applyFilter(nodes, links);
-
   state.graph.graphData(filteredData);
 
+  // 2Dモード専用: nodeCanvasObjectを使用してテキストを描画
   if (state.controls.showNames) {
     state.graph
       .nodeCanvasObject((node, ctx, globalScale) => {
@@ -452,6 +411,7 @@ function updateGraph(options = {}) {
     state.graph.nodeCanvasObjectMode(() => null);
   }
 
+  // 共通設定
   state.graph
     .nodeLabel(node => {
       const props = getNodeProps(node);
@@ -490,25 +450,17 @@ function updateGraph(options = {}) {
   }
 }
 
-function updateVisuals() {
+function updateVisuals2D(state) {
   if (!state.graph) return;
 
   const nodes = state.data.nodes || [];
   const links = state.data.links || [];
 
-  const nodeVisualCache = new Map();
-  nodes.forEach(node => {
-    nodeVisualCache.set(node, state.getNodeVisualProps(node));
-  });
-
-  const linkVisualCache = new Map();
-  links.forEach(link => {
-    linkVisualCache.set(link, state.getLinkVisualProps(link));
-  });
-
+  const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, state);
   const getNodeProps = node => nodeVisualCache.get(node);
   const getLinkProps = link => linkVisualCache.get(link);
 
+  // 2Dモード専用: Canvas描画
   if (state.controls.showNames) {
     state.graph
       .nodeCanvasObject((node, ctx, globalScale) => {
@@ -544,6 +496,209 @@ function updateVisuals() {
     });
 }
 
+function focusNode2D(state, node) {
+  if (state.graph && node.x !== undefined && node.y !== undefined) {
+    state.graph.centerAt(node.x, node.y, 1000);
+  }
+}
+
+
+// 3D専用レンダラー
+
+function updateGraph3D(state, options = {}) {
+  const { reheatSimulation = false } = options;
+
+  if (!state.graph) {
+    console.error('[DependViz] Graph not initialized');
+    return;
+  }
+
+  state.graph.backgroundColor(state.getBackgroundColor());
+
+  const nodes = state.data.nodes || [];
+  const links = state.data.links || [];
+
+  const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, state);
+  const getNodeProps = node => nodeVisualCache.get(node);
+  const getLinkProps = link => linkVisualCache.get(link);
+
+  const filteredData = applyFilter(nodes, links);
+  state.graph.graphData(filteredData);
+
+  // 3Dモード専用: nodeThreeObject等を使用した高度なビジュアル化も可能
+  // 現在はシンプルにnodeLabelを使用
+  state.graph
+    .nodeLabel(node => {
+      const props = getNodeProps(node);
+      if (state.controls.showNames) {
+        return props ? props.label : node.name || node.id;
+      }
+      return '';
+    })
+    .nodeColor(node => {
+      const props = getNodeProps(node);
+      const color = props ? props.color : COLORS.NODE_DEFAULT;
+      return applyOpacityToColor(color, props?.opacity);
+    })
+    .nodeVal(node => {
+      const props = getNodeProps(node);
+      return props ? props.size : state.controls.nodeSize;
+    })
+    .linkColor(link => {
+      const props = getLinkProps(link);
+      const color = props ? props.color : COLORS.EDGE_DEFAULT;
+      return applyOpacityToColor(color, props?.opacity);
+    })
+    .linkWidth(link => {
+      const props = getLinkProps(link);
+      return props ? props.width : state.controls.linkWidth;
+    })
+    .linkDirectionalArrowLength(state.controls.arrowSize)
+    .linkDirectionalParticles(link => {
+      const props = getLinkProps(link);
+      return props ? (props.particles || 0) : 0;
+    })
+    .linkDirectionalParticleWidth(2);
+
+  // 3Dモードでもd3Forceが使用可能
+  const linkForce = state.graph.d3Force('link');
+  if (linkForce) linkForce.distance(state.controls.linkDistance);
+
+  if (reheatSimulation && state.graph?.d3ReheatSimulation) {
+    setTimeout(() => state.graph.d3ReheatSimulation(), 100);
+  }
+}
+
+function updateVisuals3D(state) {
+  if (!state.graph) return;
+
+  const nodes = state.data.nodes || [];
+  const links = state.data.links || [];
+
+  const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, state);
+  const getNodeProps = node => nodeVisualCache.get(node);
+  const getLinkProps = link => linkVisualCache.get(link);
+
+  state.graph
+    .nodeLabel(node => {
+      const props = getNodeProps(node);
+      if (state.controls.showNames) {
+        return props ? props.label : node.name || node.id;
+      }
+      return '';
+    })
+    .nodeColor(node => {
+      const props = getNodeProps(node);
+      const color = props ? props.color : COLORS.NODE_DEFAULT;
+      return applyOpacityToColor(color, props?.opacity);
+    })
+    .linkColor(link => {
+      const props = getLinkProps(link);
+      const color = props ? props.color : COLORS.EDGE_DEFAULT;
+      return applyOpacityToColor(color, props?.opacity);
+    })
+    .linkDirectionalParticles(link => {
+      const props = getLinkProps(link);
+      return props ? (props.particles || 0) : 0;
+    });
+}
+
+function focusNode3D(state, node) {
+  if (state.graph && node.x !== undefined && node.y !== undefined) {
+    // 3Dモードの場合、centerAtには3つの座標が必要
+    state.graph.centerAt(node.x, node.y, node.z || 0, 1000);
+  }
+}
+
+
+// メインレンダラー: 2D/3Dモードに応じて適切なレンダラーに委譲
+
+const state = new GraphState();
+
+// 共通ユーティリティ関数
+function applyOpacityToColor(color, opacity) {
+  if (opacity === undefined || opacity === 1) return color;
+
+  // Handle hex colors
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+
+  // Handle rgb/rgba
+  if (color.startsWith('rgb')) {
+    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+    if (match) {
+      return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${opacity})`;
+    }
+  }
+
+  return color;
+}
+
+function buildVisualCache(nodes, links, state) {
+  const nodeVisualCache = new Map();
+  const nodeById = new Map();
+
+  nodes.forEach(node => {
+    node.neighbors = [];
+    node.links = [];
+    nodeVisualCache.set(node, state.getNodeVisualProps(node));
+    if (node.id != null) {
+      nodeById.set(node.id, node);
+    }
+  });
+
+  const linkVisualCache = new Map();
+  links.forEach(link => {
+    linkVisualCache.set(link, state.getLinkVisualProps(link));
+
+    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+
+    const a = nodeById.get(sourceId);
+    const b = nodeById.get(targetId);
+    if (!a || !b) return;
+
+    a.neighbors.push(b);
+    b.neighbors.push(a);
+    a.links.push(link);
+    b.links.push(link);
+  });
+
+  return { nodeVisualCache, linkVisualCache };
+}
+
+function updateGraph(options = {}) {
+  const { reheatSimulation = false } = options;
+
+  if (!state.graph) {
+    if (!state.initGraph()) {
+      console.error('[DependViz] Failed to initialize graph');
+      return;
+    }
+  }
+
+  if (state.controls.is3DMode) {
+    updateGraph3D(state, { reheatSimulation });
+  } else {
+    updateGraph2D(state, { reheatSimulation });
+  }
+}
+
+function updateVisuals() {
+  if (!state.graph) return;
+
+  if (state.controls.is3DMode) {
+    updateVisuals3D(state);
+  } else {
+    updateVisuals2D(state);
+  }
+}
+
 function handleResize() {
   if (!state.graph) return;
   const container = document.getElementById('graph-container');
@@ -560,8 +715,10 @@ function focusNodeByPath(filePath) {
   const node = state.data.nodes.find(n => state._pathsMatch(state._getNodeFilePath(n), filePath));
   if (node) {
     state.ui.focusedNode = node;
-    if (state.graph && node.x !== undefined && node.y !== undefined) {
-      state.graph.centerAt(node.x, node.y, 1000);
+    if (state.controls.is3DMode) {
+      focusNode3D(state, node);
+    } else {
+      focusNode2D(state, node);
     }
     updateVisuals();
   }
@@ -579,7 +736,11 @@ function focusNodeById(msg) {
   }
 
   state.ui.focusedNode = node;
-  state.graph.centerAt(node.x, node.y, 1000);
+  if (state.controls.is3DMode) {
+    focusNode3D(state, node);
+  } else {
+    focusNode2D(state, node);
+  }
   updateVisuals();
 }
 
@@ -624,6 +785,10 @@ const messageHandlers = {
     } else {
       updateVisuals();
     }
+  },
+  toggle3DMode: msg => {
+    state.toggleMode();
+    updateGraph({ reheatSimulation: true });
   }
 };
 

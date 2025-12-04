@@ -85,6 +85,10 @@ class WebviewBridge {
     this._dispatch(createFocusNodeByIdMessage(nodeId));
   }
 
+  sendToggle3DMode() {
+    this._dispatch({ type: 'toggle3DMode' });
+  }
+
   _dispatch(message) {
     if (!message || typeof message.type !== 'string') {
       throw new Error('Invalid webview message payload');
