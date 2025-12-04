@@ -22,6 +22,7 @@ const messageHandlers = {
   },
   update: msg => {
     const hasDataChange = !!msg.data;
+    const oldIs3DMode = state.controls.is3DMode;
 
     if (msg.data) {
       state.updateData(msg.data);
@@ -33,15 +34,19 @@ const messageHandlers = {
       state.ui.stackTraceLinks = new Set(msg.stackTracePaths.map(p => p.link));
     }
 
-    if (hasDataChange) {
+    // モードが変わった場合は完全に再初期化
+    const modeChanged = msg.controls && (state.controls.is3DMode !== oldIs3DMode);
+
+    if (hasDataChange || modeChanged) {
       updateGraph({ reheatSimulation: true });
     } else {
       updateVisuals();
     }
   },
   toggle3DMode: msg => {
+    // controlsの更新が先に来るので、ここではグラフをリセットして再初期化するだけ
     state.toggleMode();
-    updateGraph({ reheatSimulation: true });
+    // 次のcontrols更新メッセージでupdateGraphが呼ばれる
   }
 };
 

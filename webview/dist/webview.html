@@ -24,10 +24,13 @@
         // @ts-nocheck
         Promise.all([
             import("{{fgUri}}"),
-            import("{{fg3dUri}}")
-        ]).then(([fg2dModule, fg3dModule]) => {
+            import("{{fg3dUri}}"),
+            import('https://esm.sh/three/examples/jsm/renderers/CSS2DRenderer.js')
+        ]).then(([fg2dModule, fg3dModule, css2dModule]) => {
             window.ForceGraph = fg2dModule.default || fg2dModule.ForceGraph || fg2dModule;
             window.ForceGraph3D = fg3dModule.default || fg3dModule.ForceGraph3D || fg3dModule;
+            window.CSS2DRenderer = css2dModule.CSS2DRenderer;
+            window.CSS2DObject = css2dModule.CSS2DObject;
 
             const DEFAULT_CONTROLS = {{defaultControls}};
             const COLORS = {{colors}};
@@ -44,9 +47,17 @@ class GraphState {
     this.ui = {
       highlightLinks: new Set(),
       stackTraceLinks: new Set(),
-      focusedNode: null
+      focusedNode: null,
+      isUserInteracting: false
+    };
+    this.rotation = {
+      frame: null,
+      startTime: null,
+      startAngle: null,
+      timeout: null
     };
     this._graph = null;
+    this._labelRenderer = null;
     this.nodeRules = [
       (node, ctx) => {
         const map = {
@@ -85,8 +96,10 @@ class GraphState {
   }
 
   get graph() { return this._graph; }
+  get labelRenderer() { return this._labelRenderer; }
 
   setGraph(graph) { this._graph = graph; }
+  setLabelRenderer(renderer) { this._labelRenderer = renderer; }
 
   getBackgroundColor() {
     const style = getComputedStyle(document.body);
@@ -212,50 +225,26 @@ class GraphState {
   }
 
   initGraph() {
-    const container = document.getElementById('graph-container');
-
-    if (!container) {
-      console.error('[DependViz] Container not found!');
-      return false;
-    }
-
-    const GraphConstructor = this.controls.is3DMode ? ForceGraph3D : ForceGraph;
-
-    if (typeof GraphConstructor === 'undefined') {
-      console.error(`[DependViz] ${this.controls.is3DMode ? 'ForceGraph3D' : 'ForceGraph'} is undefined!`);
-      return false;
-    }
-
-    try {
-      const g = GraphConstructor()(container)
-        .backgroundColor(this.getBackgroundColor())
-        .linkDirectionalArrowLength(5)
-        .linkDirectionalArrowRelPos(1)
-        .onNodeClick(node => {
-          if (!node || !vscode) return;
-          const filePath = state._getNodeFilePath(node);
-          if (filePath) {
-            vscode.postMessage({
-              type: 'focusNode',
-              node: {
-                id: node.id,
-                filePath: filePath,
-                name: node.name
-              }
-            });
-          }
-        });
-      this.setGraph(g);
-      return true;
-    } catch (error) {
-      console.error('[DependViz] Error initializing graph:', error);
-      return false;
+    if (this.controls.is3DMode) {
+      return initGraph3D(this);
+    } else {
+      return initGraph2D(this);
     }
   }
 
   toggleMode() {
     // 設定値は外部（GraphViewProvider）で更新されるので、ここではグラフをリセットするだけ
+    this.cancelRotation();
     this._graph = null;
+    this._labelRenderer = null;
+  }
+
+  cancelRotation() {
+    if (this.rotation.frame) {
+      cancelAnimationFrame(this.rotation.frame);
+      this.rotation.frame = null;
+    }
+    clearTimeout(this.rotation.timeout);
   }
 }
 
@@ -370,6 +359,89 @@ function evaluateFieldQuery(node, query) {
 }
 
 
+// ラベル表示の基底クラス
+class LabelRenderer {
+  constructor(state) {
+    this.state = state;
+  }
+
+  // サブクラスでオーバーライドするメソッド
+  apply(graph, getNodeProps) {
+    throw new Error('apply() must be implemented by subclass');
+  }
+
+  clear(graph) {
+    throw new Error('clear() must be implemented by subclass');
+  }
+
+  getFontSize() {
+    return this.state.controls.textSize || 12;
+  }
+
+  getLabel(node, props) {
+    return props?.label || node.name || node.id;
+  }
+}
+
+// 2D用のCanvasベースのラベルレンダラー
+class Canvas2DLabelRenderer extends LabelRenderer {
+  apply(graph, getNodeProps) {
+    graph
+      .nodeCanvasObject((node, ctx, globalScale) => {
+        const props = getNodeProps(node);
+        if (!props) return;
+        const label = this.getLabel(node, props);
+        const fontSize = this.getFontSize();
+        ctx.font = `${fontSize}px Sans-Serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
+        ctx.fillText(label, node.x, node.y);
+      })
+      .nodeCanvasObjectMode(() => 'after');
+  }
+
+  clear(graph) {
+    graph.nodeCanvasObjectMode(() => null);
+  }
+}
+
+// 3D用のCSS2DObjectベースのラベルレンダラー
+class CSS3DLabelRenderer extends LabelRenderer {
+  getFontSize() {
+    return this.state.controls.nameFontSize || 12;
+  }
+
+  apply(graph, getNodeProps) {
+    if (typeof window.CSS2DObject === 'undefined') {
+      console.warn('[LabelRenderer] CSS2DObject not available');
+      return;
+    }
+
+    graph.nodeThreeObject(node => {
+      const props = getNodeProps(node);
+      const div = document.createElement('div');
+      div.textContent = this.getLabel(node, props);
+      Object.assign(div.style, {
+        fontSize: `${this.getFontSize()}px`,
+        fontFamily: 'sans-serif',
+        padding: '2px 4px',
+        borderRadius: '2px',
+        pointerEvents: 'none',
+        color: props.color
+      });
+      const label = new window.CSS2DObject(div);
+      label.position.set(0, -8, 0);
+      return label;
+    }).nodeThreeObjectExtend(true);
+  }
+
+  clear(graph) {
+    graph.nodeThreeObject(null).nodeThreeObjectExtend(false);
+  }
+}
+
+
 // 2D専用レンダラー
 
 function updateGraph2D(state, options = {}) {
@@ -393,22 +465,11 @@ function updateGraph2D(state, options = {}) {
   state.graph.graphData(filteredData);
 
   // 2Dモード専用: nodeCanvasObjectを使用してテキストを描画
+  const labelRenderer = new Canvas2DLabelRenderer(state);
   if (state.controls.showNames) {
-    state.graph
-      .nodeCanvasObject((node, ctx, globalScale) => {
-        const props = getNodeProps(node);
-        if (!props) return;
-        const label = props.label || node.name || node.id;
-        const fontSize = state.controls.textSize || 12;
-        ctx.font = `${fontSize}px Sans-Serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
-        ctx.fillText(label, node.x, node.y);
-      })
-      .nodeCanvasObjectMode(() => 'after');
+    labelRenderer.apply(state.graph, getNodeProps);
   } else {
-    state.graph.nodeCanvasObjectMode(() => null);
+    labelRenderer.clear(state.graph);
   }
 
   // 共通設定
@@ -461,22 +522,11 @@ function updateVisuals2D(state) {
   const getLinkProps = link => linkVisualCache.get(link);
 
   // 2Dモード専用: Canvas描画
+  const labelRenderer = new Canvas2DLabelRenderer(state);
   if (state.controls.showNames) {
-    state.graph
-      .nodeCanvasObject((node, ctx, globalScale) => {
-        const props = getNodeProps(node);
-        if (!props) return;
-        const label = props.label || node.name || node.id;
-        const fontSize = state.controls.textSize || 12;
-        ctx.font = `${fontSize}px Sans-Serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
-        ctx.fillText(label, node.x, node.y);
-      })
-      .nodeCanvasObjectMode(() => 'after');
+    labelRenderer.apply(state.graph, getNodeProps);
   } else {
-    state.graph.nodeCanvasObjectMode(() => null);
+    labelRenderer.clear(state.graph);
   }
 
   state.graph
@@ -502,8 +552,48 @@ function focusNode2D(state, node) {
   }
 }
 
+function initGraph2D(state) {
+  const container = document.getElementById('graph-container');
+  if (!container) {
+    console.error('[DependViz] Container not found!');
+    return false;
+  }
 
-// 3D専用レンダラー
+  if (typeof ForceGraph === 'undefined') {
+    console.error('[DependViz] ForceGraph is undefined!');
+    return false;
+  }
+
+  try {
+    const g = ForceGraph()(container)
+      .backgroundColor(state.getBackgroundColor())
+      .linkDirectionalArrowLength(5)
+      .linkDirectionalArrowRelPos(1)
+      .onNodeClick(node => {
+        if (!node || !vscode) return;
+        const filePath = state._getNodeFilePath(node);
+        if (filePath) {
+          vscode.postMessage({
+            type: 'focusNode',
+            node: {
+              id: node.id,
+              filePath: filePath,
+              name: node.name
+            }
+          });
+        }
+      });
+
+    state.setGraph(g);
+    return true;
+  } catch (error) {
+    console.error('[DependViz] Error initializing 2D graph:', error);
+    return false;
+  }
+}
+
+
+// 3D専用レンダラー（mainブランチベース）
 
 function updateGraph3D(state, options = {}) {
   const { reheatSimulation = false } = options;
@@ -525,34 +615,39 @@ function updateGraph3D(state, options = {}) {
   const filteredData = applyFilter(nodes, links);
   state.graph.graphData(filteredData);
 
-  // 3Dモード専用: nodeThreeObject等を使用した高度なビジュアル化も可能
-  // 現在はシンプルにnodeLabelを使用
+  // 3Dモード: nodeThreeObjectでCSS2DObjectを使用
+  const labelRenderer = new CSS3DLabelRenderer(state);
+  if (state.controls.showNames) {
+    labelRenderer.apply(state.graph, getNodeProps);
+  } else {
+    labelRenderer.clear(state.graph);
+  }
+
   state.graph
     .nodeLabel(node => {
       const props = getNodeProps(node);
-      if (state.controls.showNames) {
-        return props ? props.label : node.name || node.id;
-      }
-      return '';
+      return props ? props.label : node.name || node.id;
     })
     .nodeColor(node => {
       const props = getNodeProps(node);
       const color = props ? props.color : COLORS.NODE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
+      return color; // 3Dでは透明度はnodeOpacityで制御
     })
     .nodeVal(node => {
       const props = getNodeProps(node);
       return props ? props.size : state.controls.nodeSize;
     })
+    .nodeOpacity(state.controls.nodeOpacity)
     .linkColor(link => {
       const props = getLinkProps(link);
       const color = props ? props.color : COLORS.EDGE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
+      return color;
     })
     .linkWidth(link => {
       const props = getLinkProps(link);
       return props ? props.width : state.controls.linkWidth;
     })
+    .linkOpacity(state.controls.edgeOpacity)
     .linkDirectionalArrowLength(state.controls.arrowSize)
     .linkDirectionalParticles(link => {
       const props = getLinkProps(link);
@@ -560,13 +655,14 @@ function updateGraph3D(state, options = {}) {
     })
     .linkDirectionalParticleWidth(2);
 
-  // 3Dモードでもd3Forceが使用可能
   const linkForce = state.graph.d3Force('link');
   if (linkForce) linkForce.distance(state.controls.linkDistance);
 
   if (reheatSimulation && state.graph?.d3ReheatSimulation) {
     setTimeout(() => state.graph.d3ReheatSimulation(), 100);
   }
+
+  updateAutoRotation(state);
 }
 
 function updateVisuals3D(state) {
@@ -579,23 +675,24 @@ function updateVisuals3D(state) {
   const getNodeProps = node => nodeVisualCache.get(node);
   const getLinkProps = link => linkVisualCache.get(link);
 
+  // nodeThreeObjectの更新
+  const labelRenderer = new CSS3DLabelRenderer(state);
+  if (state.controls.showNames) {
+    labelRenderer.apply(state.graph, getNodeProps);
+  } else {
+    labelRenderer.clear(state.graph);
+  }
+
   state.graph
-    .nodeLabel(node => {
-      const props = getNodeProps(node);
-      if (state.controls.showNames) {
-        return props ? props.label : node.name || node.id;
-      }
-      return '';
-    })
     .nodeColor(node => {
       const props = getNodeProps(node);
       const color = props ? props.color : COLORS.NODE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
+      return color;
     })
     .linkColor(link => {
       const props = getLinkProps(link);
       const color = props ? props.color : COLORS.EDGE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
+      return color;
     })
     .linkDirectionalParticles(link => {
       const props = getLinkProps(link);
@@ -604,9 +701,141 @@ function updateVisuals3D(state) {
 }
 
 function focusNode3D(state, node) {
-  if (state.graph && node.x !== undefined && node.y !== undefined) {
-    // 3Dモードの場合、centerAtには3つの座標が必要
-    state.graph.centerAt(node.x, node.y, node.z || 0, 1000);
+  if (!state.graph || !node) return;
+
+  if (node.x === undefined || node.y === undefined || node.z === undefined) {
+    setTimeout(() => focusNode3D(state, node), 100);
+    return;
+  }
+
+  const nodeDistance = Math.hypot(node.x, node.y, node.z);
+  const focusDistance = state.controls.focusDistance;
+  const cameraPos = nodeDistance > 0
+    ? {
+      x: node.x * (1 + focusDistance / nodeDistance),
+      y: node.y * (1 + focusDistance / nodeDistance),
+      z: node.z * (1 + focusDistance / nodeDistance)
+    }
+    : { x: focusDistance, y: 0, z: 0 };
+
+  state.graph.cameraPosition(cameraPos, node, DEBUG.AUTO_ROTATE_DELAY);
+  setTimeout(() => updateAutoRotation(state), DEBUG.AUTO_ROTATE_DELAY);
+}
+
+function updateAutoRotation(state) {
+  state.cancelRotation();
+  if (!state.graph) return;
+
+  if (state.controls.autoRotate && !state.ui.isUserInteracting) {
+    const pos = state.graph.cameraPosition();
+    state.rotation.startAngle = Math.atan2(pos.x, pos.z);
+    state.rotation.startTime = Date.now();
+
+    const rotate = () => {
+      const camera = state.graph.camera();
+      const controls = state.graph.controls();
+      if (camera && controls) {
+        if (state.ui.focusedNode) {
+          controls.target.set(
+            state.ui.focusedNode.x || 0,
+            state.ui.focusedNode.y || 0,
+            state.ui.focusedNode.z || 0
+          );
+        }
+        const elapsed = (Date.now() - state.rotation.startTime) * 0.001;
+        const angle = state.rotation.startAngle + elapsed * state.controls.rotateSpeed;
+        const distance = Math.sqrt(camera.position.x ** 2 + camera.position.z ** 2);
+        camera.position.x = distance * Math.sin(angle);
+        camera.position.z = distance * Math.cos(angle);
+        camera.lookAt(controls.target);
+      }
+      state.rotation.frame = requestAnimationFrame(rotate);
+    };
+    rotate();
+  } else if (state.ui.focusedNode) {
+    const keepFocus = () => {
+      const controls = state.graph.controls();
+      if (controls && state.ui.focusedNode) {
+        controls.target.set(
+          state.ui.focusedNode.x || 0,
+          state.ui.focusedNode.y || 0,
+          state.ui.focusedNode.z || 0
+        );
+      }
+      state.rotation.frame = requestAnimationFrame(keepFocus);
+    };
+    keepFocus();
+  }
+}
+
+function initGraph3D(state) {
+  const container = document.getElementById('graph-container');
+  if (!container) {
+    console.error('[DependViz] Container not found!');
+    return false;
+  }
+
+  if (typeof ForceGraph3D === 'undefined') {
+    console.error('[DependViz] ForceGraph3D is undefined!');
+    return false;
+  }
+
+  try {
+    // CSS2DRendererの初期化
+    let renderer = null;
+    if (typeof window.CSS2DRenderer !== 'undefined') {
+      renderer = new window.CSS2DRenderer();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.domElement.style.position = 'absolute';
+      renderer.domElement.style.top = '0';
+      renderer.domElement.style.pointerEvents = 'none';
+      container.appendChild(renderer.domElement);
+      state.setLabelRenderer(renderer);
+    }
+
+    const extraRenderers = renderer ? [renderer] : [];
+    const g = ForceGraph3D({ extraRenderers })(container)
+      .backgroundColor(state.getBackgroundColor())
+      .linkDirectionalArrowLength(5)
+      .linkDirectionalArrowRelPos(1)
+      .onNodeClick(node => {
+        if (!node || !vscode) return;
+        const filePath = state._getNodeFilePath(node);
+        if (filePath) {
+          vscode.postMessage({
+            type: 'focusNode',
+            node: {
+              id: node.id,
+              filePath: filePath,
+              name: node.name
+            }
+          });
+        }
+      });
+
+    state.setGraph(g);
+
+    // カメラコントロールイベント
+    const controls = g.controls();
+    if (controls) {
+      controls.addEventListener('start', () => {
+        state.ui.isUserInteracting = true;
+        state.cancelRotation();
+        updateAutoRotation(state);
+      });
+      controls.addEventListener('end', () => {
+        state.cancelRotation();
+        state.rotation.timeout = setTimeout(() => {
+          state.ui.isUserInteracting = false;
+          updateAutoRotation(state);
+        }, DEBUG.AUTO_ROTATE_DELAY);
+      });
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[DependViz] Error initializing 3D graph:', error);
+    return false;
   }
 }
 
@@ -769,6 +998,7 @@ const messageHandlers = {
   },
   update: msg => {
     const hasDataChange = !!msg.data;
+    const oldIs3DMode = state.controls.is3DMode;
 
     if (msg.data) {
       state.updateData(msg.data);
@@ -780,15 +1010,19 @@ const messageHandlers = {
       state.ui.stackTraceLinks = new Set(msg.stackTracePaths.map(p => p.link));
     }
 
-    if (hasDataChange) {
+    // モードが変わった場合は完全に再初期化
+    const modeChanged = msg.controls && (state.controls.is3DMode !== oldIs3DMode);
+
+    if (hasDataChange || modeChanged) {
       updateGraph({ reheatSimulation: true });
     } else {
       updateVisuals();
     }
   },
   toggle3DMode: msg => {
+    // controlsの更新が先に来るので、ここではグラフをリセットして再初期化するだけ
     state.toggleMode();
-    updateGraph({ reheatSimulation: true });
+    // 次のcontrols更新メッセージでupdateGraphが呼ばれる
   }
 };
 

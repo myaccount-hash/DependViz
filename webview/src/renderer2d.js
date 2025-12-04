@@ -21,22 +21,11 @@ function updateGraph2D(state, options = {}) {
   state.graph.graphData(filteredData);
 
   // 2Dモード専用: nodeCanvasObjectを使用してテキストを描画
+  const labelRenderer = new Canvas2DLabelRenderer(state);
   if (state.controls.showNames) {
-    state.graph
-      .nodeCanvasObject((node, ctx, globalScale) => {
-        const props = getNodeProps(node);
-        if (!props) return;
-        const label = props.label || node.name || node.id;
-        const fontSize = state.controls.textSize || 12;
-        ctx.font = `${fontSize}px Sans-Serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
-        ctx.fillText(label, node.x, node.y);
-      })
-      .nodeCanvasObjectMode(() => 'after');
+    labelRenderer.apply(state.graph, getNodeProps);
   } else {
-    state.graph.nodeCanvasObjectMode(() => null);
+    labelRenderer.clear(state.graph);
   }
 
   // 共通設定
@@ -89,22 +78,11 @@ function updateVisuals2D(state) {
   const getLinkProps = link => linkVisualCache.get(link);
 
   // 2Dモード専用: Canvas描画
+  const labelRenderer = new Canvas2DLabelRenderer(state);
   if (state.controls.showNames) {
-    state.graph
-      .nodeCanvasObject((node, ctx, globalScale) => {
-        const props = getNodeProps(node);
-        if (!props) return;
-        const label = props.label || node.name || node.id;
-        const fontSize = state.controls.textSize || 12;
-        ctx.font = `${fontSize}px Sans-Serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
-        ctx.fillText(label, node.x, node.y);
-      })
-      .nodeCanvasObjectMode(() => 'after');
+    labelRenderer.apply(state.graph, getNodeProps);
   } else {
-    state.graph.nodeCanvasObjectMode(() => null);
+    labelRenderer.clear(state.graph);
   }
 
   state.graph
@@ -127,5 +105,45 @@ function updateVisuals2D(state) {
 function focusNode2D(state, node) {
   if (state.graph && node.x !== undefined && node.y !== undefined) {
     state.graph.centerAt(node.x, node.y, 1000);
+  }
+}
+
+function initGraph2D(state) {
+  const container = document.getElementById('graph-container');
+  if (!container) {
+    console.error('[DependViz] Container not found!');
+    return false;
+  }
+
+  if (typeof ForceGraph === 'undefined') {
+    console.error('[DependViz] ForceGraph is undefined!');
+    return false;
+  }
+
+  try {
+    const g = ForceGraph()(container)
+      .backgroundColor(state.getBackgroundColor())
+      .linkDirectionalArrowLength(5)
+      .linkDirectionalArrowRelPos(1)
+      .onNodeClick(node => {
+        if (!node || !vscode) return;
+        const filePath = state._getNodeFilePath(node);
+        if (filePath) {
+          vscode.postMessage({
+            type: 'focusNode',
+            node: {
+              id: node.id,
+              filePath: filePath,
+              name: node.name
+            }
+          });
+        }
+      });
+
+    state.setGraph(g);
+    return true;
+  } catch (error) {
+    console.error('[DependViz] Error initializing 2D graph:', error);
+    return false;
   }
 }

@@ -132,8 +132,11 @@ class GraphViewProvider {
         const currentMode = ConfigurationManager.getInstance().loadControls().is3DMode;
         await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
 
-        // Webviewに通知
+        // Webviewに通知してグラフをリセット
         this._webviewBridge.sendToggle3DMode();
+
+        // 更新された設定を送信
+        this.syncToWebview();
     }
 }
 

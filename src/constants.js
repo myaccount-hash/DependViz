@@ -6,6 +6,10 @@ const DEFAULT_CONTROLS = {
     showStackTrace: true,
     showNames: true,
     shortNames: true,
+    autoRotate: false,
+    rotateSpeed: 0.3,
+    nameFontSize: 12,
+    focusDistance: 200,
     nodeSize: 3.0,
     linkWidth: 0.5,
     nodeOpacity: 1.0,
@@ -69,7 +73,8 @@ const SLIDER_RANGES = {
 };
 
 const DEBUG = {
-    STACK_TRACE_LEVELS: 200
+    STACK_TRACE_LEVELS: 200,
+    AUTO_ROTATE_DELAY: 1000
 };
 
 module.exports = { DEFAULT_CONTROLS, CDN_LIBS, COLORS, ICONS, SLIDER_RANGES, DEBUG };

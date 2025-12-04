@@ -5,9 +5,17 @@ class GraphState {
     this.ui = {
       highlightLinks: new Set(),
       stackTraceLinks: new Set(),
-      focusedNode: null
+      focusedNode: null,
+      isUserInteracting: false
+    };
+    this.rotation = {
+      frame: null,
+      startTime: null,
+      startAngle: null,
+      timeout: null
     };
     this._graph = null;
+    this._labelRenderer = null;
     this.nodeRules = [
       (node, ctx) => {
         const map = {
@@ -46,8 +54,10 @@ class GraphState {
   }
 
   get graph() { return this._graph; }
+  get labelRenderer() { return this._labelRenderer; }
 
   setGraph(graph) { this._graph = graph; }
+  setLabelRenderer(renderer) { this._labelRenderer = renderer; }
 
   getBackgroundColor() {
     const style = getComputedStyle(document.body);
@@ -173,49 +183,25 @@ class GraphState {
   }
 
   initGraph() {
-    const container = document.getElementById('graph-container');
-
-    if (!container) {
-      console.error('[DependViz] Container not found!');
-      return false;
-    }
-
-    const GraphConstructor = this.controls.is3DMode ? ForceGraph3D : ForceGraph;
-
-    if (typeof GraphConstructor === 'undefined') {
-      console.error(`[DependViz] ${this.controls.is3DMode ? 'ForceGraph3D' : 'ForceGraph'} is undefined!`);
-      return false;
-    }
-
-    try {
-      const g = GraphConstructor()(container)
-        .backgroundColor(this.getBackgroundColor())
-        .linkDirectionalArrowLength(5)
-        .linkDirectionalArrowRelPos(1)
-        .onNodeClick(node => {
-          if (!node || !vscode) return;
-          const filePath = state._getNodeFilePath(node);
-          if (filePath) {
-            vscode.postMessage({
-              type: 'focusNode',
-              node: {
-                id: node.id,
-                filePath: filePath,
-                name: node.name
-              }
-            });
-          }
-        });
-      this.setGraph(g);
-      return true;
-    } catch (error) {
-      console.error('[DependViz] Error initializing graph:', error);
-      return false;
+    if (this.controls.is3DMode) {
+      return initGraph3D(this);
+    } else {
+      return initGraph2D(this);
     }
   }
 
   toggleMode() {
     // 設定値は外部（GraphViewProvider）で更新されるので、ここではグラフをリセットするだけ
+    this.cancelRotation();
     this._graph = null;
+    this._labelRenderer = null;
+  }
+
+  cancelRotation() {
+    if (this.rotation.frame) {
+      cancelAnimationFrame(this.rotation.frame);
+      this.rotation.frame = null;
+    }
+    clearTimeout(this.rotation.timeout);
   }
 }
