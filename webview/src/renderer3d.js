@@ -1,134 +1,38 @@
 // 3D専用レンダラー（mainブランチベース）
 
 function updateGraph3D(state, options = {}) {
-  const { reheatSimulation = false } = options;
+  const prepared = prepareGraphUpdate(state, options);
+  if (!prepared) return;
 
-  if (!state.graph) {
-    console.error('[DependViz] Graph not initialized');
-    return;
-  }
+  const { getNodeProps, getLinkProps, reheatSimulation: shouldReheat } = prepared;
 
-  state.graph.backgroundColor(state.getBackgroundColor());
+  // 3Dモード: ラベル描画
+  applyLabelRenderer(state, CSS3DLabelRenderer, getNodeProps);
 
-  const nodes = state.data.nodes || [];
-  const links = state.data.links || [];
+  // 共通設定を適用
+  applyCommonGraphSettings(state, getNodeProps, getLinkProps);
 
-  const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, state);
-  const getNodeProps = node => nodeVisualCache.get(node);
-  const getLinkProps = link => linkVisualCache.get(link);
+  // 3D専用: Z軸を平面に保つforce
+  apply3DCustomForces(state);
 
-  const filteredData = applyFilter(nodes, links);
-  state.graph.graphData(filteredData);
+  // シミュレーション再加熱
+  reheatSimulation(state, shouldReheat);
 
-  // 3Dモード: nodeThreeObjectでCSS2DObjectを使用
-  const labelRenderer = new CSS3DLabelRenderer(state);
-  if (state.controls.showNames) {
-    labelRenderer.apply(state.graph, getNodeProps);
-  } else {
-    labelRenderer.clear(state.graph);
-  }
-
-  state.graph
-    .nodeLabel(node => {
-      const props = getNodeProps(node);
-      return props ? props.label : node.name || node.id;
-    })
-    .nodeColor(node => {
-      const props = getNodeProps(node);
-      const color = props ? props.color : COLORS.NODE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
-    })
-    .nodeVal(node => {
-      const props = getNodeProps(node);
-      return props ? props.size : state.controls.nodeSize;
-    })
-    .linkColor(link => {
-      const props = getLinkProps(link);
-      const color = props ? props.color : COLORS.EDGE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
-    })
-    .linkWidth(link => {
-      const props = getLinkProps(link);
-      return props ? props.width : state.controls.linkWidth;
-    })
-    .linkDirectionalArrowLength(state.controls.arrowSize)
-    .linkDirectionalParticles(link => {
-      const props = getLinkProps(link);
-      return props ? (props.particles || 0) : 0;
-    })
-    .linkDirectionalParticleWidth(2);
-
-  const linkForce = state.graph.d3Force('link');
-  if (linkForce) linkForce.distance(state.controls.linkDistance);
-
-  // 2D風のレイアウト: Z軸方向の力を弱める
-  const chargeForce = state.graph.d3Force('charge');
-  if (chargeForce) chargeForce.strength(-120);
-
-  // Z軸を平面に保つ力を追加（カスタムforce）
-  state.graph.d3Force('z', () => {
-    let nodes;
-    const strength = 0.1;
-    const z = 0;
-
-    function force(alpha) {
-      if (!nodes) return;
-      for (let i = 0, n = nodes.length; i < n; ++i) {
-        const node = nodes[i];
-        if (node.z !== undefined) {
-          node.vz = node.vz || 0;
-          node.vz += (z - node.z) * strength * alpha;
-        }
-      }
-    }
-
-    force.initialize = function(_) {
-      nodes = _;
-    };
-
-    return force;
-  });
-
-  if (reheatSimulation && state.graph?.d3ReheatSimulation) {
-    setTimeout(() => state.graph.d3ReheatSimulation(), 100);
-  }
-
+  // 3D専用: 自動回転
   updateAutoRotation(state);
 }
 
 function updateVisuals3D(state) {
-  if (!state.graph) return;
+  const prepared = prepareVisualsUpdate(state);
+  if (!prepared) return;
 
-  const nodes = state.data.nodes || [];
-  const links = state.data.links || [];
+  const { getNodeProps, getLinkProps } = prepared;
 
-  const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, state);
-  const getNodeProps = node => nodeVisualCache.get(node);
-  const getLinkProps = link => linkVisualCache.get(link);
+  // 3Dモード: ラベル描画
+  applyLabelRenderer(state, CSS3DLabelRenderer, getNodeProps);
 
-  // nodeThreeObjectの更新
-  const labelRenderer = new CSS3DLabelRenderer(state);
-  if (state.controls.showNames) {
-    labelRenderer.apply(state.graph, getNodeProps);
-  } else {
-    labelRenderer.clear(state.graph);
-  }
-
-  state.graph
-    .nodeColor(node => {
-      const props = getNodeProps(node);
-      const color = props ? props.color : COLORS.NODE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
-    })
-    .linkColor(link => {
-      const props = getLinkProps(link);
-      const color = props ? props.color : COLORS.EDGE_DEFAULT;
-      return applyOpacityToColor(color, props?.opacity);
-    })
-    .linkDirectionalParticles(link => {
-      const props = getLinkProps(link);
-      return props ? (props.particles || 0) : 0;
-    });
+  // 共通のビジュアル設定
+  applyCommonVisualsSettings(state, getNodeProps, getLinkProps);
 }
 
 function focusNode3D(state, node) {
@@ -218,41 +122,25 @@ function updateAutoRotation(state) {
         }
         const elapsed = (Date.now() - state.rotation.startTime) * 0.001;
         const angle = state.rotation.startAngle + elapsed * state.controls.rotateSpeed;
-        const distance = Math.sqrt(camera.position.x ** 2 + camera.position.z ** 2);
-        camera.position.x = distance * Math.sin(angle);
-        camera.position.z = distance * Math.cos(angle);
-        camera.lookAt(controls.target);
+        const distance = Math.hypot(pos.x, pos.z);
+        const targetPos = {
+          x: Math.sin(angle) * distance,
+          y: pos.y,
+          z: Math.cos(angle) * distance
+        };
+        state.graph.cameraPosition(targetPos, null, 0);
       }
       state.rotation.frame = requestAnimationFrame(rotate);
     };
     rotate();
-  } else if (state.ui.focusedNode) {
-    const keepFocus = () => {
-      const controls = state.graph.controls();
-      if (controls && state.ui.focusedNode) {
-        controls.target.set(
-          state.ui.focusedNode.x || 0,
-          state.ui.focusedNode.y || 0,
-          state.ui.focusedNode.z || 0
-        );
-      }
-      state.rotation.frame = requestAnimationFrame(keepFocus);
-    };
-    keepFocus();
   }
 }
 
 function initGraph3D(state) {
-  const container = document.getElementById('graph-container');
-  if (!container) {
-    console.error('[DependViz] Container not found!');
-    return false;
-  }
+  const init = initGraphCommon(state, ForceGraph3D, 'ForceGraph3D');
+  if (!init) return false;
 
-  if (typeof ForceGraph3D === 'undefined') {
-    console.error('[DependViz] ForceGraph3D is undefined!');
-    return false;
-  }
+  const { container } = init;
 
   try {
     // CSS2DRendererの初期化
@@ -272,20 +160,7 @@ function initGraph3D(state) {
       .backgroundColor(state.getBackgroundColor())
       .linkDirectionalArrowLength(5)
       .linkDirectionalArrowRelPos(1)
-      .onNodeClick(node => {
-        if (!node || !vscode) return;
-        const filePath = state._getNodeFilePath(node);
-        if (filePath) {
-          vscode.postMessage({
-            type: 'focusNode',
-            node: {
-              id: node.id,
-              filePath: filePath,
-              name: node.name
-            }
-          });
-        }
-      });
+      .onNodeClick(createNodeClickHandler(state));
 
     state.setGraph(g);
 
@@ -311,4 +186,35 @@ function initGraph3D(state) {
     console.error('[DependViz] Error initializing 3D graph:', error);
     return false;
   }
+}
+
+// 3D専用のカスタムforce適用
+function apply3DCustomForces(state) {
+  // 2D風のレイアウト: Z軸方向の力を弱める
+  const chargeForce = state.graph.d3Force('charge');
+  if (chargeForce) chargeForce.strength(-120);
+
+  // Z軸を平面に保つ力を追加（カスタムforce）
+  state.graph.d3Force('z', () => {
+    let nodes;
+    const strength = 0.1;
+    const z = 0;
+
+    function force(alpha) {
+      if (!nodes) return;
+      for (let i = 0, n = nodes.length; i < n; ++i) {
+        const node = nodes[i];
+        if (node.z !== undefined) {
+          node.vz = node.vz || 0;
+          node.vz += (z - node.z) * strength * alpha;
+        }
+      }
+    }
+
+    force.initialize = function(_) {
+      nodes = _;
+    };
+
+    return force;
+  });
 }
