@@ -141,25 +141,56 @@ function focusNode3D(state, node) {
 
   // 現在のカメラ位置を取得
   const currentCameraPos = state.graph.cameraPosition();
+  const controls = state.graph.controls();
+
+  // 現在の注目点（controls.target）を取得
+  const currentTarget = controls ? {
+    x: controls.target.x,
+    y: controls.target.y,
+    z: controls.target.z
+  } : { x: 0, y: 0, z: 0 };
 
   // 現在のカメラと注目点との距離を計算
   const currentDistance = currentCameraPos
     ? Math.hypot(
-        currentCameraPos.x - (state.ui.focusedNode?.x || 0),
-        currentCameraPos.y - (state.ui.focusedNode?.y || 0),
-        currentCameraPos.z - (state.ui.focusedNode?.z || 0)
+        currentCameraPos.x - currentTarget.x,
+        currentCameraPos.y - currentTarget.y,
+        currentCameraPos.z - currentTarget.z
       )
     : state.controls.focusDistance;
 
-  // その距離を保持して新しいノードにフォーカス
-  const nodeDistance = Math.hypot(node.x, node.y, node.z);
-  const cameraPos = nodeDistance > 0
+  console.log('[focusNode3D] Current camera:', currentCameraPos);
+  console.log('[focusNode3D] Current target:', currentTarget);
+  console.log('[focusNode3D] Current distance:', currentDistance);
+  console.log('[focusNode3D] New node:', { x: node.x, y: node.y, z: node.z });
+
+  // 新しいノードに対して同じ距離を保持
+  // ノードから距離currentDistanceだけ離れた位置にカメラを配置
+  const direction = {
+    x: currentCameraPos.x - currentTarget.x,
+    y: currentCameraPos.y - currentTarget.y,
+    z: currentCameraPos.z - currentTarget.z
+  };
+  const dirLength = Math.hypot(direction.x, direction.y, direction.z);
+
+  const cameraPos = dirLength > 0
     ? {
-      x: node.x * (1 + currentDistance / nodeDistance),
-      y: node.y * (1 + currentDistance / nodeDistance),
-      z: node.z * (1 + currentDistance / nodeDistance)
+      x: node.x + (direction.x / dirLength) * currentDistance,
+      y: node.y + (direction.y / dirLength) * currentDistance,
+      z: node.z + (direction.z / dirLength) * currentDistance
     }
-    : { x: currentDistance, y: 0, z: 0 };
+    : {
+      x: node.x + currentDistance,
+      y: node.y,
+      z: node.z
+    };
+
+  console.log('[focusNode3D] New camera position:', cameraPos);
+  console.log('[focusNode3D] New distance will be:', Math.hypot(
+    cameraPos.x - node.x,
+    cameraPos.y - node.y,
+    cameraPos.z - node.z
+  ));
 
   state.graph.cameraPosition(cameraPos, node, DEBUG.AUTO_ROTATE_DELAY);
   setTimeout(() => updateAutoRotation(state), DEBUG.AUTO_ROTATE_DELAY);
