@@ -5,11 +5,11 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.ServerCapabilities;
@@ -17,28 +17,25 @@ import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.services.LanguageClient;
-import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 
-public class DependVizLanguageServer
-    implements LanguageServer, LanguageClientAware, DependVizCustomService {
+public class DependVizLanguageServer implements LanguageServer {
   private static final Logger logger = Logger.getLogger(DependVizLanguageServer.class.getName());
 
-  private final ExecutorService executorService = Executors.newCachedThreadPool();
   private final DependVizTextDocumentService textDocumentService;
-  private final DependVizWorkspaceService workspaceService;
-  private LanguageClient client;
+  private final WorkspaceService workspaceService;
   private int errorCode = 1;
 
   public DependVizLanguageServer() {
-    this.textDocumentService = new DependVizTextDocumentService(this);
-    this.workspaceService = new DependVizWorkspaceService();
+    this.textDocumentService = new DependVizTextDocumentService();
+    this.workspaceService = new NoopWorkspaceService();
   }
 
   // カスタムリクエストハンドラの実装
-  @Override
+  @JsonRequest("dependviz/getFileDependencyGraph")
   public CompletableFuture<String> getFileDependencyGraph(String uri) {
     return textDocumentService.getFileDependencyGraph(uri);
   }
@@ -77,7 +74,6 @@ public class DependVizLanguageServer
   @Override
   public void exit() {
     logger.info("Exiting DependViz Language Server");
-    executorService.shutdown();
     System.exit(errorCode);
   }
 
@@ -89,16 +85,6 @@ public class DependVizLanguageServer
   @Override
   public WorkspaceService getWorkspaceService() {
     return workspaceService;
-  }
-
-  @Override
-  public void connect(LanguageClient client) {
-    this.client = client;
-    textDocumentService.connect(client);
-  }
-
-  public LanguageClient getClient() {
-    return client;
   }
 
   public static void main(String[] args) {
@@ -113,8 +99,7 @@ public class DependVizLanguageServer
         org.eclipse.lsp4j.jsonrpc.Launcher.createLauncher(
             server, LanguageClient.class, in, out);
 
-    LanguageClient client = launcher.getRemoteProxy();
-    server.connect(client);
+    launcher.getRemoteProxy();
 
     logger.info("Language Server started, listening on stdin/stdout");
     try {
@@ -139,5 +124,13 @@ public class DependVizLanguageServer
       return rootUri;
     }
     return params.getRootPath();
+  }
+
+  private static final class NoopWorkspaceService implements WorkspaceService {
+    @Override
+    public void didChangeConfiguration(DidChangeConfigurationParams params) {}
+
+    @Override
+    public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {}
   }
 }

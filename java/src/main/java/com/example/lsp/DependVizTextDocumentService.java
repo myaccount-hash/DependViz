@@ -11,8 +11,6 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
-import org.eclipse.lsp4j.services.LanguageClient;
-import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
 import com.example.parser.AnalysisEngine;
@@ -20,8 +18,7 @@ import com.example.parser.CodeGraph;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class DependVizTextDocumentService
-    implements TextDocumentService, LanguageClientAware {
+public class DependVizTextDocumentService implements TextDocumentService {
   private static final Logger logger = Logger.getLogger(DependVizTextDocumentService.class.getName());
 
   // ファイルパスごとにCodeGraphをキャッシュ
@@ -30,11 +27,7 @@ public class DependVizTextDocumentService
   // 解析エンジン
   private AnalysisEngine analysisEngine;
 
-  public DependVizTextDocumentService(DependVizLanguageServer server) {
-  }
-
-  @Override
-  public void connect(LanguageClient client) {
+  public DependVizTextDocumentService() {
   }
 
   public void setWorkspaceRoot(String workspaceRoot) {
