@@ -105,7 +105,12 @@
         {
           "command": "forceGraphViewer.refresh",
           "when": "view == forceGraphViewer.sidebar",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "forceGraphViewer.analyzeJavaProject",
+          "when": "view == forceGraphViewer.sidebar",
+          "group": "navigation@2"
         }
       ]
     },
