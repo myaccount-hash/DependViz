@@ -8,4 +8,4 @@ setTimeout(() => {
   }
 }, 100);
 
-const messageHandlers = createMessageHandlers(state);
+const extensionBridge = new ExtensionBridge(state);

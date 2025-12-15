@@ -6,12 +6,7 @@ if (typeof acquireVsCodeApi === 'function') {
 if (vscode) {
   window.addEventListener('message', event => {
     const msg = event.data;
-    const handler = messageHandlers[msg.type];
-    if (handler) {
-      handler(msg);
-    } else {
-      console.warn('[DependViz] Unknown message type:', msg.type);
-    }
+    extensionBridge.handle(msg);
   });
 
   vscode.postMessage({ type: 'ready' });
