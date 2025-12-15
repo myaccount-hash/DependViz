@@ -1,5 +1,4 @@
 const vscode = require('vscode');
-const { CDN_LIBS } = require('../constants');
 const { getHtmlForWebview, validateGraphData, getNodeFilePath, mergeGraphData, WebviewBridge } = require('../utils/utils');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
 
@@ -18,7 +17,7 @@ class GraphViewProvider {
         this._view = webviewView;
         this._webviewBridge.attach(webviewView.webview);
         webviewView.webview.options = { enableScripts: true, localResourceRoots: [this._extensionUri] };
-        webviewView.webview.html = getHtmlForWebview(CDN_LIBS);
+        webviewView.webview.html = getHtmlForWebview();
         webviewView.webview.onDidReceiveMessage(async message => {
             if (message.type === 'ready') {
                 this._webviewBridge.markReady();

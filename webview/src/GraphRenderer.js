@@ -1,3 +1,7 @@
+import { applyFilter } from './utils';
+import { COLORS } from './constants';
+import { getVsCodeApi } from './core';
+
 // Base GraphRenderer class with common logic
 
 class GraphRenderer {
@@ -60,7 +64,7 @@ class GraphRenderer {
 
     const { nodes, links, getNodeProps, getLinkProps } = this._buildVisualCacheForGraph();
 
-    const filteredData = applyFilter(nodes, links);
+    const filteredData = applyFilter(nodes, links, this.state);
     this.state.graph.graphData(filteredData);
 
     this._applyLabels(getNodeProps);
@@ -127,6 +131,7 @@ class GraphRenderer {
         .linkDirectionalArrowLength(5)
         .linkDirectionalArrowRelPos(1)
         .onNodeClick(node => {
+          const vscode = getVsCodeApi();
           if (!node || !vscode) return;
           const filePath = this.state.getNodeFilePath(node);
           if (filePath) {
@@ -190,9 +195,6 @@ class GraphRenderer {
   }
 }
 
-// Shared state and utility functions
-const state = new GraphState();
-
 function applyOpacityToColor(color, opacity) {
   if (opacity === undefined || opacity === 1) return color;
 
@@ -249,23 +251,5 @@ function buildVisualCache(nodes, links, state) {
   return { nodeVisualCache, linkVisualCache };
 }
 
-// Wrapper functions for backward compatibility
-function updateGraph(options = {}) {
-  state.updateGraph(options);
-}
-
-function updateVisuals() {
-  state.updateVisuals();
-}
-
-function handleResize() {
-  state.handleResize();
-}
-
-function focusNodeByPath(filePath) {
-  state.focusNodeByPath(filePath);
-}
-
-function focusNodeById(msg) {
-  state.focusNodeById(msg);
-}
+export { applyOpacityToColor };
+export default GraphRenderer;

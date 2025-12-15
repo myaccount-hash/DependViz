@@ -1,4 +1,4 @@
-function applyFilter(nodes, links) {
+export function applyFilter(nodes, links, state) {
   const controls = state.controls;
 
   let filteredNodes = nodes.filter(node => {

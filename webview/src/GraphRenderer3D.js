@@ -1,14 +1,14 @@
+import ForceGraph3D from '3d-force-graph';
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import GraphRenderer from './GraphRenderer';
+import { AUTO_ROTATE_DELAY } from './constants';
+
 // 3D GraphRenderer implementation
 
 class GraphRenderer3D extends GraphRenderer {
   createLabelRenderer() {
     return {
       apply: (graph, getNodeProps) => {
-        if (typeof window.CSS2DObject === 'undefined') {
-          console.warn('[LabelRenderer] CSS2DObject not available');
-          return;
-        }
-
         const getFontSize = () => this.state.controls.nameFontSize || 12;
         const getLabel = (node, props) => props?.label || node.name || node.id;
 
@@ -29,7 +29,7 @@ class GraphRenderer3D extends GraphRenderer {
             color: props.color,
             opacity: opacity.toString()
           });
-          const label = new window.CSS2DObject(div);
+          const label = new CSS2DObject(div);
           label.position.set(0, -8, 0);
           return label;
         }).nodeThreeObjectExtend(true);
@@ -43,8 +43,8 @@ class GraphRenderer3D extends GraphRenderer {
   createGraph(container) {
     // Setup CSS2DRenderer for labels if available
     let extraRenderers = [];
-    if (typeof window.CSS2DRenderer !== 'undefined') {
-      const renderer = new window.CSS2DRenderer();
+    if (CSS2DRenderer) {
+      const renderer = new CSS2DRenderer();
       renderer.setSize(container.clientWidth, container.clientHeight);
       renderer.domElement.style.position = 'absolute';
       renderer.domElement.style.top = '0';
@@ -172,3 +172,5 @@ class GraphRenderer3D extends GraphRenderer {
     }
   }
 }
+
+export default GraphRenderer3D;

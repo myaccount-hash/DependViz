@@ -19,23 +19,8 @@
 </head>
 <body>
     <div id="graph-container"></div>
-    <script type="module">
-        // @ts-nocheck
-        Promise.all([
-            import("{{fgUri}}"),
-            import("{{fg3dUri}}"),
-            import('https://esm.sh/three/examples/jsm/renderers/CSS2DRenderer.js')
-        ]).then(([fg2dModule, fg3dModule, css2dModule]) => {
-            window.ForceGraph = fg2dModule.default || fg2dModule.ForceGraph || fg2dModule;
-            window.ForceGraph3D = fg3dModule.default || fg3dModule.ForceGraph3D || fg3dModule;
-            window.CSS2DRenderer = css2dModule.CSS2DRenderer;
-            window.CSS2DObject = css2dModule.CSS2DObject;
-
-            {{script}}
-        }).catch(error => {
-            console.error('[Template] Failed to load ForceGraph:', error);
-            document.body.innerHTML = '<div style="color: red; padding: 20px;">Failed to load graph library: ' + error.message + '</div>';
-        });
+    <script>
+        {{script}}
     </script>
 </body>
 </html>

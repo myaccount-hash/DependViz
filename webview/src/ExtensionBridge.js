@@ -58,3 +58,5 @@ class ExtensionBridge {
     this.state.toggleMode();
   }
 }
+
+export default ExtensionBridge;

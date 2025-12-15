@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { loadControls, typeMatches } = require('./ConfigurationManager');
 
-const WEBVIEW_DIST_PATH = path.join(__dirname, '../webview.html');
+const WEBVIEW_HTML_PATH = path.join(__dirname, '../../webview/dist/index.html');
 
 function validateGraphData(data) {
     if (!data || typeof data !== 'object') throw new Error('data must be an object');
@@ -117,15 +117,12 @@ function mergeGraphData(target, source) {
     });
 }
 
-function getHtmlForWebview(libs) {
-    if (!fs.existsSync(WEBVIEW_DIST_PATH)) {
-        throw new Error('Webview assets not found. Run "npm run build:webview" before packaging the extension.');
+function getHtmlForWebview() {
+    if (!fs.existsSync(WEBVIEW_HTML_PATH)) {
+        throw new Error('Webview HTML not found. Run "npm run build:webview" before packaging the extension.');
     }
 
-    const template = fs.readFileSync(WEBVIEW_DIST_PATH, 'utf8');
-    return template
-        .replace(/{{fgUri}}/g, libs.fgUri)
-        .replace(/{{fg3dUri}}/g, libs.fg3dUri);
+    return fs.readFileSync(WEBVIEW_HTML_PATH, 'utf8');
 }
 
 const { WebviewBridge, messageCreators } = require('./WebviewBridge');

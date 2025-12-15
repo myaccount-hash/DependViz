@@ -40,12 +40,6 @@ const DEFAULT_CONTROLS = {
     colorMethodCall: '#fda4af'
 };
 
-const CDN_LIBS = {
-    fgUri: 'https://esm.sh/force-graph@1.44.0',
-    fg3dUri: 'https://esm.sh/3d-force-graph@1.73.6'
-};
-
-
 const COLORS = {
     STACK_TRACE_LINK: '#51cf66',
     BACKGROUND_DARK: '#1a1a1a',
@@ -72,4 +66,4 @@ const SLIDER_RANGES = {
 
 const AUTO_ROTATE_DELAY = 1000;
 
-module.exports = { DEFAULT_CONTROLS, CDN_LIBS, COLORS, ICONS, SLIDER_RANGES, AUTO_ROTATE_DELAY };
+module.exports = { DEFAULT_CONTROLS, COLORS, ICONS, SLIDER_RANGES, AUTO_ROTATE_DELAY };

@@ -1,3 +1,6 @@
+import ForceGraph from 'force-graph';
+import GraphRenderer, { applyOpacityToColor } from './GraphRenderer';
+
 // 2D GraphRenderer implementation
 
 class GraphRenderer2D extends GraphRenderer {
@@ -49,3 +52,5 @@ class GraphRenderer2D extends GraphRenderer {
     return '2D';
   }
 }
+
+export default GraphRenderer2D;
