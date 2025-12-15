@@ -14,7 +14,6 @@ const SCRIPT_FILES = [
   'GraphRenderer.js',
   'GraphRenderer2D.js',
   'GraphRenderer3D.js',
-  'messaging.js',
   'init.js'
 ];
 

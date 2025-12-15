@@ -42,6 +42,20 @@ if (typeof acquireVsCodeApi === 'function') {
     vscode = acquireVsCodeApi();
 }
 
+if (vscode) {
+  window.addEventListener('message', event => {
+    const msg = event.data;
+    const handler = messageHandlers[msg.type];
+    if (handler) {
+      handler(msg);
+    } else {
+      console.warn('[DependViz] Unknown message type:', msg.type);
+    }
+  });
+
+  vscode.postMessage({ type: 'ready' });
+}
+
 
 class GraphState {
   constructor() {
@@ -912,6 +926,16 @@ class GraphRenderer3D extends GraphRenderer {
 }
 
 
+window.addEventListener('resize', handleResize);
+
+setTimeout(() => {
+  if (state.initGraph()) {
+    updateGraph();
+  } else {
+    console.error('[DependViz] Failed to initialize graph on startup');
+  }
+}, 100);
+
 const messageHandlers = {
   data: msg => {
     state.updateData(msg.data);
@@ -960,31 +984,6 @@ const messageHandlers = {
        state.toggleMode();
   }
 };
-
-if (vscode) {
-  window.addEventListener('message', event => {
-    const msg = event.data;
-    const handler = messageHandlers[msg.type];
-    if (handler) {
-      handler(msg);
-    } else {
-      console.warn('[DependViz] Unknown message type:', msg.type);
-    }
-  });
-
-  vscode.postMessage({ type: 'ready' });
-}
-
-
-window.addEventListener('resize', handleResize);
-
-setTimeout(() => {
-  if (state.initGraph()) {
-    updateGraph();
-  } else {
-    console.error('[DependViz] Failed to initialize graph on startup');
-  }
-}, 100);
 
 })(DEFAULT_CONTROLS, COLORS, DEBUG);
         }).catch(error => {
