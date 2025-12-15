@@ -357,94 +357,6 @@ function evaluateFieldQuery(node, query) {
 }
 
 
-// ラベル表示の基底クラス
-class LabelRenderer {
-  constructor(state) {
-    this.state = state;
-  }
-
-  // サブクラスでオーバーライドするメソッド
-  apply(graph, getNodeProps) {
-    throw new Error('apply() must be implemented by subclass');
-  }
-
-  clear(graph) {
-    throw new Error('clear() must be implemented by subclass');
-  }
-
-  getFontSize() {
-    return this.state.controls.textSize || 12;
-  }
-
-  getLabel(node, props) {
-    return props?.label || node.name || node.id;
-  }
-}
-
-// 2D用のCanvasベースのラベルレンダラー
-class Canvas2DLabelRenderer extends LabelRenderer {
-  apply(graph, getNodeProps) {
-    graph
-      .nodeCanvasObject((node, ctx, globalScale) => {
-        const props = getNodeProps(node);
-        if (!props) return;
-        const label = this.getLabel(node, props);
-        const fontSize = this.getFontSize();
-        ctx.font = `${fontSize}px Sans-Serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
-        ctx.fillText(label, node.x, node.y);
-      })
-      .nodeCanvasObjectMode(() => 'after');
-  }
-
-  clear(graph) {
-    graph.nodeCanvasObjectMode(() => null);
-  }
-}
-
-// 3D用のCSS2DObjectベースのラベルレンダラー
-class CSS3DLabelRenderer extends LabelRenderer {
-  getFontSize() {
-    return this.state.controls.nameFontSize || 12;
-  }
-
-  apply(graph, getNodeProps) {
-    if (typeof window.CSS2DObject === 'undefined') {
-      console.warn('[LabelRenderer] CSS2DObject not available');
-      return;
-    }
-
-    graph.nodeThreeObject(node => {
-      const props = getNodeProps(node);
-      const div = document.createElement('div');
-      div.textContent = this.getLabel(node, props);
-
-      // 透明度を色とopacityの両方で反映
-      const opacity = props.opacity !== undefined ? props.opacity : 1;
-
-      Object.assign(div.style, {
-        fontSize: `${this.getFontSize()}px`,
-        fontFamily: 'sans-serif',
-        padding: '2px 4px',
-        borderRadius: '2px',
-        pointerEvents: 'none',
-        color: props.color,
-        opacity: opacity.toString()
-      });
-      const label = new window.CSS2DObject(div);
-      label.position.set(0, -8, 0);
-      return label;
-    }).nodeThreeObjectExtend(true);
-  }
-
-  clear(graph) {
-    graph.nodeThreeObject(null).nodeThreeObjectExtend(false);
-  }
-}
-
-
 // Base GraphRenderer class with common logic
 
 class GraphRenderer {
@@ -775,7 +687,29 @@ function focusNodeById(msg) {
 
 class GraphRenderer2D extends GraphRenderer {
   createLabelRenderer() {
-    return new Canvas2DLabelRenderer(this.state);
+    return {
+      apply: (graph, getNodeProps) => {
+        const getFontSize = () => this.state.controls.textSize || 12;
+        const getLabel = (node, props) => props?.label || node.name || node.id;
+
+        graph
+          .nodeCanvasObject((node, ctx) => {
+            const props = getNodeProps(node);
+            if (!props) return;
+            const label = getLabel(node, props);
+            const fontSize = getFontSize();
+            ctx.font = `${fontSize}px Sans-Serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
+            ctx.fillText(label, node.x, node.y);
+          })
+          .nodeCanvasObjectMode(() => 'after');
+      },
+      clear: (graph) => {
+        graph.nodeCanvasObjectMode(() => null);
+      }
+    };
   }
 
   createGraph(container) {
@@ -806,11 +740,58 @@ class GraphRenderer2D extends GraphRenderer {
 
 class GraphRenderer3D extends GraphRenderer {
   createLabelRenderer() {
-    return new CSS3DLabelRenderer(this.state);
+    return {
+      apply: (graph, getNodeProps) => {
+        if (typeof window.CSS2DObject === 'undefined') {
+          console.warn('[LabelRenderer] CSS2DObject not available');
+          return;
+        }
+
+        const getFontSize = () => this.state.controls.nameFontSize || 12;
+        const getLabel = (node, props) => props?.label || node.name || node.id;
+
+        graph.nodeThreeObject(node => {
+          const props = getNodeProps(node);
+          const div = document.createElement('div');
+          div.textContent = getLabel(node, props);
+
+          // 透明度を色とopacityの両方で反映
+          const opacity = props.opacity !== undefined ? props.opacity : 1;
+
+          Object.assign(div.style, {
+            fontSize: `${getFontSize()}px`,
+            fontFamily: 'sans-serif',
+            padding: '2px 4px',
+            borderRadius: '2px',
+            pointerEvents: 'none',
+            color: props.color,
+            opacity: opacity.toString()
+          });
+          const label = new window.CSS2DObject(div);
+          label.position.set(0, -8, 0);
+          return label;
+        }).nodeThreeObjectExtend(true);
+      },
+      clear: (graph) => {
+        graph.nodeThreeObject(null).nodeThreeObjectExtend(false);
+      }
+    };
   }
 
   createGraph(container) {
-    const extraRenderers = this.state.labelRenderer ? [this.state.labelRenderer] : [];
+    // Setup CSS2DRenderer for labels if available
+    let extraRenderers = [];
+    if (typeof window.CSS2DRenderer !== 'undefined') {
+      const renderer = new window.CSS2DRenderer();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.domElement.style.position = 'absolute';
+      renderer.domElement.style.top = '0';
+      renderer.domElement.style.pointerEvents = 'none';
+      container.appendChild(renderer.domElement);
+      this.state.setLabelRenderer(renderer);
+      extraRenderers = [renderer];
+    }
+
     return ForceGraph3D({ extraRenderers })(container);
   }
 
@@ -845,18 +826,6 @@ class GraphRenderer3D extends GraphRenderer {
 
   getModeName() {
     return '3D';
-  }
-
-  setupRenderer(container) {
-    if (typeof window.CSS2DRenderer !== 'undefined') {
-      const renderer = new window.CSS2DRenderer();
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      renderer.domElement.style.position = 'absolute';
-      renderer.domElement.style.top = '0';
-      renderer.domElement.style.pointerEvents = 'none';
-      container.appendChild(renderer.domElement);
-      this.state.setLabelRenderer(renderer);
-    }
   }
 
   setupEventListeners(graph) {

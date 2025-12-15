@@ -2,11 +2,58 @@
 
 class GraphRenderer3D extends GraphRenderer {
   createLabelRenderer() {
-    return new CSS3DLabelRenderer(this.state);
+    return {
+      apply: (graph, getNodeProps) => {
+        if (typeof window.CSS2DObject === 'undefined') {
+          console.warn('[LabelRenderer] CSS2DObject not available');
+          return;
+        }
+
+        const getFontSize = () => this.state.controls.nameFontSize || 12;
+        const getLabel = (node, props) => props?.label || node.name || node.id;
+
+        graph.nodeThreeObject(node => {
+          const props = getNodeProps(node);
+          const div = document.createElement('div');
+          div.textContent = getLabel(node, props);
+
+          // 透明度を色とopacityの両方で反映
+          const opacity = props.opacity !== undefined ? props.opacity : 1;
+
+          Object.assign(div.style, {
+            fontSize: `${getFontSize()}px`,
+            fontFamily: 'sans-serif',
+            padding: '2px 4px',
+            borderRadius: '2px',
+            pointerEvents: 'none',
+            color: props.color,
+            opacity: opacity.toString()
+          });
+          const label = new window.CSS2DObject(div);
+          label.position.set(0, -8, 0);
+          return label;
+        }).nodeThreeObjectExtend(true);
+      },
+      clear: (graph) => {
+        graph.nodeThreeObject(null).nodeThreeObjectExtend(false);
+      }
+    };
   }
 
   createGraph(container) {
-    const extraRenderers = this.state.labelRenderer ? [this.state.labelRenderer] : [];
+    // Setup CSS2DRenderer for labels if available
+    let extraRenderers = [];
+    if (typeof window.CSS2DRenderer !== 'undefined') {
+      const renderer = new window.CSS2DRenderer();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.domElement.style.position = 'absolute';
+      renderer.domElement.style.top = '0';
+      renderer.domElement.style.pointerEvents = 'none';
+      container.appendChild(renderer.domElement);
+      this.state.setLabelRenderer(renderer);
+      extraRenderers = [renderer];
+    }
+
     return ForceGraph3D({ extraRenderers })(container);
   }
 
@@ -41,18 +88,6 @@ class GraphRenderer3D extends GraphRenderer {
 
   getModeName() {
     return '3D';
-  }
-
-  setupRenderer(container) {
-    if (typeof window.CSS2DRenderer !== 'undefined') {
-      const renderer = new window.CSS2DRenderer();
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      renderer.domElement.style.position = 'absolute';
-      renderer.domElement.style.top = '0';
-      renderer.domElement.style.pointerEvents = 'none';
-      container.appendChild(renderer.domElement);
-      this.state.setLabelRenderer(renderer);
-    }
   }
 
   setupEventListeners(graph) {

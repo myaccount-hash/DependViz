@@ -2,7 +2,29 @@
 
 class GraphRenderer2D extends GraphRenderer {
   createLabelRenderer() {
-    return new Canvas2DLabelRenderer(this.state);
+    return {
+      apply: (graph, getNodeProps) => {
+        const getFontSize = () => this.state.controls.textSize || 12;
+        const getLabel = (node, props) => props?.label || node.name || node.id;
+
+        graph
+          .nodeCanvasObject((node, ctx) => {
+            const props = getNodeProps(node);
+            if (!props) return;
+            const label = getLabel(node, props);
+            const fontSize = getFontSize();
+            ctx.font = `${fontSize}px Sans-Serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
+            ctx.fillText(label, node.x, node.y);
+          })
+          .nodeCanvasObjectMode(() => 'after');
+      },
+      clear: (graph) => {
+        graph.nodeCanvasObjectMode(() => null);
+      }
+    };
   }
 
   createGraph(container) {
