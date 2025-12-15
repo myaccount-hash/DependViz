@@ -4,7 +4,7 @@ const { LanguageClient, TransportKind } = require('vscode-languageclient/node');
 const { getWorkspaceFolder, mergeGraphData, validateGraphData } = require('../utils/utils');
 
 /**
- * JavaAnalyzer - LSP版
+ * JavaAnalyzer
  * Language Serverを使用してJavaプロジェクトを解析
  */
 class JavaAnalyzer {
