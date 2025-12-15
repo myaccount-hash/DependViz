@@ -72,9 +72,6 @@ const SLIDER_RANGES = {
     sliceDepth: { min: 1, max: 10, step: 1 }
 };
 
-const DEBUG = {
-    STACK_TRACE_LEVELS: 200,
-    AUTO_ROTATE_DELAY: 1000
-};
+const AUTO_ROTATE_DELAY = 1000;
 
-module.exports = { DEFAULT_CONTROLS, CDN_LIBS, COLORS, ICONS, SLIDER_RANGES, DEBUG };
+module.exports = { DEFAULT_CONTROLS, CDN_LIBS, COLORS, ICONS, SLIDER_RANGES, AUTO_ROTATE_DELAY };

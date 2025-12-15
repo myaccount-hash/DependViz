@@ -24,7 +24,7 @@ function buildWebview() {
     .map(file => fs.readFileSync(path.join(SRC_DIR, file), 'utf8'))
     .join('\n\n');
 
-  const wrappedScript = `(function(DEFAULT_CONTROLS, COLORS, DEBUG) {\n${script}\n})(DEFAULT_CONTROLS, COLORS, DEBUG);`;
+  const wrappedScript = `(function(DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY) {\n${script}\n})(DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY);`;
 
   // Add header comment to indicate this is a generated file
   const generatedHeader = `<!--

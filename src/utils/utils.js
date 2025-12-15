@@ -118,7 +118,7 @@ function mergeGraphData(target, source) {
 }
 
 function getHtmlForWebview(libs) {
-    const { DEFAULT_CONTROLS, COLORS, DEBUG } = require('../constants');
+    const { DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY } = require('../constants');
 
     if (!fs.existsSync(WEBVIEW_DIST_PATH)) {
         throw new Error('Webview assets not found. Run "npm run build:webview" before packaging the extension.');
@@ -130,7 +130,7 @@ function getHtmlForWebview(libs) {
         .replace(/{{fg3dUri}}/g, libs.fg3dUri)
         .replace(/{{defaultControls}}/g, JSON.stringify(DEFAULT_CONTROLS))
         .replace(/{{colors}}/g, JSON.stringify(COLORS))
-        .replace(/{{debug}}/g, JSON.stringify(DEBUG));
+        .replace(/{{autoRotateDelay}}/g, AUTO_ROTATE_DELAY);
 }
 
 const { WebviewBridge, messageCreators } = require('./WebviewBridge');

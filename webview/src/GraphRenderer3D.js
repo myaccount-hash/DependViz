@@ -74,8 +74,8 @@ class GraphRenderer3D extends GraphRenderer {
       z: node.z + currentCameraPos.z - oldNode.z
     };
 
-    this.state.graph.cameraPosition(cameraPos, node, DEBUG.AUTO_ROTATE_DELAY);
-    setTimeout(() => this.updateAutoRotation(), DEBUG.AUTO_ROTATE_DELAY);
+    this.state.graph.cameraPosition(cameraPos, node, AUTO_ROTATE_DELAY);
+    setTimeout(() => this.updateAutoRotation(), AUTO_ROTATE_DELAY);
   }
 
   checkLibraryAvailability() {
@@ -103,7 +103,7 @@ class GraphRenderer3D extends GraphRenderer {
         this.state.rotation.timeout = setTimeout(() => {
           this.state.ui.isUserInteracting = false;
           this.updateAutoRotation();
-        }, DEBUG.AUTO_ROTATE_DELAY);
+        }, AUTO_ROTATE_DELAY);
       });
     }
   }

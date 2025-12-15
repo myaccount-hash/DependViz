@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="graph-container"></div>
-    <script nonce="{{nonce}}" type="module">
+    <script type="module">
         // @ts-nocheck
         Promise.all([
             import("{{fgUri}}"),
@@ -39,9 +39,9 @@
 
             const DEFAULT_CONTROLS = {{defaultControls}};
             const COLORS = {{colors}};
-            const DEBUG = {{debug}};
+            const AUTO_ROTATE_DELAY = {{autoRotateDelay}};
 
-            (function(DEFAULT_CONTROLS, COLORS, DEBUG) {
+            (function(DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY) {
 let vscode = null;
 if (typeof acquireVsCodeApi === 'function') {
     vscode = acquireVsCodeApi();
@@ -901,8 +901,8 @@ class GraphRenderer3D extends GraphRenderer {
       z: node.z + currentCameraPos.z - oldNode.z
     };
 
-    this.state.graph.cameraPosition(cameraPos, node, DEBUG.AUTO_ROTATE_DELAY);
-    setTimeout(() => this.updateAutoRotation(), DEBUG.AUTO_ROTATE_DELAY);
+    this.state.graph.cameraPosition(cameraPos, node, AUTO_ROTATE_DELAY);
+    setTimeout(() => this.updateAutoRotation(), AUTO_ROTATE_DELAY);
   }
 
   checkLibraryAvailability() {
@@ -930,7 +930,7 @@ class GraphRenderer3D extends GraphRenderer {
         this.state.rotation.timeout = setTimeout(() => {
           this.state.ui.isUserInteracting = false;
           this.updateAutoRotation();
-        }, DEBUG.AUTO_ROTATE_DELAY);
+        }, AUTO_ROTATE_DELAY);
       });
     }
   }
@@ -1013,7 +1013,7 @@ setTimeout(() => {
 
 const extensionBridge = new ExtensionBridge(state);
 
-})(DEFAULT_CONTROLS, COLORS, DEBUG);
+})(DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY);
         }).catch(error => {
             console.error('[Template] Failed to load ForceGraph:', error);
             document.body.innerHTML = '<div style="color: red; padding: 20px;">Failed to load graph library: ' + error.message + '</div>';
