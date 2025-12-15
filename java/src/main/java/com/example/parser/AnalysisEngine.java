@@ -40,10 +40,10 @@ public class AnalysisEngine {
     // ソースルートを探索
     Path sourceRoot = findSourceRoot(Paths.get(workspaceRoot));
     if (sourceRoot != null) {
-      logger.info("Found source root: " + sourceRoot);
+      logger.log(Level.INFO, "Found source root: {0}", sourceRoot);
       this.typeSolver.add(new JavaParserTypeSolver(sourceRoot.toFile()));
     } else {
-      logger.warning("Source root not found, using workspace root: " + workspaceRoot);
+      logger.log(Level.WARNING, "Source root not found, using workspace root: {0}", workspaceRoot);
       this.typeSolver.add(new JavaParserTypeSolver(new File(workspaceRoot)));
     }
 
@@ -58,14 +58,14 @@ public class AnalysisEngine {
     this.analyzers.add(new LinesOfCodeAnalyzer());
     this.analyzers.add(new FilePathAnalyzer());
 
-    logger.info("Analysis engine initialized with " + analyzers.size() + " analyzers");
+    logger.log(Level.INFO, "Analysis engine initialized with {0} analyzers", analyzers.size());
   }
 
   /**
    * 単一ファイルを解析
    */
   public CodeGraph analyzeFile(String filePath) throws Exception {
-    logger.info("Analyzing file: " + filePath);
+    logger.log(Level.INFO, "Analyzing file: {0}", filePath);
 
     CodeGraph codeGraph = new CodeGraph();
     Path path = Paths.get(filePath);
@@ -79,13 +79,13 @@ public class AnalysisEngine {
         codeGraph.merge(analyzerResult);
       }
 
-      logger.info(
-          String.format(
-              "Analysis completed: %d nodes, %d edges",
-              codeGraph.getGraphNodes().size(), codeGraph.getGraphEdges().size()));
+      logger.log(
+          Level.INFO,
+          "Analysis completed: {0} nodes, {1} edges",
+          new Object[] {codeGraph.getGraphNodes().size(), codeGraph.getGraphEdges().size()});
 
     } catch (Exception e) {
-      logger.log(Level.WARNING, "Failed to parse file: " + path, e);
+      logger.log(Level.WARNING, e, () -> "Failed to parse file: " + path);
       throw e;
     }
 

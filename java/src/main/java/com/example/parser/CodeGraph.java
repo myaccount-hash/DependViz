@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CodeGraph {
-  private List<GraphNode> graphNodes;
-  private List<GraphEdge> graphEdges;
+  private final List<GraphNode> graphNodes;
+  private final List<GraphEdge> graphEdges;
 
   public CodeGraph() {
     this.graphNodes = new ArrayList<>();
