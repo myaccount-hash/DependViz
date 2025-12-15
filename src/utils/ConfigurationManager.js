@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { DEFAULT_CONTROLS } = require('../constants');
+const { CONTROL_DEFAULTS } = require('../constants');
 
 /**
  * ノード・エッジタイプと設定キーのマッピング
@@ -52,7 +52,7 @@ class ConfigurationManager {
 
         const config = vscode.workspace.getConfiguration('forceGraphViewer');
         const controls = {};
-        for (const [key, defaultValue] of Object.entries(DEFAULT_CONTROLS)) {
+        for (const [key, defaultValue] of Object.entries(CONTROL_DEFAULTS)) {
             controls[key] = config.get(key, defaultValue);
         }
 

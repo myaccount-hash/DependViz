@@ -1,11 +1,11 @@
-import { DEFAULT_CONTROLS, COLORS } from './constants';
+import { COLORS } from './constants';
 import GraphRenderer2D from './GraphRenderer2D';
 import GraphRenderer3D from './GraphRenderer3D';
 
 class GraphState {
   constructor() {
     this.data = { nodes: [], links: [] };
-    this.controls = DEFAULT_CONTROLS;
+    this.controls = {};
     this.ui = {
       highlightLinks: new Set(),
       stackTraceLinks: new Set(),

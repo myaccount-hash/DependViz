@@ -1,9 +1,10 @@
-import sharedConstants from '../../src/constants';
+const COLORS = {
+  STACK_TRACE_LINK: '#51cf66',
+  BACKGROUND_DARK: '#1a1a1a',
+  NODE_DEFAULT: '#93c5fd',
+  EDGE_DEFAULT: '#4b5563'
+};
 
-const {
-  DEFAULT_CONTROLS,
-  COLORS,
-  AUTO_ROTATE_DELAY
-} = sharedConstants;
+const AUTO_ROTATE_DELAY = 1000;
 
-export { DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY };
+export { COLORS, AUTO_ROTATE_DELAY };

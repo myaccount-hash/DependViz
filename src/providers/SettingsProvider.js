@@ -17,12 +17,12 @@ const FILTER_ITEMS = [
 ];
 
 const APPEARANCE_ITEMS = [
-    ['checkbox', '2D表示', 'mode2D'],
+    ['checkbox', '3D表示', 'is3DMode'],
     ['checkbox', '行数反映', 'nodeSizeByLoc'],
     ['checkbox', 'スタックトレース', 'showStackTrace'],
     ['checkbox', '名前表示', 'showNames'],
     ['checkbox', '短縮名表示', 'shortNames'],
-    ['checkbox', '孤立ノード表示', 'showIsolatedNodes'],
+    ['checkbox', '孤立ノード非表示', 'hideIsolatedNodes'],
     ['checkbox', '順方向スライス', 'enableForwardSlice'],
     ['checkbox', '逆方向スライス', 'enableBackwardSlice']
 ];

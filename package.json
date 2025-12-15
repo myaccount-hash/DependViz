@@ -47,7 +47,8 @@
       {
         "command": "forceGraphViewer.refresh",
         "title": "Refresh",
-        "category": "DependViz"
+        "category": "DependViz",
+        "icon": "$(refresh)"
       },
       {
         "command": "forceGraphViewer.showSearchInput",
@@ -72,7 +73,8 @@
       {
         "command": "forceGraphViewer.analyzeJavaProject",
         "title": "Analyze Java Project",
-        "category": "DependViz"
+        "category": "DependViz",
+        "icon": "$(play)"
       },
       {
         "command": "forceGraphViewer.analyzeCurrentFile",

@@ -1,4 +1,4 @@
-const DEFAULT_CONTROLS = {
+const CONTROL_DEFAULTS = {
     search: '',
     is3DMode: false,
     nodeSizeByLoc: false,
@@ -6,10 +6,6 @@ const DEFAULT_CONTROLS = {
     showStackTrace: true,
     showNames: true,
     shortNames: true,
-    autoRotate: false,
-    rotateSpeed: 0.3,
-    nameFontSize: 12,
-    focusDistance: 200,
     nodeSize: 3.0,
     linkWidth: 0.5,
     nodeOpacity: 1.0,
@@ -40,20 +36,6 @@ const DEFAULT_CONTROLS = {
     colorMethodCall: '#fda4af'
 };
 
-const COLORS = {
-    STACK_TRACE_LINK: '#51cf66',
-    BACKGROUND_DARK: '#1a1a1a',
-    NODE_DEFAULT: '#93c5fd',
-    EDGE_DEFAULT: '#4b5563'
-};
-
-const ICONS = {
-    CAPTURED_SESSION: 'pass-filled',
-    ACTIVE_SESSION: 'debug-alt',
-    EMPTY_STATE: 'info',
-    GRAPH_FILE: 'graph'
-};
-
 const SLIDER_RANGES = {
     nodeSize: { min: 0.1, max: 20, step: 0.1 },
     linkWidth: { min: 0.1, max: 5, step: 0.1 },
@@ -64,6 +46,4 @@ const SLIDER_RANGES = {
     sliceDepth: { min: 1, max: 10, step: 1 }
 };
 
-const AUTO_ROTATE_DELAY = 1000;
-
-module.exports = { DEFAULT_CONTROLS, COLORS, ICONS, SLIDER_RANGES, AUTO_ROTATE_DELAY };
+module.exports = { CONTROL_DEFAULTS, SLIDER_RANGES };

@@ -33,7 +33,7 @@ class ExtensionBridge {
 
   _handleUpdate(msg) {
     const hasDataChange = !!msg.data;
-    const oldIs3DMode = this.state.controls.is3DMode;
+    const oldIs3DMode = this.state.controls.is3DMode ?? false;
 
     if (msg.data) {
       this.state.updateData(msg.data);
@@ -45,7 +45,12 @@ class ExtensionBridge {
       this.state.ui.stackTraceLinks = new Set(msg.stackTracePaths.map(p => p.link));
     }
 
-    const modeChanged = msg.controls && (this.state.controls.is3DMode !== oldIs3DMode);
+    const newIs3DMode = this.state.controls.is3DMode ?? false;
+    const modeChanged = msg.controls && (newIs3DMode !== oldIs3DMode);
+
+    if (modeChanged) {
+      this.state.toggleMode();
+    }
 
     if (hasDataChange || modeChanged) {
       this.state.updateGraph({ reheatSimulation: true });
