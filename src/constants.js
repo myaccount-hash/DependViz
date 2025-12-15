@@ -47,10 +47,8 @@ const CDN_LIBS = {
 
 
 const COLORS = {
-    STACK_TRACE: '#ff6b6b',
     STACK_TRACE_LINK: '#51cf66',
     BACKGROUND_DARK: '#1a1a1a',
-    BACKGROUND_LIGHT: '#ffffff',
     NODE_DEFAULT: '#93c5fd',
     EDGE_DEFAULT: '#4b5563'
 };

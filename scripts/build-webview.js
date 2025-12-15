@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY } = require('../src/constants');
+
 const TEMPLATE_PATH = path.join(__dirname, '../webview/template.html');
 const OUTPUT_PATH = path.join(__dirname, '../src/webview.html');
 const SRC_DIR = path.join(__dirname, '../webview/src');
@@ -24,7 +26,13 @@ function buildWebview() {
     .map(file => fs.readFileSync(path.join(SRC_DIR, file), 'utf8'))
     .join('\n\n');
 
-  const wrappedScript = `(function(DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY) {\n${script}\n})(DEFAULT_CONTROLS, COLORS, AUTO_ROTATE_DELAY);`;
+  const constantsBlock = [
+    `const DEFAULT_CONTROLS = ${JSON.stringify(DEFAULT_CONTROLS)};`,
+    `const COLORS = ${JSON.stringify(COLORS)};`,
+    `const AUTO_ROTATE_DELAY = ${AUTO_ROTATE_DELAY};`
+  ].join('\n');
+
+  const wrappedScript = `(function() {\n${constantsBlock}\n${script}\n})();`;
 
   // Add header comment to indicate this is a generated file
   const generatedHeader = `<!--
