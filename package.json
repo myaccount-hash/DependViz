@@ -311,11 +311,7 @@
     "build:java": "cd java && mvn clean package",
     "build:extension": "npm install && npm run build:webview",
     "build:webview": "npm --prefix webview install && npm --prefix webview run build",
-    "clean": "cd java && mvn clean && rm -f dependency-reduced-pom.xml",
-    "debug:lsp": "node test/lsp-debug.js",
-    "test": "npm run test:unit",
-    "test:unit": "mocha \"test/unit/**/*.test.js\"",
-    "test:watch": "mocha \"test/unit/**/*.test.js\" --watch"
+    "clean": "cd java && mvn clean && rm -f dependency-reduced-pom.xml"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
