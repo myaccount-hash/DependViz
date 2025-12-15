@@ -16,6 +16,7 @@ class GraphState {
     };
     this._graph = null;
     this._labelRenderer = null;
+    this._currentRenderer = null;
     this.nodeRules = [
       (node, ctx) => {
         const map = {
@@ -73,7 +74,7 @@ class GraphState {
     this.controls = { ...this.controls, ...controls };
   }
 
-  _getNodeFilePath(node) {
+  getNodeFilePath(node) {
     return node.filePath || node.file;
   }
 
@@ -198,5 +199,70 @@ class GraphState {
     clearTimeout(this.rotation.timeout);
     this._graph = null;
     this._labelRenderer = null;
+    this._currentRenderer = null;
+  }
+
+  getRenderer() {
+    if (!this._currentRenderer || this._currentRenderer.state.controls.is3DMode !== this.controls.is3DMode) {
+      this._currentRenderer = this.controls.is3DMode
+        ? new GraphRenderer3D(this)
+        : new GraphRenderer2D(this);
+    }
+    return this._currentRenderer;
+  }
+
+  updateGraph(options = {}) {
+    const { reheatSimulation = false } = options;
+
+    if (!this._graph) {
+      if (!this.initGraph()) {
+        console.error('[DependViz] Failed to initialize graph');
+        return;
+      }
+    }
+
+    this.getRenderer().updateGraph({ reheatSimulation });
+  }
+
+  updateVisuals() {
+    if (!this._graph) return;
+    this.getRenderer().updateVisuals();
+  }
+
+  handleResize() {
+    if (!this._graph) return;
+    const container = document.getElementById('graph-container');
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    this._graph.width(width).height(height);
+  }
+
+  focusNodeByPath(filePath) {
+    if (!filePath) return;
+    const node = this.data.nodes.find(n => this._pathsMatch(this.getNodeFilePath(n), filePath));
+    if (node) {
+      this.ui.focusedNode = node;
+      this.getRenderer().focusNode(node);
+      this.updateVisuals();
+    }
+  }
+
+  focusNodeById(msg) {
+    const nodeId = msg.nodeId || (msg.node && msg.node.id);
+    const node = this.data.nodes.find(n => n.id === nodeId);
+
+    if (!node) return;
+
+    if (node.x === undefined || node.y === undefined) {
+      setTimeout(() => this.focusNodeById(msg), 100);
+      return;
+    }
+
+    this.ui.focusedNode = node;
+    this.getRenderer().focusNode(node);
+    this.updateVisuals();
   }
 }

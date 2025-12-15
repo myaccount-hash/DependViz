@@ -106,3 +106,56 @@ function evaluateFieldQuery(node, query) {
 
   return nodeValue.toLowerCase().includes(searchValue.toLowerCase());
 }
+
+
+// Message handlers for VSCode communication
+function createMessageHandlers(state) {
+  return {
+    data: msg => {
+      state.updateData(msg.data);
+      state.updateGraph({ reheatSimulation: true });
+    },
+    controls: msg => {
+      state.updateControls(msg.controls);
+      state.updateVisuals();
+    },
+    stackTrace: msg => {
+      state.ui.stackTraceLinks = new Set(msg.paths.map(p => p.link));
+      state.updateVisuals();
+    },
+    focusNode: msg => {
+      const filePath = msg.filePath || (msg.node && msg.node.filePath);
+      if (filePath) {
+        state.focusNodeByPath(filePath);
+      }
+    },
+    focusNodeById: msg => {
+      state.focusNodeById(msg);
+    },
+    update: msg => {
+      const hasDataChange = !!msg.data;
+      const oldIs3DMode = state.controls.is3DMode;
+
+      if (msg.data) {
+        state.updateData(msg.data);
+      }
+      if (msg.controls) {
+        state.updateControls(msg.controls);
+      }
+      if (msg.stackTracePaths) {
+        state.ui.stackTraceLinks = new Set(msg.stackTracePaths.map(p => p.link));
+      }
+
+      const modeChanged = msg.controls && (state.controls.is3DMode !== oldIs3DMode);
+
+      if (hasDataChange || modeChanged) {
+        state.updateGraph({ reheatSimulation: true });
+      } else {
+        state.updateVisuals();
+      }
+    },
+    toggle3DMode: msg => {
+      state.toggleMode();
+    }
+  };
+}

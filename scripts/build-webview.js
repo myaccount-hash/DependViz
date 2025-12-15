@@ -10,7 +10,7 @@ const SRC_DIR = path.join(__dirname, '../webview/src');
 const SCRIPT_FILES = [
   'core.js',
   'GraphState.js',
-  'utilss.js',
+  'utils.js',
   'GraphRenderer.js',
   'GraphRenderer2D.js',
   'GraphRenderer3D.js',

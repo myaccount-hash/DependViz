@@ -5,6 +5,48 @@ class GraphRenderer {
     this.state = state;
   }
 
+  // Build visual cache helper
+  _buildVisualCacheForGraph() {
+    const nodes = this.state.data.nodes || [];
+    const links = this.state.data.links || [];
+    const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, this.state);
+    return {
+      nodes,
+      links,
+      getNodeProps: node => nodeVisualCache.get(node),
+      getLinkProps: link => linkVisualCache.get(link)
+    };
+  }
+
+  // Apply labels helper
+  _applyLabels(getNodeProps) {
+    const labelRenderer = this.createLabelRenderer();
+    if (this.state.controls.showNames) {
+      labelRenderer.apply(this.state.graph, getNodeProps);
+    } else {
+      labelRenderer.clear(this.state.graph);
+    }
+  }
+
+  // Apply node and link colors helper
+  _applyColors(getNodeProps, getLinkProps) {
+    this.state.graph
+      .nodeColor(node => {
+        const props = getNodeProps(node);
+        const color = props ? props.color : COLORS.NODE_DEFAULT;
+        return applyOpacityToColor(color, props?.opacity);
+      })
+      .linkColor(link => {
+        const props = getLinkProps(link);
+        const color = props ? props.color : COLORS.EDGE_DEFAULT;
+        return applyOpacityToColor(color, props?.opacity);
+      })
+      .linkDirectionalParticles(link => {
+        const props = getLinkProps(link);
+        return props ? (props.particles || 0) : 0;
+      });
+  }
+
   // Common graph update logic
   updateGraph(options = {}) {
     const { reheatSimulation = false } = options;
@@ -16,23 +58,12 @@ class GraphRenderer {
 
     this.state.graph.backgroundColor(this.state.getBackgroundColor());
 
-    const nodes = this.state.data.nodes || [];
-    const links = this.state.data.links || [];
-
-    const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, this.state);
-    const getNodeProps = node => nodeVisualCache.get(node);
-    const getLinkProps = link => linkVisualCache.get(link);
+    const { nodes, links, getNodeProps, getLinkProps } = this._buildVisualCacheForGraph();
 
     const filteredData = applyFilter(nodes, links);
     this.state.graph.graphData(filteredData);
 
-    // Apply labels using renderer-specific label renderer
-    const labelRenderer = this.createLabelRenderer();
-    if (this.state.controls.showNames) {
-      labelRenderer.apply(this.state.graph, getNodeProps);
-    } else {
-      labelRenderer.clear(this.state.graph);
-    }
+    this._applyLabels(getNodeProps);
 
     // Common graph properties
     this.state.graph
@@ -40,30 +71,18 @@ class GraphRenderer {
         const props = getNodeProps(node);
         return props ? props.label : node.name || node.id;
       })
-      .nodeColor(node => {
-        const props = getNodeProps(node);
-        const color = props ? props.color : COLORS.NODE_DEFAULT;
-        return applyOpacityToColor(color, props?.opacity);
-      })
       .nodeVal(node => {
         const props = getNodeProps(node);
         return props ? props.size : this.state.controls.nodeSize;
-      })
-      .linkColor(link => {
-        const props = getLinkProps(link);
-        const color = props ? props.color : COLORS.EDGE_DEFAULT;
-        return applyOpacityToColor(color, props?.opacity);
       })
       .linkWidth(link => {
         const props = getLinkProps(link);
         return props ? props.width : this.state.controls.linkWidth;
       })
       .linkDirectionalArrowLength(this.state.controls.arrowSize)
-      .linkDirectionalParticles(link => {
-        const props = getLinkProps(link);
-        return props ? (props.particles || 0) : 0;
-      })
       .linkDirectionalParticleWidth(2);
+
+    this._applyColors(getNodeProps, getLinkProps);
 
     const linkForce = this.state.graph.d3Force('link');
     if (linkForce) linkForce.distance(this.state.controls.linkDistance);
@@ -80,36 +99,10 @@ class GraphRenderer {
   updateVisuals() {
     if (!this.state.graph) return;
 
-    const nodes = this.state.data.nodes || [];
-    const links = this.state.data.links || [];
+    const { getNodeProps, getLinkProps } = this._buildVisualCacheForGraph();
 
-    const { nodeVisualCache, linkVisualCache } = buildVisualCache(nodes, links, this.state);
-    const getNodeProps = node => nodeVisualCache.get(node);
-    const getLinkProps = link => linkVisualCache.get(link);
-
-    // Apply labels
-    const labelRenderer = this.createLabelRenderer();
-    if (this.state.controls.showNames) {
-      labelRenderer.apply(this.state.graph, getNodeProps);
-    } else {
-      labelRenderer.clear(this.state.graph);
-    }
-
-    this.state.graph
-      .nodeColor(node => {
-        const props = getNodeProps(node);
-        const color = props ? props.color : COLORS.NODE_DEFAULT;
-        return applyOpacityToColor(color, props?.opacity);
-      })
-      .linkColor(link => {
-        const props = getLinkProps(link);
-        const color = props ? props.color : COLORS.EDGE_DEFAULT;
-        return applyOpacityToColor(color, props?.opacity);
-      })
-      .linkDirectionalParticles(link => {
-        const props = getLinkProps(link);
-        return props ? (props.particles || 0) : 0;
-      });
+    this._applyLabels(getNodeProps);
+    this._applyColors(getNodeProps, getLinkProps);
   }
 
   // Common initialization logic
@@ -135,7 +128,7 @@ class GraphRenderer {
         .linkDirectionalArrowRelPos(1)
         .onNodeClick(node => {
           if (!node || !vscode) return;
-          const filePath = this.state._getNodeFilePath(node);
+          const filePath = this.state.getNodeFilePath(node);
           if (filePath) {
             vscode.postMessage({
               type: 'focusNode',
@@ -256,69 +249,23 @@ function buildVisualCache(nodes, links, state) {
   return { nodeVisualCache, linkVisualCache };
 }
 
-// Global render manager
-let currentRenderer = null;
-
-function getRenderer() {
-  if (!currentRenderer || currentRenderer.state.controls.is3DMode !== state.controls.is3DMode) {
-    currentRenderer = state.controls.is3DMode
-      ? new GraphRenderer3D(state)
-      : new GraphRenderer2D(state);
-  }
-  return currentRenderer;
-}
-
+// Wrapper functions for backward compatibility
 function updateGraph(options = {}) {
-  const { reheatSimulation = false } = options;
-
-  if (!state.graph) {
-    if (!state.initGraph()) {
-      console.error('[DependViz] Failed to initialize graph');
-      return;
-    }
-  }
-
-  getRenderer().updateGraph({ reheatSimulation });
+  state.updateGraph(options);
 }
 
 function updateVisuals() {
-  if (!state.graph) return;
-  getRenderer().updateVisuals();
+  state.updateVisuals();
 }
 
 function handleResize() {
-  if (!state.graph) return;
-  const container = document.getElementById('graph-container');
-  if (!container) return;
-
-  const width = container.clientWidth;
-  const height = container.clientHeight;
-
-  state.graph.width(width).height(height);
+  state.handleResize();
 }
 
 function focusNodeByPath(filePath) {
-  if (!filePath) return;
-  const node = state.data.nodes.find(n => state._pathsMatch(state._getNodeFilePath(n), filePath));
-  if (node) {
-    state.ui.focusedNode = node;
-    getRenderer().focusNode(node);
-    updateVisuals();
-  }
+  state.focusNodeByPath(filePath);
 }
 
 function focusNodeById(msg) {
-  const nodeId = msg.nodeId || (msg.node && msg.node.id);
-  const node = state.data.nodes.find(n => n.id === nodeId);
-
-  if (!node) return;
-
-  if (node.x === undefined || node.y === undefined) {
-    setTimeout(() => focusNodeById(msg), 100);
-    return;
-  }
-
-  state.ui.focusedNode = node;
-  getRenderer().focusNode(node);
-  updateVisuals();
+  state.focusNodeById(msg);
 }
