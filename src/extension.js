@@ -3,7 +3,7 @@ const SettingsProvider = require('./providers/SettingsProvider');
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
-const { updateStackTrace } = require('./commands/stackTrace');
+const { updateStackTrace } = require('./utils/StackTrace');
 const JavaAnalyzer = require('./analyzers/JavaAnalyzer');
 
 process.env.VSCODE_DISABLE_TELEMETRY = '1';

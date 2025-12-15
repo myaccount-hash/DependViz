@@ -440,23 +440,9 @@ function evaluateFieldQuery(node, query) {
 // Message handlers for VSCode communication
 function createMessageHandlers(state) {
   return {
-    data: msg => {
-      state.updateData(msg.data);
-      state.updateGraph({ reheatSimulation: true });
-    },
-    controls: msg => {
-      state.updateControls(msg.controls);
-      state.updateVisuals();
-    },
     stackTrace: msg => {
       state.ui.stackTraceLinks = new Set(msg.paths.map(p => p.link));
       state.updateVisuals();
-    },
-    focusNode: msg => {
-      const filePath = msg.filePath || (msg.node && msg.node.filePath);
-      if (filePath) {
-        state.focusNodeByPath(filePath);
-      }
     },
     focusNodeById: msg => {
       state.focusNodeById(msg);

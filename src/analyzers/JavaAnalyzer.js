@@ -1,8 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const { LanguageClient, TransportKind } = require('vscode-languageclient/node');
-const { getWorkspaceFolder, mergeGraphData } = require('../utils/utils');
-const { normalizeAnalyzerResponse } = require('../messaging/AnalyzerProtocol');
+const { getWorkspaceFolder, mergeGraphData, validateGraphData } = require('../utils/utils');
 
 /**
  * JavaAnalyzer - LSP版
@@ -127,7 +126,15 @@ class JavaAnalyzer {
 
         try {
             const result = await this.client.sendRequest('dependviz/getFileDependencyGraph', fileUri);
-            return normalizeAnalyzerResponse(result);
+            let data = result;
+            if (typeof result === 'string') {
+                data = JSON.parse(result);
+            }
+            if (!data || typeof data !== 'object') {
+                throw new Error('Analyzer response must be an object');
+            }
+            validateGraphData(data);
+            return { nodes: data.nodes, links: data.links };
         } catch (error) {
             console.error('Failed to get file dependency graph:', error);
             throw error;

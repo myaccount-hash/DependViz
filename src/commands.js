@@ -1,4 +1,5 @@
 const vscode = require('vscode');
+const { updateStackTrace } = require('./utils/StackTrace');
 
 function registerCommands(context, providers) {
     const { settingsProvider, graphViewProvider, javaAnalyzer } = providers;
@@ -71,7 +72,6 @@ function registerCommands(context, providers) {
         }),
         vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
             try {
-                const { updateStackTrace } = require('./stackTrace');
                 await updateStackTrace(graphViewProvider);
                 vscode.window.showInformationMessage('スタックトレースを更新しました');
             } catch (e) {

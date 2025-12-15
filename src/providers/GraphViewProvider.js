@@ -1,8 +1,7 @@
 const vscode = require('vscode');
 const { CDN_LIBS } = require('../constants');
-const { getHtmlForWebview, validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
+const { getHtmlForWebview, validateGraphData, getNodeFilePath, mergeGraphData, WebviewBridge } = require('../utils/utils');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
-const { WebviewBridge } = require('../messaging/WebviewBridge');
 
 class GraphViewProvider {
     constructor(extensionUri) {
@@ -105,7 +104,7 @@ class GraphViewProvider {
         const darkMode = themeKind === vscode.ColorThemeKind.Dark ||
             themeKind === vscode.ColorThemeKind.HighContrast;
 
-        this._webviewBridge.sendUpdate({
+        this._webviewBridge.send('update', {
             controls: { ...controls, darkMode },
             data: this._currentData,
             stackTracePaths: this._stackTracePaths
@@ -118,7 +117,7 @@ class GraphViewProvider {
         }
         const node = this._findNodeByFilePath(filePath);
         if (node) {
-            this._webviewBridge.sendFocusNodeById(node.id);
+            this._webviewBridge.send('focusNodeById', node.id);
         }
     }
 
@@ -133,7 +132,7 @@ class GraphViewProvider {
         await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
 
         // Webviewに通知してグラフをリセット
-        this._webviewBridge.sendToggle3DMode();
+        this._webviewBridge.send('toggle3DMode');
 
         // 更新された設定を送信
         this.syncToWebview();
