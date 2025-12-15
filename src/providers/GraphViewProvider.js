@@ -18,7 +18,7 @@ class GraphViewProvider {
         this._view = webviewView;
         this._webviewBridge.attach(webviewView.webview);
         webviewView.webview.options = { enableScripts: true, localResourceRoots: [this._extensionUri] };
-        webviewView.webview.html = getHtmlForWebview(webviewView.webview, CDN_LIBS);
+        webviewView.webview.html = getHtmlForWebview(CDN_LIBS);
         webviewView.webview.onDidReceiveMessage(async message => {
             if (message.type === 'ready') {
                 this._webviewBridge.markReady();

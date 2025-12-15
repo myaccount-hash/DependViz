@@ -117,9 +117,8 @@ function mergeGraphData(target, source) {
     });
 }
 
-function getHtmlForWebview(webview, libs) {
+function getHtmlForWebview(libs) {
     const { DEFAULT_CONTROLS, COLORS, DEBUG } = require('../constants');
-    const nonce = Date.now().toString();
 
     if (!fs.existsSync(WEBVIEW_DIST_PATH)) {
         throw new Error('Webview assets not found. Run "npm run build:webview" before packaging the extension.');
@@ -127,8 +126,6 @@ function getHtmlForWebview(webview, libs) {
 
     const template = fs.readFileSync(WEBVIEW_DIST_PATH, 'utf8');
     return template
-        .replace(/{{nonce}}/g, nonce)
-        .replace(/{{cspSource}}/g, webview.cspSource)
         .replace(/{{fgUri}}/g, libs.fgUri)
         .replace(/{{fg3dUri}}/g, libs.fg3dUri)
         .replace(/{{defaultControls}}/g, JSON.stringify(DEFAULT_CONTROLS))
