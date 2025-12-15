@@ -1,10 +1,9 @@
-package com.example.parser;
+package com.example.parser.object;
 
 public class GraphEdge {
   private final GraphNode sourceNode;
   final private GraphNode targetNode;
   final private String id;
-  private boolean visibility;
   private String type;
 
   public GraphEdge(GraphNode sourceNode, GraphNode targetNode, String type) {
@@ -12,7 +11,6 @@ public class GraphEdge {
     this.targetNode = targetNode;
     this.type = type;
     this.id = sourceNode.getNodeName() + " -> " + targetNode.getNodeName();
-    this.visibility = true;
   }
 
   public GraphNode getSourceNode() {
@@ -25,14 +23,6 @@ public class GraphEdge {
 
   public String getId() {
     return id;
-  }
-
-  public boolean getVisibility() {
-    return visibility;
-  }
-
-  public void setVisibility(boolean visibility) {
-    this.visibility = visibility;
   }
 
   public String getType() {

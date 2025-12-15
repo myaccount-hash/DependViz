@@ -1,7 +1,6 @@
 package com.example.parser.analyzer;
 
-import com.example.parser.Analyzer;
-import com.example.parser.CodeGraph;
+import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;

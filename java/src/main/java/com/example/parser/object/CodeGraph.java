@@ -1,4 +1,4 @@
-package com.example.parser;
+package com.example.parser.object;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,19 +20,9 @@ public class CodeGraph {
     return graphEdges;
   }
 
-  public void printGraphNodes() {
-    for (GraphNode graphNode : graphNodes) {
-      System.out.println(graphNode.getNodeName());
-      for (GraphNode referNode : graphNode.getReferNodes()) {
-        System.out.println("  " + referNode.getNodeName());
-      }
-    }
-  }
-
   public void addReferNode(String className, String referClassName, String edgeType) {
     GraphNode graphNode = getOrCreate(className);
     GraphNode referGraphNode = getOrCreate(referClassName);
-    graphNode.addReferNode(referGraphNode);
     getOrCreateEdge(graphNode, referGraphNode, edgeType);
   }
 
@@ -96,10 +86,6 @@ public class CodeGraph {
       if (existingNode == null) {
         graphNodes.add(otherNode);
       } else {
-        // 既存ノードの参照ノードをマージ
-        for (GraphNode referNode : otherNode.getReferNodes()) {
-          existingNode.addReferNode(referNode);
-        }
         // タイプがUnknownの場合は上書き
         if ("Unknown".equals(existingNode.getType()) && !"Unknown".equals(otherNode.getType())) {
           existingNode.setType(otherNode.getType());

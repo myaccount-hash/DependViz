@@ -14,7 +14,7 @@ import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
 import com.example.parser.AnalysisEngine;
-import com.example.parser.CodeGraph;
+import com.example.parser.object.CodeGraph;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -176,7 +176,7 @@ public class DependVizTextDocumentService implements TextDocumentService {
     json.nodes = new java.util.ArrayList<>();
     json.links = new java.util.ArrayList<>();
 
-    for (com.example.parser.GraphNode node : codeGraph.getGraphNodes()) {
+    for (com.example.parser.object.GraphNode node : codeGraph.getGraphNodes()) {
       NodeJson nodeJson = new NodeJson();
       nodeJson.id = node.getId();
       nodeJson.name = node.getNodeName();
@@ -186,7 +186,7 @@ public class DependVizTextDocumentService implements TextDocumentService {
       json.nodes.add(nodeJson);
     }
 
-    for (com.example.parser.GraphEdge edge : codeGraph.getGraphEdges()) {
+    for (com.example.parser.object.GraphEdge edge : codeGraph.getGraphEdges()) {
       LinkJson linkJson = new LinkJson();
       linkJson.source = edge.getSourceNode().getId();
       linkJson.target = edge.getTargetNode().getId();

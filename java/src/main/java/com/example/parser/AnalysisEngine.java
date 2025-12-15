@@ -1,5 +1,6 @@
 package com.example.parser;
 
+import com.example.parser.analyzer.Analyzer;
 import com.example.parser.analyzer.ClassTypeAnalyzer;
 import com.example.parser.analyzer.ExtendsAnalyzer;
 import com.example.parser.analyzer.FilePathAnalyzer;
@@ -8,6 +9,7 @@ import com.example.parser.analyzer.LinesOfCodeAnalyzer;
 import com.example.parser.analyzer.MethodCallAnalyzer;
 import com.example.parser.analyzer.ObjectCreationAnalyzer;
 import com.example.parser.analyzer.TypeUseAnalyzer;
+import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;

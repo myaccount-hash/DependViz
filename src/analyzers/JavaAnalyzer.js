@@ -157,7 +157,7 @@ class JavaAnalyzer {
     }
 
     /**
-     * プロジェクト全体を解析（既存APIとの互換性のため）
+     * プロジェクト全体を解析
      */
     async analyze() {
         try {

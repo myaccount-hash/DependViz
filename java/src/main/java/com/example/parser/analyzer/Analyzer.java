@@ -1,8 +1,9 @@
-package com.example.parser;
+package com.example.parser.analyzer;
 
 import java.util.List;
 import java.util.logging.Logger;
 
+import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
