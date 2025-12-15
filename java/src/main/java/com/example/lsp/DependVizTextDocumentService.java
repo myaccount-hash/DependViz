@@ -22,8 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DependVizTextDocumentService
     implements TextDocumentService, LanguageClientAware {
-  private static final Logger logger =
-      Logger.getLogger(DependVizTextDocumentService.class.getName());
+  private static final Logger logger = Logger.getLogger(DependVizTextDocumentService.class.getName());
 
   // ファイルパスごとにCodeGraphをキャッシュ
   private final Map<String, CodeGraph> graphCache = new HashMap<>();
@@ -31,10 +30,12 @@ public class DependVizTextDocumentService
   // 解析エンジン
   private AnalysisEngine analysisEngine;
 
-  public DependVizTextDocumentService(DependVizLanguageServer server) {}
+  public DependVizTextDocumentService(DependVizLanguageServer server) {
+  }
 
   @Override
-  public void connect(LanguageClient client) {}
+  public void connect(LanguageClient client) {
+  }
 
   public void setWorkspaceRoot(String workspaceRoot) {
     // ワークスペースルートが設定されたら解析エンジンを初期化
@@ -117,10 +118,9 @@ public class DependVizTextDocumentService
       graphCache.put(filePath, graph);
 
       logger.info(
-          () ->
-              String.format(
-                  "Analyzed file: %s (%d nodes, %d edges)",
-                  filePath, graph.getGraphNodes().size(), graph.getGraphEdges().size()));
+          () -> String.format(
+              "Analyzed file: %s (%d nodes, %d edges)",
+              filePath, graph.getGraphNodes().size(), graph.getGraphEdges().size()));
     } catch (Exception e) {
       logger.log(Level.SEVERE, e, () -> "Failed to analyze file: " + filePath);
     }
@@ -162,6 +162,7 @@ public class DependVizTextDocumentService
     public java.util.List<LinkJson> links;
   }
 
+  @SuppressWarnings("all")
   private static class NodeJson {
     public String id;
     public String name;
@@ -170,6 +171,7 @@ public class DependVizTextDocumentService
     public String filePath;
   }
 
+  @SuppressWarnings("all")
   private static class LinkJson {
     public String source;
     public String target;
