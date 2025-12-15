@@ -34,7 +34,6 @@ const messageHandlers = {
       state.ui.stackTraceLinks = new Set(msg.stackTracePaths.map(p => p.link));
     }
 
-    // モードが変わった場合は完全に再初期化
     const modeChanged = msg.controls && (state.controls.is3DMode !== oldIs3DMode);
 
     if (hasDataChange || modeChanged) {
@@ -44,9 +43,7 @@ const messageHandlers = {
     }
   },
   toggle3DMode: msg => {
-    // controlsの更新が先に来るので、ここではグラフをリセットして再初期化するだけ
-    state.toggleMode();
-    // 次のcontrols更新メッセージでupdateGraphが呼ばれる
+       state.toggleMode();
   }
 };
 

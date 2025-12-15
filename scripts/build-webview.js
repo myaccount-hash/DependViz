@@ -12,9 +12,9 @@ const SCRIPT_FILES = [
   'graphState.js',
   'filters.js',
   'labelRenderer.js',
-  'renderer2d.js',
-  'renderer3d.js',
-  'renderer.js',
+  'GraphRenderer.js',
+  'GraphRenderer2D.js',
+  'GraphRenderer3D.js',
   'messaging.js',
   'init.js'
 ];

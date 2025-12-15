@@ -1,1 +1,4 @@
-const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+let vscode = null;
+if (typeof acquireVsCodeApi === 'function') {
+    vscode = acquireVsCodeApi();
+}

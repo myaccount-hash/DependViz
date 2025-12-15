@@ -183,25 +183,20 @@ class GraphState {
   }
 
   initGraph() {
-    if (this.controls.is3DMode) {
-      return initGraph3D(this);
-    } else {
-      return initGraph2D(this);
-    }
+    const renderer = this.controls.is3DMode
+      ? new GraphRenderer3D(this)
+      : new GraphRenderer2D(this);
+    return renderer.initGraph();
   }
 
   toggleMode() {
     // 設定値は外部（GraphViewProvider）で更新されるので、ここではグラフをリセットするだけ
-    this.cancelRotation();
-    this._graph = null;
-    this._labelRenderer = null;
-  }
-
-  cancelRotation() {
     if (this.rotation.frame) {
       cancelAnimationFrame(this.rotation.frame);
       this.rotation.frame = null;
     }
     clearTimeout(this.rotation.timeout);
+    this._graph = null;
+    this._labelRenderer = null;
   }
 }
