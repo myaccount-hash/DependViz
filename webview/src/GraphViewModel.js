@@ -3,6 +3,10 @@ import GraphRenderer2D from './GraphRenderer2D';
 import GraphRenderer3D from './GraphRenderer3D';
 import { computeSlice } from './utils';
 
+/**
+ * アプリケーションのグラフ状態を管理するクラス
+ * Webviewプロセスの中心的な役割を果たす
+ */
 class GraphViewModel {
   constructor() {
     this.data = { nodes: [], links: [] };

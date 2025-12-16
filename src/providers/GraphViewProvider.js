@@ -61,6 +61,10 @@ const messageCreators = {
     }
 };
 
+/**
+ * Webviewとのメッセージングを管理するクラス
+ * ExtensionBridgeと対応する
+ */
 class WebviewBridge {
     constructor() {
         this._webview = null;

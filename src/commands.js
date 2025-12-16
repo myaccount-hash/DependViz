@@ -2,6 +2,11 @@ const vscode = require('vscode');
 const { updateStackTrace } = require('./utils/StackTrace');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 
+/**
+ * @param {*} context 
+ * @param {*} providers 
+ * @returns 
+ */
 function registerCommands(context, providers) {
     const { settingsProvider, graphViewProvider, javaAnalyzer } = providers;
     const configManager = ConfigurationManager.getInstance();

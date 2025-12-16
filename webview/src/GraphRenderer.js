@@ -2,7 +2,11 @@ import { applyFilter } from './utils';
 import { COLORS } from './constants';
 import ExtensionBridge from './ExtensionBridge';
 
-// Base GraphRenderer class with common logic
+/**
+ * グラフのレンダリングと更新を管理する基底クラス
+ * GraphViewModelによって使用される．
+ * TODO: ExtensionBridgeへの依存をなくす
+ */
 
 class GraphRenderer {
   constructor(state) {

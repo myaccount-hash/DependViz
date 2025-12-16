@@ -1,3 +1,6 @@
+/**
+ * Providerの設定更新を統一する基底クラス
+ */
 class BaseSettingsConsumer {
     constructor() {
         this._controls = null;

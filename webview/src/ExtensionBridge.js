@@ -1,6 +1,5 @@
 /**
- * Bridge for handling messages from VSCode Extension
- * Counterpart to WebviewBridge in src/utils/WebviewBridge.js
+ * 拡張機能とWebView間の通信を管理するシングルトンクラス
  */
 class ExtensionBridge {
   static instance = null;

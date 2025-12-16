@@ -1,5 +1,8 @@
 const { getNodeFilePath } = require('./utils');
 
+/**
+ * クエリ文字列を解析し，ノードフィルタリングに使用するクラス
+ */
 class QueryParser {
     constructor(query) {
         this.query = query.trim();

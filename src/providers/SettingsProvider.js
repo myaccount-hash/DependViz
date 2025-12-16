@@ -63,6 +63,9 @@ const COLOR_ITEMS = [
     ['color', 'Link: MethodCall', 'colorMethodCall']
 ];
 
+/**
+* 設定UIを提供するTreeDataProvider実装
+*/
 class SettingsProvider extends BaseSettingsConsumer {
     constructor() {
         super();

@@ -3,7 +3,9 @@ import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRe
 import GraphRenderer from './GraphRenderer';
 import { AUTO_ROTATE_DELAY } from './constants';
 
-// 3D GraphRenderer implementation
+/**
+ * 3Dグラフのレンダリングと更新を管理するクラス
+ */
 
 class GraphRenderer3D extends GraphRenderer {
   createLabelRenderer() {

@@ -1,7 +1,9 @@
 import ForceGraph from 'force-graph';
 import GraphRenderer, { applyOpacityToColor } from './GraphRenderer';
 
-// 2D GraphRenderer implementation
+/**
+ * 2Dグラフのレンダリングと更新を管理するクラス
+ */
 
 class GraphRenderer2D extends GraphRenderer {
   createLabelRenderer() {

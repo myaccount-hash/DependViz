@@ -62,7 +62,6 @@ const TYPE_CONTROL_MAP = {
 /**
  * VS Code設定を一元管理するシングルトンクラス
  * - 設定の読み書きを統一
- * - 短期間のキャッシュでパフォーマンス向上
  */
 class ConfigurationManager {
     static instance = null;
