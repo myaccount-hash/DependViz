@@ -9,7 +9,8 @@ class ExtensionBridge {
       stackTrace: msg => this._handleStackTrace(msg),
       focusNodeById: msg => this._handleFocusNodeById(msg),
       update: msg => this._handleUpdate(msg),
-      toggle3DMode: () => this._handleToggle3DMode()
+      toggle3DMode: () => this._handleToggle3DMode(),
+      clearFocus: () => this._handleClearFocus()
     };
   }
 
@@ -61,6 +62,10 @@ class ExtensionBridge {
 
   _handleToggle3DMode() {
     this.state.toggleMode();
+  }
+
+  _handleClearFocus() {
+    this.state.clearFocus();
   }
 }
 

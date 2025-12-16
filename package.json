@@ -66,6 +66,12 @@
         "category": "DependViz"
       },
       {
+        "command": "forceGraphViewer.clearFocus",
+        "title": "Clear Focus",
+        "category": "DependViz",
+        "icon": "$(close)"
+      },
+      {
         "command": "forceGraphViewer.showColorPicker",
         "title": "Pick Color",
         "category": "DependViz"
@@ -113,6 +119,11 @@
           "command": "forceGraphViewer.analyzeJavaProject",
           "when": "view == forceGraphViewer.sidebar",
           "group": "navigation@2"
+        },
+        {
+          "command": "forceGraphViewer.clearFocus",
+          "when": "view == forceGraphViewer.sidebar",
+          "group": "navigation@3"
         }
       ]
     },

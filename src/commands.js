@@ -87,6 +87,9 @@ function registerCommands(context, providers) {
         vscode.commands.registerCommand('forceGraphViewer.toggle3DMode', async () => {
             await graphViewProvider.toggle3DMode();
         }),
+        vscode.commands.registerCommand('forceGraphViewer.clearFocus', async () => {
+            await graphViewProvider.clearFocus();
+        }),
     ];
 
     return commands;

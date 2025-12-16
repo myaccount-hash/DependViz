@@ -269,6 +269,14 @@ class GraphState {
     this.getRenderer().focusNode(node);
     this.updateVisuals();
   }
+
+  clearFocus() {
+    this.ui.focusedNode = null;
+    const renderer = this.getRenderer();
+    if (renderer?.cancelRotation) renderer.cancelRotation();
+    if (renderer?.updateAutoRotation) renderer.updateAutoRotation();
+    this.updateVisuals();
+  }
 }
 
 const state = new GraphState();

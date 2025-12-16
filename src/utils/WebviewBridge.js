@@ -45,6 +45,10 @@ const messageCreators = {
             throw new Error('stackTrace: paths must be an array');
         }
         return { type: 'stackTrace', paths };
+    },
+
+    clearFocus: () => {
+        return { type: 'clearFocus' };
     }
 };
 

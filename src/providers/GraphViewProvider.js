@@ -136,6 +136,11 @@ class GraphViewProvider {
         // 更新された設定を送信
         this.syncToWebview();
     }
+
+    async clearFocus() {
+        if (!this._view) return;
+        this._webviewBridge.send('clearFocus');
+    }
 }
 
 module.exports = GraphViewProvider;
