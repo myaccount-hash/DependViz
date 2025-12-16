@@ -21,15 +21,17 @@ function activate(context) {
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
-    const syncControls = () => {
-        graphViewProvider.update({ type: 'controls' });
+    const broadcastSettings = () => {
         const controls = ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
-        if (controls.showStackTrace) {
-            updateStackTrace(graphViewProvider);
-        }
+        settingsProvider.handleSettingsChanged(controls);
+        graphViewProvider.handleSettingsChanged(controls);
+        return controls;
     };
 
-    syncControls();
+    const initialControls = broadcastSettings();
+    if (initialControls.showStackTrace) {
+        updateStackTrace(graphViewProvider);
+    }
 
     const providers = {
         settingsProvider,
@@ -42,8 +44,10 @@ function activate(context) {
     const eventHandlers = [
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('forceGraphViewer')) {
-                settingsProvider.refresh();
-                syncControls();
+                const controls = broadcastSettings();
+                if (controls.showStackTrace) {
+                    updateStackTrace(graphViewProvider);
+                }
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
@@ -51,21 +55,21 @@ function activate(context) {
                 await graphViewProvider.update({ type: 'focusNode', filePath: editor.document.uri.fsPath });
             }
         }),
-        vscode.window.onDidChangeActiveColorTheme(() => syncControls()),
+        vscode.window.onDidChangeActiveColorTheme(() => broadcastSettings()),
         vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
-            const controls = ConfigurationManager.getInstance().loadControls();
+            const controls = broadcastSettings();
             if (controls.showStackTrace && stackItem) {
                 await updateStackTrace(graphViewProvider);
             }
         }),
         vscode.debug.onDidStartDebugSession(async () => {
-            const controls = ConfigurationManager.getInstance().loadControls();
+            const controls = broadcastSettings();
             if (controls.showStackTrace) {
                 await updateStackTrace(graphViewProvider);
             }
         }),
         vscode.debug.onDidTerminateDebugSession(() => {
-            const controls = ConfigurationManager.getInstance().loadControls();
+            const controls = broadcastSettings();
             if (controls.showStackTrace) {
                 graphViewProvider.update({ type: 'stackTrace', paths: [] });
             }

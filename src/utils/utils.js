@@ -125,7 +125,6 @@ function getHtmlForWebview() {
     return fs.readFileSync(WEBVIEW_HTML_PATH, 'utf8');
 }
 
-const { WebviewBridge, messageCreators } = require('./WebviewBridge');
 
 module.exports = {
     validateGraphData,
@@ -137,7 +136,5 @@ module.exports = {
     getNodeFilePath,
     getHtmlForWebview,
     computeSlice,
-    mergeGraphData,
-    WebviewBridge,
-    messageCreators
+    mergeGraphData
 };

@@ -1,5 +1,6 @@
 const vscode = require('vscode');
-const { CheckboxControlItem, SliderControlItem, ColorControlItem } = require('../utils/TreeItems');
+const BaseSettingsConsumer = require('./BaseSettingsConsumer');
+const { CheckboxControlItem, SliderControlItem, ColorControlItem } = require('./treeItems');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
 const { SLIDER_RANGES } = require('../constants');
 
@@ -52,13 +53,17 @@ const COLOR_ITEMS = [
     ['color', 'Link: MethodCall', 'colorMethodCall']
 ];
 
-class SettingsProvider {
+class SettingsProvider extends BaseSettingsConsumer {
     constructor() {
+        super();
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
     }
 
     get controls() {
+        if (this._controls && Object.keys(this._controls).length > 0) {
+            return this._controls;
+        }
         return ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
     }
 
@@ -95,6 +100,11 @@ class SettingsProvider {
         if (type === 'slider') return new SliderControlItem(label, value, c[3].min, c[3].max, c[3].step, key);
         if (type === 'color') return new ColorControlItem(label, value, key);
         throw new Error(`Unknown control type: ${type}`);
+    }
+
+    handleSettingsChanged(controls) {
+        super.handleSettingsChanged(controls);
+        this.refresh();
     }
 }
 
