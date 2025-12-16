@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const { LanguageClient, TransportKind } = require('vscode-languageclient/node');
-const { getWorkspaceFolder, mergeGraphData, validateGraphData } = require('../utils/utils');
+const { mergeGraphData, validateGraphData } = require('../utils/utils');
 
 /**
  * JavaAnalyzer
@@ -32,7 +32,7 @@ class JavaAnalyzer {
         const outputChannel = this.outputChannel;
 
         try {
-            const workspaceFolder = getWorkspaceFolder();
+            const workspaceFolder = this._getWorkspaceFolder();
             const jarPath = path.join(this.context.extensionPath, 'java', 'target', 'java-graph.jar');
             const loggingConfig = path.join(this.context.extensionPath, 'logging.properties');
             const baseArgs = [
@@ -164,7 +164,7 @@ class JavaAnalyzer {
             // Language Clientを起動
             await this.startLanguageClient();
 
-            getWorkspaceFolder();
+            this._getWorkspaceFolder();
             const javaFiles = await vscode.workspace.findFiles('**/*.java', '**/node_modules/**');
 
             if (javaFiles.length === 0) {
@@ -212,5 +212,11 @@ class JavaAnalyzer {
         }
     }
 }
+
+JavaAnalyzer.prototype._getWorkspaceFolder = function () {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) throw new Error('ワークスペースが開かれていません');
+    return workspaceFolder;
+};
 
 module.exports = JavaAnalyzer;

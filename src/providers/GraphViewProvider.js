@@ -1,6 +1,8 @@
 const vscode = require('vscode');
+const fs = require('fs');
+const path = require('path');
 const BaseSettingsConsumer = require('./BaseSettingsConsumer');
-const { getHtmlForWebview, validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
+const { validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
 
 const messageCreators = {
@@ -128,11 +130,19 @@ class GraphViewProvider extends BaseSettingsConsumer {
         this._webviewBridge = new WebviewBridge();
     }
 
+    _getHtmlForWebview() {
+        const htmlPath = path.join(__dirname, '../../webview/dist/index.html');
+        if (!fs.existsSync(htmlPath)) {
+            throw new Error('Webview HTML not found. Run "npm run build:webview" before packaging the extension.');
+        }
+        return fs.readFileSync(htmlPath, 'utf8');
+    }
+
     async resolveWebviewView(webviewView, context, token) {
         this._view = webviewView;
         this._webviewBridge.attach(webviewView.webview);
         webviewView.webview.options = { enableScripts: true, localResourceRoots: [this._extensionUri] };
-        webviewView.webview.html = getHtmlForWebview();
+        webviewView.webview.html = this._getHtmlForWebview();
         webviewView.webview.onDidReceiveMessage(async message => {
             if (message.type === 'ready') {
                 this._webviewBridge.markReady();

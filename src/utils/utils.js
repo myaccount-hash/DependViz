@@ -1,63 +1,11 @@
-const vscode = require('vscode');
-const path = require('path');
-const fs = require('fs');
-const { loadControls, typeMatches } = require('./ConfigurationManager');
-
-const WEBVIEW_HTML_PATH = path.join(__dirname, '../../webview/dist/index.html');
-
 function validateGraphData(data) {
     if (!data || typeof data !== 'object') throw new Error('data must be an object');
     if (!Array.isArray(data.nodes)) throw new Error('data.nodes must be an array');
     if (!Array.isArray(data.links)) throw new Error('data.links must be an array');
 }
 
-function validateArray(arr, name) {
-    if (!Array.isArray(arr)) throw new Error(`${name} must be an array`);
-}
-
-function getWorkspaceFolder() {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) throw new Error('ワークスペースが開かれていません');
-    return workspaceFolder;
-}
-
-function getLinkNodeId(linkNode) {
-    return typeof linkNode === 'object' ? linkNode.id : linkNode;
-}
-
 function getNodeFilePath(node) {
     return node.filePath || node.file;
-}
-
-function computeSlice(data, startNodeId, direction, maxDepth = Infinity) {
-    validateGraphData(data);
-    const nodeSet = new Set([startNodeId]);
-    const linkSet = new Set();
-    const visited = new Set();
-    const queue = [[startNodeId, 0]];
-
-    while (queue.length > 0) {
-        const [nodeId, depth] = queue.shift();
-        if (visited.has(nodeId) || depth >= maxDepth) continue;
-        visited.add(nodeId);
-
-        data.links.forEach(link => {
-            const source = getLinkNodeId(link.source);
-            const target = getLinkNodeId(link.target);
-
-            if (direction === 'backward' && target === nodeId && !visited.has(source)) {
-                nodeSet.add(source);
-                linkSet.add(link);
-                queue.push([source, depth + 1]);
-            } else if (direction === 'forward' && source === nodeId && !visited.has(target)) {
-                nodeSet.add(target);
-                linkSet.add(link);
-                queue.push([target, depth + 1]);
-            }
-        });
-    }
-
-    return { nodeIds: [...nodeSet], links: [...linkSet] };
 }
 
 /**
@@ -117,24 +65,8 @@ function mergeGraphData(target, source) {
     });
 }
 
-function getHtmlForWebview() {
-    if (!fs.existsSync(WEBVIEW_HTML_PATH)) {
-        throw new Error('Webview HTML not found. Run "npm run build:webview" before packaging the extension.');
-    }
-
-    return fs.readFileSync(WEBVIEW_HTML_PATH, 'utf8');
-}
-
-
 module.exports = {
     validateGraphData,
-    validateArray,
-    getWorkspaceFolder,
-    loadControls,
-    typeMatches,
-    getLinkNodeId,
     getNodeFilePath,
-    getHtmlForWebview,
-    computeSlice,
     mergeGraphData
 };
