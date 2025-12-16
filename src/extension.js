@@ -23,13 +23,11 @@ function activate(context) {
 
     const syncControls = () => {
         graphViewProvider.update({ type: 'controls' });
-        const controls = ConfigurationManager.getInstance().loadControls();
+        const controls = ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
         if (controls.showStackTrace) {
             updateStackTrace(graphViewProvider);
         }
     };
-
-    const onProviderChange = () => syncControls();
 
     syncControls();
 
@@ -42,11 +40,10 @@ function activate(context) {
     const commands = registerCommands(context, providers);
 
     const eventHandlers = [
-        settingsProvider.onDidChangeTreeData(onProviderChange),
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('forceGraphViewer')) {
                 settingsProvider.refresh();
-                graphViewProvider.syncToWebview();
+                syncControls();
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
@@ -54,7 +51,7 @@ function activate(context) {
                 await graphViewProvider.update({ type: 'focusNode', filePath: editor.document.uri.fsPath });
             }
         }),
-        vscode.window.onDidChangeActiveColorTheme(onProviderChange),
+        vscode.window.onDidChangeActiveColorTheme(() => syncControls()),
         vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
             const controls = ConfigurationManager.getInstance().loadControls();
             if (controls.showStackTrace && stackItem) {

@@ -21,9 +21,13 @@ public class ExtendsAnalyzer extends Analyzer {
     String sourceClassName = getFullyQualifiedName(clazz);
 
     for (ClassOrInterfaceType extendedType : clazz.getExtendedTypes()) {
-      var resolvedType = extendedType.resolve();
-      String targetClassName = resolvedType.describe();
-      codeGraph.addReferNode(sourceClassName, targetClassName, "Extends");
+      try {
+        var resolvedType = extendedType.resolve();
+        String targetClassName = resolvedType.describe();
+        codeGraph.addReferNode(sourceClassName, targetClassName, "Extends");
+      } catch (Exception e) {
+        // 型解決できない場合はスキップ
+      }
     }
   }
 }

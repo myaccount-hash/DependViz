@@ -24,58 +24,11 @@ class ExtensionBridge {
   }
 
   _handleGraphUpdate(msg) {
-    const payload = msg?.payload || {};
-    const incomingVersion = typeof payload.dataVersion === 'number' ? payload.dataVersion : null;
-    const hasDataChange = payload.data && (incomingVersion === null || incomingVersion !== this.state.dataVersion);
-    const oldIs3DMode = this.state.controls.is3DMode ?? false;
-
-    if (payload.data) {
-      if (hasDataChange) {
-        this.state.updateData(payload.data, incomingVersion);
-      }
-    }
-    if (payload.controls) {
-      this.state.updateControls(payload.controls);
-    }
-    if (payload.stackTracePaths) {
-      this.state.ui.stackTraceLinks = new Set(payload.stackTracePaths.map(p => p.link));
-    }
-
-    const newIs3DMode = this.state.controls.is3DMode ?? false;
-    const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
-
-    if (modeChanged) this.state.toggleMode();
-
-    const reheatSimulation = hasDataChange || modeChanged;
-    this.state.updateGraph({ reheatSimulation });
+    this.state.handleGraphUpdate(msg?.payload || {});
   }
 
   _handleViewUpdate(msg) {
-    const payload = msg?.payload || {};
-    const oldIs3DMode = this.state.controls.is3DMode ?? false;
-
-    if (payload.controls) {
-      this.state.updateControls(payload.controls);
-    }
-    if (payload.stackTracePaths) {
-      this.state.ui.stackTraceLinks = new Set(payload.stackTracePaths.map(p => p.link));
-    }
-
-    const newIs3DMode = this.state.controls.is3DMode ?? false;
-    const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
-
-    if (modeChanged) {
-      this.state.toggleMode();
-      this.state.updateGraph({ reheatSimulation: true });
-      return;
-    }
-
-    if (payload.controls) {
-      this.state.updateGraph();
-      return;
-    }
-
-    this.state.updateVisuals();
+    this.state.handleViewUpdate(msg?.payload || {});
   }
 
   _handleFocusNode(msg) {

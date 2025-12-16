@@ -266,6 +266,64 @@ class GraphState {
     this.getRenderer().updateVisuals();
   }
 
+  handleGraphUpdate(payload = {}) {
+    const incomingVersion = typeof payload.dataVersion === 'number' ? payload.dataVersion : null;
+    const hasDataChange = payload.data && (incomingVersion === null || incomingVersion !== this.dataVersion);
+    const oldIs3DMode = this.controls.is3DMode ?? false;
+
+    if (payload.data && hasDataChange) {
+      this.updateData(payload.data, incomingVersion);
+    }
+    if (payload.controls) {
+      this.updateControls(payload.controls);
+    }
+    if (payload.stackTracePaths) {
+      this.ui.stackTraceLinks = new Set(payload.stackTracePaths.map(p => p.link));
+    }
+
+    if (payload.data || payload.controls) {
+      this.updateSliceHighlight(this.data.nodes, this.data.links);
+    }
+
+    const newIs3DMode = this.controls.is3DMode ?? false;
+    const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
+    if (modeChanged) this.toggleMode();
+
+    const reheatSimulation = hasDataChange || modeChanged;
+    if (payload.data || payload.controls) {
+      this.updateGraph({ reheatSimulation });
+    } else if (payload.stackTracePaths) {
+      this.updateVisuals();
+    }
+  }
+
+  handleViewUpdate(payload = {}) {
+    const oldIs3DMode = this.controls.is3DMode ?? false;
+
+    if (payload.controls) {
+      this.updateControls(payload.controls);
+    }
+    if (payload.stackTracePaths) {
+      this.ui.stackTraceLinks = new Set(payload.stackTracePaths.map(p => p.link));
+    }
+
+    if (payload.controls) {
+      this.updateSliceHighlight(this.data.nodes, this.data.links);
+    }
+
+    const newIs3DMode = this.controls.is3DMode ?? false;
+    const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
+
+    if (modeChanged) {
+      this.toggleMode();
+      this.updateGraph({ reheatSimulation: true });
+    } else if (payload.controls) {
+      this.updateGraph();
+    } else if (payload.stackTracePaths) {
+      this.updateVisuals();
+    }
+  }
+
   handleResize() {
     if (!this._graph) return;
     const container = document.getElementById('graph-container');

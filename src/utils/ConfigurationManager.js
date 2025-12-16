@@ -44,9 +44,10 @@ class ConfigurationManager {
     /**
      * 全設定を取得（キャッシュ付き）
      */
-    loadControls() {
+    loadControls(options = {}) {
+        const { ignoreCache = false } = options;
         const now = Date.now();
-        if (this._cache && (now - this._cacheTime) < this._cacheDuration) {
+        if (!ignoreCache && this._cache && (now - this._cacheTime) < this._cacheDuration) {
             return { ...this._cache }; // コピーを返す
         }
 

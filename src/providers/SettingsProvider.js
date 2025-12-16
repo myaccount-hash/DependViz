@@ -59,14 +59,7 @@ class SettingsProvider {
     }
 
     get controls() {
-        return ConfigurationManager.getInstance().loadControls();
-    }
-
-    async update(data) {
-        if (data && data.key && 'value' in data) {
-            await ConfigurationManager.getInstance().updateControl(data.key, data.value);
-        }
-        this._onDidChangeTreeData.fire();
+        return ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
     }
 
     refresh() {

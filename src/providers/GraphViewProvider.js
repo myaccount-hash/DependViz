@@ -101,7 +101,7 @@ class GraphViewProvider {
             return;
         }
 
-        const controls = ConfigurationManager.getInstance().loadControls();
+        const controls = ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
         const themeKind = vscode.window.activeColorTheme.kind;
         const darkMode = themeKind === vscode.ColorThemeKind.Dark ||
             themeKind === vscode.ColorThemeKind.HighContrast;
@@ -140,7 +140,7 @@ class GraphViewProvider {
         }
 
         // 現在の設定を取得して反転
-        const currentMode = ConfigurationManager.getInstance().loadControls().is3DMode;
+        const currentMode = ConfigurationManager.getInstance().loadControls({ ignoreCache: true }).is3DMode;
         await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
 
         // Webviewに通知してグラフをリセット
