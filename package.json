@@ -189,6 +189,13 @@
           "maximum": 100,
           "description": "リンク距離"
         },
+        "forceGraphViewer.focusDistance": {
+          "type": "number",
+          "default": 120,
+          "minimum": 20,
+          "maximum": 300,
+          "description": "フォーカス時のカメラ距離（3D）"
+        },
         "forceGraphViewer.arrowSize": {
           "type": "number",
           "default": 5,

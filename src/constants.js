@@ -11,6 +11,7 @@ const CONTROL_DEFAULTS = {
     nodeOpacity: 1.0,
     edgeOpacity: 0.6,
     linkDistance: 50,
+    focusDistance: 120,
     arrowSize: 3,
     textSize: 12,
     sliceDepth: 3,
@@ -41,6 +42,7 @@ const SLIDER_RANGES = {
     linkWidth: { min: 0.1, max: 5, step: 0.1 },
     opacity: { min: 0.1, max: 1, step: 0.1 },
     linkDistance: { min: 10, max: 200, step: 5 },
+    focusDistance: { min: 20, max: 300, step: 5 },
     arrowSize: { min: 1, max: 20, step: 1 },
     textSize: { min: 8, max: 24, step: 1 },
     sliceDepth: { min: 1, max: 10, step: 1 }

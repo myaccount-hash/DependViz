@@ -30,6 +30,7 @@ const APPEARANCE_ITEMS = [
 const DETAIL_ITEMS = [
     ['slider', 'スライス深度', 'sliceDepth', SLIDER_RANGES.sliceDepth],
     ['slider', 'リンク距離', 'linkDistance', SLIDER_RANGES.linkDistance],
+    ['slider', 'フォーカス距離 (3D)', 'focusDistance', SLIDER_RANGES.focusDistance],
     ['slider', 'ノードサイズ', 'nodeSize', SLIDER_RANGES.nodeSize],
     ['slider', 'リンクサイズ', 'linkWidth', SLIDER_RANGES.linkWidth],
     ['slider', 'テキストサイズ', 'textSize', SLIDER_RANGES.textSize],

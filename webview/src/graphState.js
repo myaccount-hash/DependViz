@@ -271,4 +271,7 @@ class GraphState {
   }
 }
 
-export default GraphState;
+const state = new GraphState();
+
+export { GraphState, state };
+export default state;

@@ -65,16 +65,34 @@ class GraphRenderer3D extends GraphRenderer {
       return;
     }
 
-    const currentCameraPos = this.state.graph.cameraPosition();
-    const oldNode = this.state.ui.focusedNode || { x: 0, y: 0, z: 0 };
-
-    const cameraPos = {
-      x: node.x + currentCameraPos.x - oldNode.x,
-      y: node.y + currentCameraPos.y - oldNode.y,
-      z: node.z + currentCameraPos.z - oldNode.z
+    const controls = this.state.graph.controls ? this.state.graph.controls() : null;
+    const target = {
+      x: node.x || 0,
+      y: node.y || 0,
+      z: node.z || 0
     };
 
-    this.state.graph.cameraPosition(cameraPos, node, AUTO_ROTATE_DELAY);
+    const currentCameraPos = this.state.graph.cameraPosition();
+    const currentTarget = controls ? controls.target : { x: 0, y: 0, z: 0 };
+    const offset = {
+      x: currentCameraPos.x - currentTarget.x,
+      y: currentCameraPos.y - currentTarget.y,
+      z: currentCameraPos.z - currentTarget.z
+    };
+    const offsetLen = Math.sqrt(offset.x ** 2 + offset.y ** 2 + offset.z ** 2) || 1;
+    const focusDistance = this.state.controls.focusDistance || offsetLen;
+    const scale = focusDistance / offsetLen;
+    const cameraPos = {
+      x: target.x + offset.x * scale,
+      y: target.y + offset.y * scale,
+      z: target.z + offset.z * scale
+    };
+
+    if (controls) {
+      controls.target.set(target.x, target.y, target.z);
+    }
+
+    this.state.graph.cameraPosition(cameraPos, target, AUTO_ROTATE_DELAY);
     setTimeout(() => this.updateAutoRotation(), AUTO_ROTATE_DELAY);
   }
 
