@@ -1,5 +1,44 @@
 const vscode = require('vscode');
-const { CONTROL_DEFAULTS } = require('../constants');
+
+const CONTROL_DEFAULTS = {
+    search: '',
+    is3DMode: false,
+    nodeSizeByLoc: false,
+    hideIsolatedNodes: false,
+    showStackTrace: true,
+    showNames: true,
+    shortNames: true,
+    nodeSize: 3.0,
+    linkWidth: 0.5,
+    nodeOpacity: 1.0,
+    edgeOpacity: 0.6,
+    dimOpacity: 0.2,
+    linkDistance: 50,
+    focusDistance: 120,
+    arrowSize: 3,
+    textSize: 12,
+    sliceDepth: 3,
+    enableForwardSlice: true,
+    enableBackwardSlice: true,
+    showClass: true,
+    showAbstractClass: true,
+    showInterface: true,
+    showUnknown: true,
+    showObjectCreate: true,
+    showExtends: true,
+    showImplements: true,
+    showTypeUse: true,
+    showMethodCall: true,
+    colorClass: '#93c5fd',
+    colorAbstractClass: '#d8b4fe',
+    colorInterface: '#6ee7b7',
+    colorUnknown: '#9ca3af',
+    colorObjectCreate: '#fde047',
+    colorExtends: '#d8b4fe',
+    colorImplements: '#6ee7b7',
+    colorTypeUse: '#fdba74',
+    colorMethodCall: '#fda4af'
+};
 
 /**
  * ノード・エッジタイプと設定キーのマッピング

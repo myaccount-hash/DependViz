@@ -1,7 +1,18 @@
 const vscode = require('vscode');
 const BaseSettingsConsumer = require('./BaseSettingsConsumer');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
-const { SLIDER_RANGES } = require('../constants');
+
+const SLIDER_RANGES = {
+    nodeSize: { min: 0.1, max: 20, step: 0.1 },
+    linkWidth: { min: 0.1, max: 5, step: 0.1 },
+    opacity: { min: 0.1, max: 1, step: 0.1 },
+    linkDistance: { min: 10, max: 200, step: 5 },
+    focusDistance: { min: 20, max: 300, step: 5 },
+    arrowSize: { min: 1, max: 20, step: 1 },
+    textSize: { min: 8, max: 24, step: 1 },
+    sliceDepth: { min: 1, max: 10, step: 1 },
+    dimOpacity: { min: 0.05, max: 1, step: 0.05 }
+};
 
 const FILTER_ITEMS = [
     ['search', '検索', 'search'],
