@@ -1,14 +1,16 @@
 import { COLORS } from './constants';
 import GraphRenderer2D from './GraphRenderer2D';
 import GraphRenderer3D from './GraphRenderer3D';
+import { computeSlice } from './utils';
 
 class GraphState {
   constructor() {
     this.data = { nodes: [], links: [] };
     this.controls = {};
     this.ui = {
-      highlightLinks: new Set(),
       stackTraceLinks: new Set(),
+      sliceNodes: null,
+      sliceLinks: null,
       focusedNode: null,
       isUserInteracting: false
     };
@@ -40,10 +42,6 @@ class GraphState {
         color: COLORS.STACK_TRACE_LINK,
         widthMultiplier: 2.5,
         particles: 5
-      },
-      (link, ctx) => ctx.ui.highlightLinks.has(link) && {
-        widthMultiplier: 2,
-        particles: 4
       },
       (link, ctx) => {
         const map = {
@@ -144,8 +142,14 @@ class GraphState {
       opacity: this.controls.nodeOpacity
     });
 
-    // Apply focus dimming
-    if (this.ui.focusedNode) {
+    const hasSlice = this.ui.sliceNodes && this.ui.sliceNodes.size > 0;
+
+    // Apply slice-aware dimming
+    if (hasSlice) {
+      if (!this.ui.sliceNodes.has(node.id)) {
+        props.opacity = (props.opacity || 1) * 0.1;
+      }
+    } else if (this.ui.focusedNode) {
       const isFocused = node.id === this.ui.focusedNode.id;
       const isNeighbor = this.ui.focusedNode.neighbors &&
                          this.ui.focusedNode.neighbors.some(n => n.id === node.id);
@@ -168,7 +172,17 @@ class GraphState {
     });
 
     // Apply focus dimming and highlighting
-    if (this.ui.focusedNode) {
+    const hasSlice = this.ui.sliceNodes && this.ui.sliceNodes.size > 0;
+
+    if (hasSlice) {
+      const inSlice = this.ui.sliceLinks ? this.ui.sliceLinks.has(link) : false;
+      if (inSlice) {
+        props.particles = Math.max(props.particles || 0, 2);
+        props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
+      } else {
+        props.opacity = (props.opacity || 1) * 0.1;
+      }
+    } else if (this.ui.focusedNode) {
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
       const targetId = typeof link.target === 'object' ? link.target.id : link.target;
       const focusedId = this.ui.focusedNode.id;
@@ -192,6 +206,17 @@ class GraphState {
       ? new GraphRenderer3D(this)
       : new GraphRenderer2D(this);
     return renderer.initGraph();
+  }
+
+  updateSliceHighlight(nodes, links) {
+    if (!this.ui.focusedNode || (!this.controls.enableForwardSlice && !this.controls.enableBackwardSlice)) {
+      this.ui.sliceNodes = null;
+      this.ui.sliceLinks = null;
+      return;
+    }
+    const { sliceNodes, sliceLinks } = computeSlice(this.ui.focusedNode, this.controls, nodes, links);
+    this.ui.sliceNodes = sliceNodes;
+    this.ui.sliceLinks = sliceLinks;
   }
 
   toggleMode() {
@@ -250,6 +275,7 @@ class GraphState {
     if (node) {
       this.ui.focusedNode = node;
       this.getRenderer().focusNode(node);
+      this.updateSliceHighlight(this.data.nodes, this.data.links);
       this.updateVisuals();
     }
   }
@@ -267,6 +293,7 @@ class GraphState {
 
     this.ui.focusedNode = node;
     this.getRenderer().focusNode(node);
+    this.updateSliceHighlight(this.data.nodes, this.data.links);
     this.updateVisuals();
   }
 
@@ -275,6 +302,7 @@ class GraphState {
     const renderer = this.getRenderer();
     if (renderer?.cancelRotation) renderer.cancelRotation();
     if (renderer?.updateAutoRotation) renderer.updateAutoRotation();
+    this.updateSliceHighlight(this.data.nodes, this.data.links);
     this.updateVisuals();
   }
 }

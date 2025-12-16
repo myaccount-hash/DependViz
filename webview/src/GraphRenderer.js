@@ -103,6 +103,11 @@ class GraphRenderer {
   updateVisuals() {
     if (!this.state.graph) return;
 
+    // Recompute slice highlight on visuals update (e.g., setting change)
+    if (this.state.updateSliceHighlight) {
+      this.state.updateSliceHighlight(this.state.data.nodes || [], this.state.data.links || []);
+    }
+
     const { getNodeProps, getLinkProps } = this._buildVisualCacheForGraph();
 
     this._applyLabels(getNodeProps);

@@ -46,6 +46,7 @@ function activate(context) {
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('forceGraphViewer')) {
                 settingsProvider.refresh();
+                graphViewProvider.syncToWebview();
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {

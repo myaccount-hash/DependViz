@@ -8,20 +8,6 @@ export function applyFilter(nodes, links, state) {
     return true;
   });
 
-  if (state.ui.focusedNode && (controls.enableForwardSlice || controls.enableBackwardSlice)) {
-    const sliceNodes = new Set();
-    sliceNodes.add(state.ui.focusedNode.id);
-
-    if (controls.enableForwardSlice) {
-      traverseSlice(state.ui.focusedNode, 'forward', controls.sliceDepth, sliceNodes, nodes, links);
-    }
-    if (controls.enableBackwardSlice) {
-      traverseSlice(state.ui.focusedNode, 'backward', controls.sliceDepth, sliceNodes, nodes, links);
-    }
-
-    filteredNodes = filteredNodes.filter(node => sliceNodes.has(node.id));
-  }
-
   const nodeIds = new Set(filteredNodes.map(n => n.id));
   const filteredLinks = links.filter(link => {
     if (!controls[`show${link.type}`]) return false;
@@ -33,28 +19,41 @@ export function applyFilter(nodes, links, state) {
   return { nodes: filteredNodes, links: filteredLinks };
 }
 
-function traverseSlice(node, direction, depth, visited, allNodes, allLinks) {
-  if (depth <= 0) return;
+export function computeSlice(focusedNode, controls, nodes, links) {
+  const hasSlice = focusedNode && (controls.enableForwardSlice || controls.enableBackwardSlice);
+  if (!hasSlice) return { sliceNodes: null, sliceLinks: null };
 
-  const relevantLinks = allLinks.filter(link => {
-    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-    return direction === 'forward' ? sourceId === node.id : targetId === node.id;
-  });
+  const sliceNodes = new Set();
+  const sliceLinks = new Set();
+  const getId = v => (typeof v === 'object' ? v.id : v);
 
-  relevantLinks.forEach(link => {
-    const nextNodeId = direction === 'forward'
-      ? (typeof link.target === 'object' ? link.target.id : link.target)
-      : (typeof link.source === 'object' ? link.source.id : link.source);
+  const visit = (nodeId, depth, direction) => {
+    if (depth <= 0) return;
+    links.forEach(link => {
+      const sourceId = getId(link.source);
+      const targetId = getId(link.target);
+      const isForward = direction === 'forward' && sourceId === nodeId;
+      const isBackward = direction === 'backward' && targetId === nodeId;
+      if (!isForward && !isBackward) return;
 
-    if (!visited.has(nextNodeId)) {
-      visited.add(nextNodeId);
-      const nextNode = allNodes.find(n => n.id === nextNodeId);
-      if (nextNode) {
-        traverseSlice(nextNode, direction, depth - 1, visited, allNodes, allLinks);
+      sliceLinks.add(link);
+      const nextId = direction === 'forward' ? targetId : sourceId;
+      if (!sliceNodes.has(nextId)) {
+        sliceNodes.add(nextId);
+        visit(nextId, depth - 1, direction);
       }
-    }
-  });
+    });
+  };
+
+  sliceNodes.add(focusedNode.id);
+  if (controls.enableForwardSlice) {
+    visit(focusedNode.id, controls.sliceDepth, 'forward');
+  }
+  if (controls.enableBackwardSlice) {
+    visit(focusedNode.id, controls.sliceDepth, 'backward');
+  }
+
+  return { sliceNodes, sliceLinks };
 }
 
 function matchesSearchQuery(node, query) {
