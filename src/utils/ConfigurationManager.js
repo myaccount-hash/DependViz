@@ -86,6 +86,11 @@ class ConfigurationManager {
         this._cache = null;
         this._cacheTime = 0;
         this._cacheDuration = 100; // ms
+        this._onDidChange = new vscode.EventEmitter();
+    }
+
+    get onDidChange() {
+        return this._onDidChange.event;
     }
 
     /**
@@ -116,6 +121,7 @@ class ConfigurationManager {
         const config = vscode.workspace.getConfiguration('forceGraphViewer');
         await config.update(key, value, target);
         this._invalidateCache();
+        this._emitChange();
     }
 
     /**
@@ -127,6 +133,7 @@ class ConfigurationManager {
             await config.update(key, value, target);
         }
         this._invalidateCache();
+        this._emitChange();
     }
 
     /**
@@ -143,6 +150,14 @@ class ConfigurationManager {
     _invalidateCache() {
         this._cache = null;
         this._cacheTime = 0;
+    }
+
+    _emitChange() {
+        if (!this._onDidChange) {
+            return;
+        }
+        const controls = this.loadControls({ ignoreCache: true });
+        this._onDidChange.fire(controls);
     }
 
     /**

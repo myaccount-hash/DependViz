@@ -21,8 +21,9 @@ function activate(context) {
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
-    const broadcastSettings = () => {
-        const controls = ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
+    const configManager = ConfigurationManager.getInstance();
+    const broadcastSettings = (controlsOverride) => {
+        const controls = controlsOverride || configManager.loadControls({ ignoreCache: true });
         settingsProvider.handleSettingsChanged(controls);
         graphViewProvider.handleSettingsChanged(controls);
         return controls;
@@ -42,12 +43,10 @@ function activate(context) {
     const commands = registerCommands(context, providers);
 
     const eventHandlers = [
-        vscode.workspace.onDidChangeConfiguration(event => {
-            if (event.affectsConfiguration('forceGraphViewer')) {
-                const controls = broadcastSettings();
-                if (controls.showStackTrace) {
-                    updateStackTrace(graphViewProvider);
-                }
+        configManager.onDidChange(async (controls) => {
+            const nextControls = broadcastSettings(controls);
+            if (nextControls.showStackTrace) {
+                await updateStackTrace(graphViewProvider);
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
