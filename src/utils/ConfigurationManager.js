@@ -1,5 +1,14 @@
 const vscode = require('vscode');
 
+const COLORS = {
+    STACK_TRACE_LINK: '#51cf66',
+    BACKGROUND_DARK: '#1a1a1a',
+    NODE_DEFAULT: '#93c5fd',
+    EDGE_DEFAULT: '#4b5563'
+};
+
+const AUTO_ROTATE_DELAY = 1000;
+
 const CONTROL_DEFAULTS = {
     search: '',
     is3DMode: false,
@@ -183,5 +192,7 @@ module.exports = {
     loadControls,
     updateControl,
     getTypeControlMap,
-    typeMatches
+    typeMatches,
+    COLORS,
+    AUTO_ROTATE_DELAY
 };

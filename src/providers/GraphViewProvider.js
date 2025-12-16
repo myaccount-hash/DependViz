@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const BaseSettingsConsumer = require('./BaseSettingsConsumer');
 const { validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
-const { ConfigurationManager } = require('../utils/ConfigurationManager');
+const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../utils/ConfigurationManager');
 
 const messageCreators = {
     'graph:update': payload => {
@@ -258,7 +258,7 @@ class GraphViewProvider extends BaseSettingsConsumer {
             themeKind === vscode.ColorThemeKind.HighContrast;
 
         const payload = {
-            controls: { ...controls, darkMode },
+            controls: { ...controls, darkMode, COLORS, AUTO_ROTATE_DELAY },
             stackTracePaths: this._stackTracePaths
         };
 

@@ -1,5 +1,4 @@
 import { applyFilter } from './utils';
-import { COLORS } from './constants';
 import ExtensionBridge from './ExtensionBridge';
 
 /**
@@ -38,15 +37,16 @@ class GraphRenderer {
 
   // Apply node and link colors helper
   _applyColors(getNodeProps, getLinkProps) {
+    const COLORS = this.state.controls.COLORS || {};
     this.state.graph
       .nodeColor(node => {
         const props = getNodeProps(node);
-        const color = props ? props.color : COLORS.NODE_DEFAULT;
+        const color = props ? props.color : (COLORS.NODE_DEFAULT || '#93c5fd');
         return applyOpacityToColor(color, props?.opacity);
       })
       .linkColor(link => {
         const props = getLinkProps(link);
-        const color = props ? props.color : COLORS.EDGE_DEFAULT;
+        const color = props ? props.color : (COLORS.EDGE_DEFAULT || '#4b5563');
         return applyOpacityToColor(color, props?.opacity);
       })
       .linkDirectionalParticles(link => {

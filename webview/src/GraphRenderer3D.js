@@ -1,7 +1,6 @@
 import ForceGraph3D from '3d-force-graph';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import GraphRenderer from './GraphRenderer';
-import { AUTO_ROTATE_DELAY } from './constants';
 
 /**
  * 3Dグラフのレンダリングと更新を管理するクラス
@@ -94,6 +93,7 @@ class GraphRenderer3D extends GraphRenderer {
       controls.target.set(target.x, target.y, target.z);
     }
 
+    const AUTO_ROTATE_DELAY = this.state.controls.AUTO_ROTATE_DELAY || 1000;
     this.state.graph.cameraPosition(cameraPos, target, AUTO_ROTATE_DELAY);
     setTimeout(() => this.updateAutoRotation(), AUTO_ROTATE_DELAY);
   }
@@ -113,6 +113,7 @@ class GraphRenderer3D extends GraphRenderer {
   setupEventListeners(graph) {
     const controls = graph.controls();
     if (controls) {
+      const AUTO_ROTATE_DELAY = this.state.controls.AUTO_ROTATE_DELAY || 1000;
       controls.addEventListener('start', () => {
         this.state.ui.isUserInteracting = true;
         this.cancelRotation();

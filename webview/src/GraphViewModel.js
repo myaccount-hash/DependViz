@@ -1,4 +1,3 @@
-import { COLORS } from './constants';
 import GraphRenderer2D from './GraphRenderer2D';
 import GraphRenderer3D from './GraphRenderer3D';
 import { computeSlice } from './utils';
@@ -43,10 +42,13 @@ class GraphViewModel {
       }
     ];
     this.linkRules = [
-      (link, ctx) => ctx.ui.stackTraceLinks.has(link) && {
-        color: COLORS.STACK_TRACE_LINK,
-        widthMultiplier: 2.5,
-        particles: 5
+      (link, ctx) => {
+        const COLORS = ctx.controls.COLORS || {};
+        return ctx.ui.stackTraceLinks.has(link) && {
+          color: COLORS.STACK_TRACE_LINK || '#51cf66',
+          widthMultiplier: 2.5,
+          particles: 5
+        };
       },
       (link, ctx) => {
         const map = {
@@ -70,7 +72,8 @@ class GraphViewModel {
   getBackgroundColor() {
     const style = getComputedStyle(document.body);
     const bgColor = style.getPropertyValue('--vscode-editor-background').trim();
-    return bgColor || COLORS.BACKGROUND_DARK;
+    const COLORS = this.controls.COLORS || {};
+    return bgColor || COLORS.BACKGROUND_DARK || '#1a1a1a';
   }
 
   updateData(data, version) {
@@ -145,8 +148,9 @@ class GraphViewModel {
   }
 
   getNodeVisualProps(node) {
+    const COLORS = this.controls.COLORS || {};
     const props = this._applyRules(node, this.nodeRules, {
-      color: COLORS.NODE_DEFAULT,
+      color: COLORS.NODE_DEFAULT || '#93c5fd',
       sizeMultiplier: 1,
       label: this._computeNodeLabel(node),
       opacity: this.controls.nodeOpacity
@@ -174,8 +178,9 @@ class GraphViewModel {
   }
 
   getLinkVisualProps(link) {
+    const COLORS = this.controls.COLORS || {};
     const props = this._applyRules(link, this.linkRules, {
-      color: COLORS.EDGE_DEFAULT,
+      color: COLORS.EDGE_DEFAULT || '#4b5563',
       widthMultiplier: 1,
       particles: 0,
       opacity: this.controls.edgeOpacity,
