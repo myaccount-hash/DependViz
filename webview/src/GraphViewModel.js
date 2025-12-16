@@ -3,7 +3,7 @@ import GraphRenderer2D from './GraphRenderer2D';
 import GraphRenderer3D from './GraphRenderer3D';
 import { computeSlice } from './utils';
 
-class GraphState {
+class GraphViewModel {
   constructor() {
     this.data = { nodes: [], links: [] };
     this.dataVersion = null;
@@ -373,7 +373,7 @@ class GraphState {
   }
 }
 
-const state = new GraphState();
+const state = new GraphViewModel();
 
-export { GraphState, state };
+export { GraphViewModel, state };
 export default state;

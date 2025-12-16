@@ -1,6 +1,6 @@
 import { applyFilter } from './utils';
 import { COLORS } from './constants';
-import { getVsCodeApi } from './core';
+import ExtensionBridge from './ExtensionBridge';
 
 // Base GraphRenderer class with common logic
 
@@ -136,12 +136,10 @@ class GraphRenderer {
         .linkDirectionalArrowLength(5)
         .linkDirectionalArrowRelPos(1)
         .onNodeClick(node => {
-          const vscode = getVsCodeApi();
-          if (!node || !vscode) return;
+          if (!node) return;
           const filePath = this.state.getNodeFilePath(node);
           if (filePath) {
-            vscode.postMessage({
-              type: 'focusNode',
+            ExtensionBridge.getInstance()?.send('focusNode', {
               node: {
                 id: node.id,
                 filePath: filePath,

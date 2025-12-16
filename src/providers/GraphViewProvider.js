@@ -68,16 +68,23 @@ class WebviewBridge {
         this._queue = [];
     }
 
-    attach(webview) {
+    attach(webview, handlers = {}) {
         this._webview = webview;
         this._ready = false;
         this._queue = [];
+        this._handlers = handlers;
+        if (this._webview?.onDidReceiveMessage) {
+            this._webview.onDidReceiveMessage(async message => {
+                await this._handleReceive(message);
+            });
+        }
     }
 
     detach() {
         this._webview = null;
         this._ready = false;
         this._queue = [];
+        this._handlers = null;
     }
 
     markReady() {
@@ -115,6 +122,19 @@ class WebviewBridge {
             this._webview.postMessage(message);
         }
     }
+
+    async _handleReceive(message) {
+        if (!message || typeof message.type !== 'string') {
+            return;
+        }
+        if (message.type === 'ready') {
+            this.markReady();
+        }
+        const handler = this._handlers?.[message.type];
+        if (handler) {
+            await handler(message);
+        }
+    }
 }
 
 class GraphViewProvider extends BaseSettingsConsumer {
@@ -140,17 +160,18 @@ class GraphViewProvider extends BaseSettingsConsumer {
 
     async resolveWebviewView(webviewView, context, token) {
         this._view = webviewView;
-        this._webviewBridge.attach(webviewView.webview);
-        webviewView.webview.options = { enableScripts: true, localResourceRoots: [this._extensionUri] };
-        webviewView.webview.html = this._getHtmlForWebview();
-        webviewView.webview.onDidReceiveMessage(async message => {
-            if (message.type === 'ready') {
-                this._webviewBridge.markReady();
+        this._webviewBridge.attach(webviewView.webview, {
+            ready: () => {
                 this.syncToWebview();
-            } else if (message.type === 'focusNode' && message.node?.filePath) {
-                await vscode.window.showTextDocument(vscode.Uri.file(message.node.filePath));
+            },
+            focusNode: async (message) => {
+                if (message.node?.filePath) {
+                    await vscode.window.showTextDocument(vscode.Uri.file(message.node.filePath));
+                }
             }
         });
+        webviewView.webview.options = { enableScripts: true, localResourceRoots: [this._extensionUri] };
+        webviewView.webview.html = this._getHtmlForWebview();
         this.syncToWebview();
     }
 
