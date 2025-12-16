@@ -72,10 +72,10 @@ class GraphViewProvider {
 
     async _performUpdate(data) {
         if (!data || data.type === 'controls') {
-            this.syncToWebview();
+            this.syncToWebview({ viewOnly: true });
         } else if (data.type === 'stackTrace' && Array.isArray(data.paths)) {
             this._stackTracePaths = [...data.paths];
-            this.syncToWebview();
+            this.syncToWebview({ viewOnly: true });
         } else if (data.type === 'focusNode' && data.filePath) {
             await this.focusNode(data.filePath);
         }
@@ -95,7 +95,7 @@ class GraphViewProvider {
         });
     }
 
-    syncToWebview() {
+    syncToWebview(options = {}) {
         if (!this._view) {
             console.warn('[GraphViewProvider] Cannot sync - view not available');
             return;
@@ -106,11 +106,20 @@ class GraphViewProvider {
         const darkMode = themeKind === vscode.ColorThemeKind.Dark ||
             themeKind === vscode.ColorThemeKind.HighContrast;
 
-        this._webviewBridge.send('update', {
+        const payload = {
             controls: { ...controls, darkMode },
-            data: this._currentData,
-            dataVersion: this._dataVersion,
             stackTracePaths: this._stackTracePaths
+        };
+
+        if (options.viewOnly) {
+            this._webviewBridge.send('view:update', payload);
+            return;
+        }
+
+        this._webviewBridge.send('graph:update', {
+            ...payload,
+            data: this._currentData,
+            dataVersion: this._dataVersion
         });
     }
 
@@ -120,7 +129,7 @@ class GraphViewProvider {
         }
         const node = this._findNodeByFilePath(filePath);
         if (node) {
-            this._webviewBridge.send('focusNodeById', node.id);
+            this._webviewBridge.send('node:focus', node.id);
         }
     }
 
@@ -135,7 +144,7 @@ class GraphViewProvider {
         await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
 
         // Webviewに通知してグラフをリセット
-        this._webviewBridge.send('toggle3DMode');
+        this._webviewBridge.send('mode:toggle');
 
         // 更新された設定を送信
         this.syncToWebview();
@@ -143,7 +152,7 @@ class GraphViewProvider {
 
     async clearFocus() {
         if (!this._view) return;
-        this._webviewBridge.send('clearFocus');
+        this._webviewBridge.send('focus:clear');
     }
 }
 

@@ -12,47 +12,58 @@ function validateGraphData(data) {
  * Message creators for webview communication
  */
 const messageCreators = {
-    update: (payload) => {
+    'graph:update': payload => {
         if (!payload || typeof payload !== 'object') {
-            throw new Error('update: payload must be an object');
+            throw new Error('graph:update: payload must be an object');
         }
         const { controls, data, stackTracePaths = [], dataVersion } = payload;
         if (!controls || typeof controls !== 'object') {
-            throw new Error('update: controls must be provided');
+            throw new Error('graph:update: controls must be provided');
         }
         validateGraphData(data);
         const message = {
-            type: 'update',
-            controls,
-            data,
-            stackTracePaths: Array.isArray(stackTracePaths) ? stackTracePaths : []
+            type: 'graph:update',
+            payload: {
+                controls,
+                data,
+                stackTracePaths: Array.isArray(stackTracePaths) ? stackTracePaths : []
+            }
         };
         if (typeof dataVersion === 'number') {
-            message.dataVersion = dataVersion;
+            message.payload.dataVersion = dataVersion;
         }
         return message;
     },
 
-    focusNodeById: (nodeId) => {
+    'view:update': payload => {
+        const validPayload = payload && typeof payload === 'object' ? payload : null;
+        if (!validPayload) {
+            throw new Error('view:update: payload must be an object');
+        }
+        const message = { type: 'view:update', payload: {} };
+
+        if (validPayload.controls && typeof validPayload.controls === 'object') {
+            message.payload.controls = validPayload.controls;
+        }
+        if (Array.isArray(validPayload.stackTracePaths)) {
+            message.payload.stackTracePaths = validPayload.stackTracePaths;
+        }
+        return message;
+    },
+
+    'node:focus': nodeId => {
         if (nodeId === undefined || nodeId === null) {
-            throw new Error('focusNodeById: nodeId is required');
+            throw new Error('node:focus: nodeId is required');
         }
-        return { type: 'focusNodeById', nodeId };
+        return { type: 'node:focus', payload: { nodeId } };
     },
 
-    toggle3DMode: () => {
-        return { type: 'toggle3DMode' };
+    'mode:toggle': () => {
+        return { type: 'mode:toggle', payload: {} };
     },
 
-    stackTrace: (paths) => {
-        if (!Array.isArray(paths)) {
-            throw new Error('stackTrace: paths must be an array');
-        }
-        return { type: 'stackTrace', paths };
-    },
-
-    clearFocus: () => {
-        return { type: 'clearFocus' };
+    'focus:clear': () => {
+        return { type: 'focus:clear', payload: {} };
     }
 };
 
@@ -84,12 +95,12 @@ class WebviewBridge {
         this._flush();
     }
 
-    send(type, ...args) {
+    send(type, payload) {
         const creator = messageCreators[type];
         if (!creator) {
             throw new Error(`Unknown message type: ${type}`);
         }
-        this._dispatch(creator(...args));
+        this._dispatch(creator(payload));
     }
 
     _dispatch(message) {
