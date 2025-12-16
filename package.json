@@ -193,6 +193,13 @@
           "maximum": 1,
           "description": "エッジ透明度"
         },
+        "forceGraphViewer.dimOpacity": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0.05,
+          "maximum": 1,
+          "description": "フォーカスしていない要素の減光率"
+        },
         "forceGraphViewer.linkDistance": {
           "type": "number",
           "default": 30,

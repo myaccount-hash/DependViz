@@ -6,6 +6,7 @@ import { computeSlice } from './utils';
 class GraphState {
   constructor() {
     this.data = { nodes: [], links: [] };
+    this.dataVersion = null;
     this.controls = {};
     this.ui = {
       stackTraceLinks: new Set(),
@@ -68,8 +69,13 @@ class GraphState {
     return bgColor || COLORS.BACKGROUND_DARK;
   }
 
-  updateData(data) {
+  updateData(data, version) {
     this.data = { nodes: [...(data.nodes || [])], links: [...(data.links || [])] };
+    if (typeof version === 'number') {
+      this.dataVersion = version;
+    } else {
+      this.dataVersion = (this.dataVersion ?? 0) + 1;
+    }
   }
 
   updateControls(controls) {
@@ -149,13 +155,14 @@ class GraphState {
       if (!this.ui.sliceNodes.has(node.id)) {
         props.opacity = (props.opacity || 1) * 0.1;
       }
-    } else if (this.ui.focusedNode) {
+    } else if (this.ui.focusedNode && (this.controls.enableForwardSlice || this.controls.enableBackwardSlice)) {
       const isFocused = node.id === this.ui.focusedNode.id;
       const isNeighbor = this.ui.focusedNode.neighbors &&
                          this.ui.focusedNode.neighbors.some(n => n.id === node.id);
 
       if (!isFocused && !isNeighbor) {
-        props.opacity = (props.opacity || 1) * 0.2;
+        const dim = this.controls.dimOpacity ?? 0.2;
+        props.opacity = (props.opacity || 1) * dim;
       }
     }
 
@@ -182,7 +189,7 @@ class GraphState {
       } else {
         props.opacity = (props.opacity || 1) * 0.1;
       }
-    } else if (this.ui.focusedNode) {
+    } else if (this.ui.focusedNode && (this.controls.enableForwardSlice || this.controls.enableBackwardSlice)) {
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
       const targetId = typeof link.target === 'object' ? link.target.id : link.target;
       const focusedId = this.ui.focusedNode.id;
@@ -194,7 +201,8 @@ class GraphState {
         props.particles = 3;
         props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
       } else {
-        props.opacity = (props.opacity || 1) * 0.1;
+        const dim = this.controls.dimOpacity ?? 0.2;
+        props.opacity = (props.opacity || 1) * dim;
       }
     }
 

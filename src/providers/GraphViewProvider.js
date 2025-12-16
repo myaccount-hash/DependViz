@@ -7,6 +7,7 @@ class GraphViewProvider {
         this._extensionUri = extensionUri;
         this._view = null;
         this._currentData = { nodes: [], links: [] };
+        this._dataVersion = 0;
         this._updateInProgress = false;
         this._pendingUpdate = null;
         this._stackTracePaths = [];
@@ -35,6 +36,7 @@ class GraphViewProvider {
 
     mergeGraphData(newData) {
         mergeGraphData(this._currentData, newData);
+        this._dataVersion += 1;
         this.syncToWebview();
     }
 
@@ -44,6 +46,7 @@ class GraphViewProvider {
             nodes: data.nodes ?? [],
             links: data.links ?? []
         };
+        this._dataVersion += 1;
         this.syncToWebview();
     }
 
@@ -106,6 +109,7 @@ class GraphViewProvider {
         this._webviewBridge.send('update', {
             controls: { ...controls, darkMode },
             data: this._currentData,
+            dataVersion: this._dataVersion,
             stackTracePaths: this._stackTracePaths
         });
     }

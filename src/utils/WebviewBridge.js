@@ -16,17 +16,21 @@ const messageCreators = {
         if (!payload || typeof payload !== 'object') {
             throw new Error('update: payload must be an object');
         }
-        const { controls, data, stackTracePaths = [] } = payload;
+        const { controls, data, stackTracePaths = [], dataVersion } = payload;
         if (!controls || typeof controls !== 'object') {
             throw new Error('update: controls must be provided');
         }
         validateGraphData(data);
-        return {
+        const message = {
             type: 'update',
             controls,
             data,
             stackTracePaths: Array.isArray(stackTracePaths) ? stackTracePaths : []
         };
+        if (typeof dataVersion === 'number') {
+            message.dataVersion = dataVersion;
+        }
+        return message;
     },
 
     focusNodeById: (nodeId) => {

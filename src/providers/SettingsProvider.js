@@ -35,6 +35,7 @@ const DETAIL_ITEMS = [
     ['slider', 'リンクサイズ', 'linkWidth', SLIDER_RANGES.linkWidth],
     ['slider', 'テキストサイズ', 'textSize', SLIDER_RANGES.textSize],
     ['slider', '矢印サイズ', 'arrowSize', SLIDER_RANGES.arrowSize],
+    ['slider', '減光強度', 'dimOpacity', SLIDER_RANGES.dimOpacity],
     ['slider', 'ノード透明度', 'nodeOpacity', SLIDER_RANGES.opacity],
     ['slider', 'エッジ透明度', 'edgeOpacity', SLIDER_RANGES.opacity]
 ];

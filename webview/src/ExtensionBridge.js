@@ -33,11 +33,16 @@ class ExtensionBridge {
   }
 
   _handleUpdate(msg) {
-    const hasDataChange = !!msg.data;
+    const incomingVersion = typeof msg.dataVersion === 'number' ? msg.dataVersion : null;
+    const hasDataChange = msg.data && (
+      incomingVersion === null || incomingVersion !== this.state.dataVersion
+    );
     const oldIs3DMode = this.state.controls.is3DMode ?? false;
 
     if (msg.data) {
-      this.state.updateData(msg.data);
+      if (hasDataChange) {
+        this.state.updateData(msg.data, incomingVersion);
+      }
     }
     if (msg.controls) {
       this.state.updateControls(msg.controls);

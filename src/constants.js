@@ -10,6 +10,7 @@ const CONTROL_DEFAULTS = {
     linkWidth: 0.5,
     nodeOpacity: 1.0,
     edgeOpacity: 0.6,
+    dimOpacity: 0.2,
     linkDistance: 50,
     focusDistance: 120,
     arrowSize: 3,
@@ -45,7 +46,8 @@ const SLIDER_RANGES = {
     focusDistance: { min: 20, max: 300, step: 5 },
     arrowSize: { min: 1, max: 20, step: 1 },
     textSize: { min: 8, max: 24, step: 1 },
-    sliceDepth: { min: 1, max: 10, step: 1 }
+    sliceDepth: { min: 1, max: 10, step: 1 },
+    dimOpacity: { min: 0.05, max: 1, step: 0.05 }
 };
 
 module.exports = { CONTROL_DEFAULTS, SLIDER_RANGES };
