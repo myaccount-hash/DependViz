@@ -31,6 +31,9 @@ class FilterProvider extends BaseProvider {
 
     getChildren(element) {
         if (!element) return this.getRootItems();
+        if (element.children && Array.isArray(element.children)) {
+            return element.children;
+        }
         return [];
     }
 
