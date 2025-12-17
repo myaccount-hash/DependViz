@@ -15,7 +15,7 @@ async function getAllSessions() {
 
             for (const thread of threads) {
                 try {
-                    const stackResponse = await session.customRequest('stackTrace', {
+                    const stackResponse = await session.customRequest('callStack', {
                         threadId: thread.id,
                         levels: 200
                     });
@@ -51,19 +51,19 @@ async function getAllSessions() {
     return sessionInfos;
 }
 
-async function updateCallStack(graphViewProvider, stackTraceProvider) {
+async function updateCallStack(graphViewProvider, callStackProvider) {
     try {
         const sessions = await getAllSessions();
 
-        if (stackTraceProvider) {
-            stackTraceProvider.setSessions(sessions);
+        if (callStackProvider) {
+            callStackProvider.setSessions(sessions);
         }
 
         if (sessions.length === 0) {
             console.log('No active debug sessions found');
-            graphViewProvider.update({ type: 'stackTrace', paths: [] });
-            if (stackTraceProvider) {
-                stackTraceProvider.clear();
+            graphViewProvider.update({ type: 'callStack', paths: [] });
+            if (callStackProvider) {
+                callStackProvider.clear();
             }
             return;
         }
@@ -72,9 +72,9 @@ async function updateCallStack(graphViewProvider, stackTraceProvider) {
 
         if (!session.captured) {
             console.log(`Debug session ${session.sessionName} has no captured frames (${session.stoppedThreads} stopped threads)`);
-            graphViewProvider.update({ type: 'stackTrace', paths: [] });
-            if (stackTraceProvider) {
-                stackTraceProvider.clear();
+            graphViewProvider.update({ type: 'callStack', paths: [] });
+            if (callStackProvider) {
+                callStackProvider.clear();
             }
             return;
         }
@@ -88,12 +88,12 @@ async function updateCallStack(graphViewProvider, stackTraceProvider) {
 
         console.log(`Updating stack trace visualization: ${paths.length} frames from ${uniquePaths.length} unique files`);
 
-        graphViewProvider.update({ type: 'stackTrace', paths: uniquePaths });
+        graphViewProvider.update({ type: 'callStack', paths: uniquePaths });
     } catch (e) {
         console.error('Failed to update stack trace:', e.message, e.stack);
-        graphViewProvider.update({ type: 'stackTrace', paths: [] });
-        if (stackTraceProvider) {
-            stackTraceProvider.clear();
+        graphViewProvider.update({ type: 'callStack', paths: [] });
+        if (callStackProvider) {
+            callStackProvider.clear();
         }
     }
 }

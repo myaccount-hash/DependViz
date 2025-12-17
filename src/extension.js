@@ -18,7 +18,7 @@ function activate(context) {
     const settingsProvider = new GraphSettingsProvider();
     const filterProvider = new FilterProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
-    const stackTraceProvider = new CallStackProvider();
+    const callStackProvider = new CallStackProvider();
 
     // Analyzer インスタンスを初期化
     javaAnalyzer = new JavaAnalyzer(context);
@@ -26,7 +26,7 @@ function activate(context) {
 
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.createTreeView('forceGraphViewer.filters', { treeDataProvider: filterProvider });
-    vscode.window.createTreeView('forceGraphViewer.stackTrace', { treeDataProvider: stackTraceProvider });
+    vscode.window.createTreeView('forceGraphViewer.callStack', { treeDataProvider: callStackProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
     const configManager = ConfigurationManager.getInstance();
@@ -44,15 +44,15 @@ function activate(context) {
 
     const initialControls = broadcastSettings();
     if (initialControls.showCallStack) {
-        stackTraceProvider.restore(graphViewProvider);
-        stackTraceProvider.update(graphViewProvider);
+        callStackProvider.restore(graphViewProvider);
+        callStackProvider.update(graphViewProvider);
     }
 
     const providers = {
         settingsProvider,
         filterProvider,
         graphViewProvider,
-        stackTraceProvider,
+        callStackProvider,
         analyzers: {
             [JavaAnalyzer.analyzerId]: javaAnalyzer,
             [JavaScriptAnalyzer.analyzerId]: javascriptAnalyzer
@@ -65,7 +65,7 @@ function activate(context) {
         configManager.onDidChange(async (controls) => {
             const nextControls = broadcastSettings(controls);
             if (nextControls.showCallStack) {
-                await stackTraceProvider.update(graphViewProvider);
+                await callStackProvider.update(graphViewProvider);
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
@@ -77,19 +77,19 @@ function activate(context) {
         vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
             const controls = broadcastSettings();
             if (controls.showCallStack && stackItem) {
-                await stackTraceProvider.update(graphViewProvider);
+                await callStackProvider.update(graphViewProvider);
             }
         }),
         vscode.debug.onDidStartDebugSession(async () => {
             const controls = broadcastSettings();
             if (controls.showCallStack) {
-                await stackTraceProvider.update(graphViewProvider);
+                await callStackProvider.update(graphViewProvider);
             }
         }),
         vscode.debug.onDidTerminateDebugSession(() => {
             const controls = broadcastSettings();
             if (controls.showCallStack) {
-                graphViewProvider.update({ type: 'stackTrace', paths: [] });
+                graphViewProvider.update({ type: 'callStack', paths: [] });
             }
         })
     ];

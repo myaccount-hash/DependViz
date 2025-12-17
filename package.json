@@ -41,8 +41,8 @@
           "icon": "$(filter)"
         },
         {
-          "id": "forceGraphViewer.stackTrace",
-          "name": "スタックトレース",
+          "id": "forceGraphViewer.callStack",
+          "name": "コールスタック",
           "icon": "$(list-selection)"
         },
         {
@@ -104,7 +104,7 @@
       },
       {
         "command": "forceGraphViewer.removeCallStackEntry",
-        "title": "スタックトレース履歴を削除",
+        "title": "コールスタック履歴を削除",
         "category": "DependViz"
         ,
         "icon": "$(trash)"
@@ -146,7 +146,7 @@
       "view/item/context": [
         {
           "command": "forceGraphViewer.removeCallStackEntry",
-          "when": "view == forceGraphViewer.stackTrace && viewItem == stackTraceEntry",
+          "when": "view == forceGraphViewer.callStack && viewItem == callStackEntry",
           "group": "inline"
         }
       ]
@@ -182,7 +182,7 @@
         "forceGraphViewer.showCallStack": {
           "type": "boolean",
           "default": true,
-          "description": "スタックトレース表示"
+          "description": "コールスタック表示"
         },
         "forceGraphViewer.showNames": {
           "type": "boolean",

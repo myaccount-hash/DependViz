@@ -12,7 +12,7 @@ class GraphViewModel {
     this.dataVersion = null;
     this.controls = {};
     this.ui = {
-      stackTraceLinks: new Set(),
+      callStackLinks: new Set(),
       sliceNodes: null,
       sliceLinks: null,
       focusedNode: null,
@@ -39,7 +39,7 @@ class GraphViewModel {
     this.linkRules = [
       (link, ctx) => {
         const COLORS = ctx.controls.COLORS || {};
-        return ctx.ui.stackTraceLinks.has(link) && {
+        return ctx.ui.callStackLinks.has(link) && {
           color: COLORS.STACK_TRACE_LINK || '#51cf66',
           widthMultiplier: 2.5,
           particles: 5
@@ -283,8 +283,8 @@ class GraphViewModel {
     if (payload.controls) {
       this.updateControls(payload.controls);
     }
-    if (payload.stackTracePaths) {
-      this.ui.stackTraceLinks = new Set(payload.stackTracePaths.map(p => p.link));
+    if (payload.callStackPaths) {
+      this.ui.callStackLinks = new Set(payload.callStackPaths.map(p => p.link));
     }
 
     if (payload.data || payload.controls) {
@@ -298,7 +298,7 @@ class GraphViewModel {
     const reheatSimulation = hasDataChange || modeChanged;
     if (payload.data || payload.controls) {
       this.updateGraph({ reheatSimulation });
-    } else if (payload.stackTracePaths) {
+    } else if (payload.callStackPaths) {
       this.updateVisuals();
     }
   }
@@ -309,8 +309,8 @@ class GraphViewModel {
     if (payload.controls) {
       this.updateControls(payload.controls);
     }
-    if (payload.stackTracePaths) {
-      this.ui.stackTraceLinks = new Set(payload.stackTracePaths.map(p => p.link));
+    if (payload.callStackPaths) {
+      this.ui.callStackLinks = new Set(payload.callStackPaths.map(p => p.link));
     }
 
     if (payload.controls) {
@@ -325,7 +325,7 @@ class GraphViewModel {
       this.updateGraph({ reheatSimulation: true });
     } else if (payload.controls) {
       this.updateGraph();
-    } else if (payload.stackTracePaths) {
+    } else if (payload.callStackPaths) {
       this.updateVisuals();
     }
   }

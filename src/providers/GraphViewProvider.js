@@ -10,7 +10,7 @@ const messageCreators = {
         if (!payload || typeof payload !== 'object') {
             throw new Error('graph:update: payload must be an object');
         }
-        const { controls, data, stackTracePaths = [], dataVersion } = payload;
+        const { controls, data, callStackPaths = [], dataVersion } = payload;
         if (!controls || typeof controls !== 'object') {
             throw new Error('graph:update: controls must be provided');
         }
@@ -20,7 +20,7 @@ const messageCreators = {
             payload: {
                 controls,
                 data,
-                stackTracePaths: Array.isArray(stackTracePaths) ? stackTracePaths : []
+                callStackPaths: Array.isArray(callStackPaths) ? callStackPaths : []
             }
         };
         if (typeof dataVersion === 'number') {
@@ -39,8 +39,8 @@ const messageCreators = {
         if (validPayload.controls && typeof validPayload.controls === 'object') {
             message.payload.controls = validPayload.controls;
         }
-        if (Array.isArray(validPayload.stackTracePaths)) {
-            message.payload.stackTracePaths = validPayload.stackTracePaths;
+        if (Array.isArray(validPayload.callStackPaths)) {
+            message.payload.callStackPaths = validPayload.callStackPaths;
         }
         return message;
     },
@@ -156,7 +156,7 @@ class GraphViewProvider extends BaseProvider {
         this._dataVersion = 0;
         this._updateInProgress = false;
         this._pendingUpdate = null;
-        this._stackTracePaths = [];
+        this._callStackPaths = [];
         this._webviewBridge = new WebviewBridge();
     }
 
@@ -228,8 +228,8 @@ class GraphViewProvider extends BaseProvider {
     async _performUpdate(data) {
         if (!data || data.type === 'controls') {
             this.syncToWebview({ viewOnly: true });
-        } else if (data.type === 'stackTrace' && Array.isArray(data.paths)) {
-            this._stackTracePaths = [...data.paths];
+        } else if (data.type === 'callStack' && Array.isArray(data.paths)) {
+            this._callStackPaths = [...data.paths];
             this.syncToWebview({ viewOnly: true });
         } else if (data.type === 'focusNode' && data.filePath) {
             await this.focusNode(data.filePath);
@@ -265,7 +265,7 @@ class GraphViewProvider extends BaseProvider {
 
         const payload = {
             controls: { ...controls, darkMode, COLORS, AUTO_ROTATE_DELAY },
-            stackTracePaths: this._stackTracePaths
+            callStackPaths: this._callStackPaths
         };
 
         if (options.viewOnly) {

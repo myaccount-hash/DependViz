@@ -16,18 +16,18 @@ class CallStackProvider {
             const sessions = await this._getAllSessions();
 
             if (sessions.length === 0) {
-                graphViewProvider.update({ type: 'stackTrace', paths: [] });
+                graphViewProvider.update({ type: 'callStack', paths: [] });
                 return;
             }
 
             const firstSession = sessions.find((s) => s.captured);
             if (!firstSession) {
-                graphViewProvider.update({ type: 'stackTrace', paths: [] });
+                graphViewProvider.update({ type: 'callStack', paths: [] });
                 return;
             }
 
             const uniquePaths = this._extractPaths(firstSession.frames);
-            graphViewProvider.update({ type: 'stackTrace', paths: uniquePaths });
+            graphViewProvider.update({ type: 'callStack', paths: uniquePaths });
 
             if (uniquePaths.length === 0) {
                 return;
@@ -51,7 +51,7 @@ class CallStackProvider {
         } catch (e) {
             console.error('Failed to update stack trace:', e.message, e.stack);
             await this.clear();
-            graphViewProvider.update({ type: 'stackTrace', paths: [] });
+            graphViewProvider.update({ type: 'callStack', paths: [] });
         }
     }
 
@@ -67,7 +67,7 @@ class CallStackProvider {
 
     restore(graphViewProvider) {
         this._onDidChangeTreeData.fire();
-        graphViewProvider.update({ type: 'stackTrace', paths: [] });
+        graphViewProvider.update({ type: 'callStack', paths: [] });
     }
 
     async removeSession(sessionId, graphViewProvider) {
@@ -84,7 +84,7 @@ class CallStackProvider {
         this._onDidChangeTreeData.fire();
         await this._persistSessions();
         if (graphViewProvider && currentFirst?.id === sessionId) {
-            graphViewProvider.update({ type: 'stackTrace', paths: [] });
+            graphViewProvider.update({ type: 'callStack', paths: [] });
         }
     }
 
@@ -94,7 +94,7 @@ class CallStackProvider {
 
     getChildren() {
         if (this._sessions.length === 0) {
-            return [this._createInfoItem('スタックトレースなし', '保存された履歴がありません')];
+            return [this._createInfoItem('コールスタックなし', '保存された履歴がありません')];
         }
         return this._sessions.map((session) => this._createSessionItem(session));
     }
@@ -110,7 +110,7 @@ class CallStackProvider {
         const label = `${session.sessionName} (${session.sessionType || 'unknown'})`;
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
         item.id = session.id;
-        item.contextValue = 'stackTraceEntry';
+        item.contextValue = 'callStackEntry';
         const descriptionParts = [];
         const count = session.classes?.length || 0;
         descriptionParts.push(`${count}クラス`);
@@ -227,7 +227,7 @@ class CallStackProvider {
 
                 for (const thread of threads) {
                     try {
-                        const stackResponse = await session.customRequest('stackTrace', {
+                        const stackResponse = await session.customRequest('callStack', {
                             threadId: thread.id,
                             levels: 200
                         });

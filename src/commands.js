@@ -8,7 +8,7 @@ const { getDefaultAnalyzerId } = require('./analyzers');
  * @returns 
  */
 function registerCommands(context, providers) {
-    const { settingsProvider, filterProvider, graphViewProvider, stackTraceProvider, analyzers } = providers;
+    const { settingsProvider, filterProvider, graphViewProvider, callStackProvider, analyzers } = providers;
     const configManager = ConfigurationManager.getInstance();
     const getActiveAnalyzer = () => {
         const controls = configManager.loadControls();
@@ -100,8 +100,8 @@ function registerCommands(context, providers) {
         }),
         vscode.commands.registerCommand('forceGraphViewer.updateCallStack', async () => {
             try {
-                await stackTraceProvider.update(graphViewProvider);
-                vscode.window.showInformationMessage('スタックトレースを更新しました');
+                await callStackProvider.update(graphViewProvider);
+                vscode.window.showInformationMessage('コールスタックを更新しました');
             } catch (e) {
                 vscode.window.showErrorMessage(`取得失敗: ${e.message}`);
             }
@@ -111,7 +111,7 @@ function registerCommands(context, providers) {
                 return;
             }
             try {
-                await stackTraceProvider.removeSession(item.id, graphViewProvider);
+                await callStackProvider.removeSession(item.id, graphViewProvider);
             } catch (e) {
                 vscode.window.showErrorMessage(`削除失敗: ${e.message}`);
             }
