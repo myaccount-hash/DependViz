@@ -37,6 +37,11 @@ function registerCommands(context, providers) {
             const controls = configManager.loadControls({ ignoreCache: true });
             await configManager.updateControl(key, !controls[key]);
         }),
+        vscode.commands.registerCommand('forceGraphViewer.selectAnalyzer', async (analyzerId) => {
+            if (typeof analyzerId === 'string' && analyzerId.length > 0) {
+                await configManager.updateControl('analyzerId', analyzerId);
+            }
+        }),
         vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, step, currentValue) => {
             const value = await vscode.window.showInputBox({ prompt: `${key} (${min} - ${max})`, value: currentValue.toString(), validateInput: (v) => { const num = parseFloat(v); return isNaN(num) || num < min || num > max ? `値は ${min} から ${max} の間で入力してください` : null; } });
             if (value !== undefined) {

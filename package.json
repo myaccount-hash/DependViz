@@ -66,6 +66,11 @@
         "category": "DependViz"
       },
       {
+        "command": "forceGraphViewer.selectAnalyzer",
+        "title": "Select Analyzer",
+        "category": "DependViz"
+      },
+      {
         "command": "forceGraphViewer.showSliderInput",
         "title": "Adjust",
         "category": "DependViz"
@@ -134,6 +139,11 @@
           "type": "string",
           "default": "",
           "description": "検索キーワード"
+        },
+        "forceGraphViewer.analyzerId": {
+          "type": "string",
+          "default": "java",
+          "description": "使用するアナライザー (java / javascript など)"
         },
         "forceGraphViewer.is3DMode": {
           "type": "boolean",
@@ -256,6 +266,8 @@
     "clean": "cd java && mvn clean && rm -f dependency-reduced-pom.xml"
   },
   "dependencies": {
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {

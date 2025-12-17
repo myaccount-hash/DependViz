@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const JavaAnalyzer = require('../analyzers/JavaAnalyzer');
+const { getAnalyzerClassById, getDefaultAnalyzerId } = require('../analyzers');
 
 const COLORS = {
     STACK_TRACE_LINK: '#51cf66',
@@ -31,19 +31,11 @@ const CONTROL_DEFAULTS = {
     textSize: 12,
     sliceDepth: 3,
     enableForwardSlice: true,
-    enableBackwardSlice: true
+    enableBackwardSlice: true,
+    analyzerId: getDefaultAnalyzerId()
 };
 
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
-
-const JAVA_TYPE_INFO = JavaAnalyzer.getTypeInfo();
-const ANALYZER_DEFAULTS = JavaAnalyzer.getTypeDefaults();
-const ANALYZER_KEY_MAP = buildAnalyzerKeyMap(JAVA_TYPE_INFO);
-const TYPE_CONTROL_MAP = buildTypeControlMap(JAVA_TYPE_INFO);
-
-function cloneAnalyzerDefaults() {
-    return JSON.parse(JSON.stringify(ANALYZER_DEFAULTS));
-}
 
 function getValueAtPath(target, pathParts) {
     return pathParts.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), target);
@@ -76,9 +68,9 @@ function deepMerge(target, source) {
     return target;
 }
 
-function mergeWithDefaults(overrides) {
-    const base = cloneAnalyzerDefaults();
-    return deepMerge(base, overrides);
+function mergeWithDefaults(analyzerClass, overrides) {
+    const base = analyzerClass ? analyzerClass.getTypeDefaults() : { filters: { node: {}, edge: {} }, colors: { node: {}, edge: {} } };
+    return deepMerge(base, overrides || {});
 }
 
 function buildAnalyzerKeyMap(typeInfo) {
@@ -121,6 +113,12 @@ class ConfigurationManager {
         this._onDidChange = new vscode.EventEmitter();
         this._analyzerConfigCache = null;
         this._analyzerConfigMtime = 0;
+        this._activeAnalyzerId = CONTROL_DEFAULTS.analyzerId;
+        this._activeAnalyzerClass = getAnalyzerClassById(this._activeAnalyzerId);
+        const typeInfo = this._activeAnalyzerClass.getTypeInfo();
+        this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
+        this._typeControlMap = buildTypeControlMap(typeInfo);
+        this._analyzerDefaults = this._activeAnalyzerClass.getTypeDefaults();
     }
 
     get onDidChange() {
@@ -142,6 +140,7 @@ class ConfigurationManager {
         for (const [key, defaultValue] of Object.entries(CONTROL_DEFAULTS)) {
             controls[key] = config.get(key, defaultValue);
         }
+        this._setActiveAnalyzer(controls.analyzerId || CONTROL_DEFAULTS.analyzerId);
         Object.assign(controls, this._loadAnalyzerControls());
         controls.COLORS = COLORS;
 
@@ -223,11 +222,29 @@ class ConfigurationManager {
         this._invalidateCache();
     }
 
+    _setActiveAnalyzer(analyzerId) {
+        const analyzerClass = getAnalyzerClassById(analyzerId);
+        if (!analyzerClass) return;
+        if (this._activeAnalyzerClass && this._activeAnalyzerClass.analyzerId === analyzerClass.analyzerId) {
+            return;
+        }
+        this._activeAnalyzerClass = analyzerClass;
+        this._activeAnalyzerId = analyzerClass.analyzerId;
+        const typeInfo = analyzerClass.getTypeInfo();
+        this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
+        this._typeControlMap = buildTypeControlMap(typeInfo);
+        this._analyzerDefaults = analyzerClass.getTypeDefaults();
+    }
+
     /**
      * ノード/エッジタイプに対応する設定キーを取得
      */
     getTypeControlKey(type, category) {
-        return TYPE_CONTROL_MAP[category]?.[type];
+        return this._typeControlMap[category]?.[type];
+    }
+
+    getTypeControlMap() {
+        return this._typeControlMap;
     }
 
     /**
@@ -240,26 +257,25 @@ class ConfigurationManager {
     }
 
     _loadAnalyzerControls() {
-        const analyzerConfig = this._getAnalyzerConfig();
+        const stored = this._getStoredAnalyzerConfig();
+        const merged = mergeWithDefaults(this._activeAnalyzerClass, stored);
         const controls = {};
-        for (const [key, pathParts] of Object.entries(ANALYZER_KEY_MAP)) {
-            const defaultValue = getValueAtPath(ANALYZER_DEFAULTS, pathParts);
-            const value = getValueAtPath(analyzerConfig, pathParts);
-            controls[key] = value !== undefined ? value : defaultValue;
+        for (const [key, pathParts] of Object.entries(this._analyzerKeyMap)) {
+            controls[key] = getValueAtPath(merged, pathParts);
         }
         controls.typeFilters = {
-            node: { ...(analyzerConfig.filters?.node || {}) },
-            edge: { ...(analyzerConfig.filters?.edge || {}) }
+            node: { ...(merged.filters?.node || {}) },
+            edge: { ...(merged.filters?.edge || {}) }
         };
         controls.typeColors = {
-            node: { ...(analyzerConfig.colors?.node || {}) },
-            edge: { ...(analyzerConfig.colors?.edge || {}) }
+            node: { ...(merged.colors?.node || {}) },
+            edge: { ...(merged.colors?.edge || {}) }
         };
         return controls;
     }
 
     _isAnalyzerControlKey(key) {
-        return Object.prototype.hasOwnProperty.call(ANALYZER_KEY_MAP, key);
+        return Object.prototype.hasOwnProperty.call(this._analyzerKeyMap, key);
     }
 
     _getAnalyzerConfigPath() {
@@ -268,10 +284,10 @@ class ConfigurationManager {
         return path.join(folder.uri.fsPath, ANALYZER_CONFIG_RELATIVE_PATH);
     }
 
-    _getAnalyzerConfig() {
+    _getAnalyzerConfigData() {
         const filePath = this._getAnalyzerConfigPath();
         if (!filePath) {
-            this._analyzerConfigCache = cloneAnalyzerDefaults();
+            this._analyzerConfigCache = { analyzers: {} };
             this._analyzerConfigMtime = 0;
             return this._analyzerConfigCache;
         }
@@ -280,7 +296,7 @@ class ConfigurationManager {
         try {
             mtime = fs.statSync(filePath).mtimeMs;
         } catch (e) {
-            this._analyzerConfigCache = cloneAnalyzerDefaults();
+            this._analyzerConfigCache = { analyzers: {} };
             this._analyzerConfigMtime = 0;
             return this._analyzerConfigCache;
         }
@@ -292,13 +308,25 @@ class ConfigurationManager {
         return this._analyzerConfigCache;
     }
 
+    _getStoredAnalyzerConfig() {
+        const data = this._getAnalyzerConfigData();
+        if (!data.analyzers[this._activeAnalyzerId]) {
+            data.analyzers[this._activeAnalyzerId] = {};
+        }
+        return data.analyzers[this._activeAnalyzerId];
+    }
+
     _loadAnalyzerConfigFromDisk(filePath) {
         try {
             const raw = fs.readFileSync(filePath, 'utf8');
             const parsed = JSON.parse(raw);
-            return mergeWithDefaults(parsed);
+            if (parsed.analyzers && typeof parsed.analyzers === 'object') {
+                return { analyzers: parsed.analyzers };
+            }
+            // backward compatibility: old format without analyzers map
+            return { analyzers: { [CONTROL_DEFAULTS.analyzerId]: parsed } };
         } catch (e) {
-            return cloneAnalyzerDefaults();
+            return { analyzers: {} };
         }
     }
 
@@ -306,21 +334,25 @@ class ConfigurationManager {
         const filePath = this._ensureAnalyzerConfigFile();
         if (!filePath) return;
 
-        const nextConfig = mergeWithDefaults(this._getAnalyzerConfig());
+        const data = this._getAnalyzerConfigData();
+        if (!data.analyzers[this._activeAnalyzerId]) {
+            data.analyzers[this._activeAnalyzerId] = {};
+        }
+        const target = data.analyzers[this._activeAnalyzerId];
         for (const [key, value] of Object.entries(updates)) {
-            const pathParts = ANALYZER_KEY_MAP[key];
+            const pathParts = this._analyzerKeyMap[key];
             if (!pathParts) continue;
-            setValueAtPath(nextConfig, pathParts, value);
+            setValueAtPath(target, pathParts, value);
         }
 
-        await fs.promises.writeFile(filePath, JSON.stringify(nextConfig, null, 4), 'utf8');
+        await fs.promises.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8');
         try {
             const stat = fs.statSync(filePath);
             this._analyzerConfigMtime = stat.mtimeMs;
         } catch (e) {
             this._analyzerConfigMtime = Date.now();
         }
-        this._analyzerConfigCache = nextConfig;
+        this._analyzerConfigCache = data;
     }
 
     _ensureAnalyzerConfigFile() {
@@ -328,7 +360,7 @@ class ConfigurationManager {
         if (!filePath) return null;
         if (!fs.existsSync(filePath)) {
             fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, JSON.stringify(cloneAnalyzerDefaults(), null, 4), 'utf8');
+            fs.writeFileSync(filePath, JSON.stringify({ analyzers: {} }, null, 4), 'utf8');
         }
         return filePath;
     }
@@ -349,11 +381,12 @@ async function updateControl(key, value) {
 }
 
 function getTypeControlMap() {
-    return TYPE_CONTROL_MAP;
+    return ConfigurationManager.getInstance().getTypeControlMap();
 }
 
 function typeMatches(type, controls, category) {
-    const controlKey = TYPE_CONTROL_MAP[category]?.[type];
+    const map = getTypeControlMap();
+    const controlKey = map[category]?.[type];
     return controlKey ? controls[controlKey] : true;
 }
 

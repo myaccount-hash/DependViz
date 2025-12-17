@@ -1,16 +1,11 @@
 const vscode = require('vscode');
-const { BaseProvider, CheckboxControlItem } = require('./BaseProvider');
+const { BaseProvider, CheckboxControlItem, SectionItem } = require('./BaseProvider');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
-const JavaAnalyzer = require('../analyzers/JavaAnalyzer');
-
-const FILTER_ITEMS = JavaAnalyzer.getTypeInfo().map(info => {
-    const prefix = info.category === 'node' ? 'Node' : 'Link';
-    return ['checkbox', `${prefix}: ${info.type}`, info.filterKey];
-});
+const { getAnalyzerClassById, getAnalyzerOptions, getDefaultAnalyzerId } = require('../analyzers');
 
 /**
  * フィルタ設定UIを提供するTreeDataProvider実装
- * Analyzerに唯一依存する
+ * Analyzer関連操作を集約
  */
 class FilterProvider extends BaseProvider {
     constructor() {
@@ -40,7 +35,28 @@ class FilterProvider extends BaseProvider {
     }
 
     getRootItems() {
-        return FILTER_ITEMS.map(([type, label, key]) => this.createControlItem(type, label, key));
+        const items = [this._createAnalyzerSection()];
+        items.push(...this._createFilterItems());
+        return items;
+    }
+
+    _createAnalyzerSection() {
+        const analyzerId = this.controls.analyzerId || getDefaultAnalyzerId();
+        const children = getAnalyzerOptions().map((option) => new AnalyzerChoiceItem(option, option.id === analyzerId));
+        return new SectionItem('Analyzer', children);
+    }
+
+    _createFilterItems() {
+        const analyzerId = this.controls.analyzerId || getDefaultAnalyzerId();
+        const analyzerClass = getAnalyzerClassById(analyzerId);
+        const typeInfo = analyzerClass.getTypeInfo();
+        const nodes = typeInfo.filter(info => info.category === 'node');
+        const edges = typeInfo.filter(info => info.category === 'edge');
+        const makeItem = (info) => {
+            const prefix = info.category === 'node' ? 'Node' : 'Link';
+            return this.createControlItem('checkbox', `${prefix}: ${info.type}`, info.filterKey);
+        };
+        return [...nodes.map(makeItem), ...edges.map(makeItem)];
     }
 
     createControlItem(type, label, key) {
@@ -54,6 +70,19 @@ class FilterProvider extends BaseProvider {
     handleSettingsChanged(controls) {
         super.handleSettingsChanged(controls);
         this.refresh();
+    }
+}
+
+class AnalyzerChoiceItem extends vscode.TreeItem {
+    constructor(option, isActive) {
+        super(option.label, vscode.TreeItemCollapsibleState.None);
+        this.contextValue = 'analyzerChoice';
+        this.iconPath = new vscode.ThemeIcon(isActive ? 'check' : 'circle-outline');
+        this.command = {
+            command: 'forceGraphViewer.selectAnalyzer',
+            title: 'Select Analyzer',
+            arguments: [option.id]
+        };
     }
 }
 
