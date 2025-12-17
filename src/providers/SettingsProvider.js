@@ -14,8 +14,7 @@ const SLIDER_RANGES = {
     dimOpacity: { min: 0.05, max: 1, step: 0.05 }
 };
 
-const FILTER_ITEMS = [
-    ['search', '検索', 'search'],
+const JAVA_ITEMS = [
     ['checkbox', 'Node: Class', 'showClass'],
     ['checkbox', 'Node: AbstractClass', 'showAbstractClass'],
     ['checkbox', 'Node: Interface', 'showInterface'],
@@ -28,6 +27,7 @@ const FILTER_ITEMS = [
 ];
 
 const APPEARANCE_ITEMS = [
+    ['search', '検索', 'search'],
     ['checkbox', '3D表示', 'is3DMode'],
     ['checkbox', '行数反映', 'nodeSizeByLoc'],
     ['checkbox', 'スタックトレース', 'showStackTrace'],
@@ -86,8 +86,8 @@ class SettingsProvider extends BaseSettingsConsumer {
 
     getRootItems() {
         return [
-            new SectionItem('フィルタ設定', FILTER_ITEMS.map(c => this.createControlItem(c))),
-            new SectionItem('表示モード', APPEARANCE_ITEMS.map(c => this.createControlItem(c))),
+            new SectionItem('Java設定', JAVA_ITEMS.map(c => this.createControlItem(c))),
+            new SectionItem('表示設定', APPEARANCE_ITEMS.map(c => this.createControlItem(c))),
             new SectionItem('詳細設定', DETAIL_ITEMS.map(c => this.createControlItem(c)))
         ];
     }
