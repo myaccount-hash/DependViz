@@ -25,6 +25,10 @@ function activate(context) {
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
     const configManager = ConfigurationManager.getInstance();
+    const analyzerWatcher = createAnalyzerConfigWatcher(configManager);
+    if (analyzerWatcher) {
+        context.subscriptions.push(analyzerWatcher);
+    }
     const broadcastSettings = (controlsOverride) => {
         const controls = controlsOverride || configManager.loadControls({ ignoreCache: true });
         settingsProvider.handleSettingsChanged(controls);
@@ -100,3 +104,16 @@ module.exports = {
     activate,
     deactivate
 };
+
+function createAnalyzerConfigWatcher(configManager) {
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        return null;
+    }
+    const pattern = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], '.vscode/dependviz/analyzer.json');
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+    const handler = () => configManager.handleAnalyzerConfigExternalChange();
+    watcher.onDidChange(handler);
+    watcher.onDidCreate(handler);
+    watcher.onDidDelete(handler);
+    return watcher;
+}

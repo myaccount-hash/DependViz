@@ -1,0 +1,32 @@
+{
+    "filters": {
+        "node": {
+            "Class": true,
+            "AbstractClass": true,
+            "Interface": true,
+            "Unknown": false
+        },
+        "edge": {
+            "ObjectCreate": true,
+            "Extends": true,
+            "Implements": true,
+            "TypeUse": true,
+            "MethodCall": true
+        }
+    },
+    "colors": {
+        "node": {
+            "Class": "#93c5fd",
+            "AbstractClass": "#d8b4fe",
+            "Interface": "#6ee7b7",
+            "Unknown": "#9ca3af"
+        },
+        "edge": {
+            "ObjectCreate": "#fde047",
+            "Extends": "#d8b4fe",
+            "Implements": "#6ee7b7",
+            "TypeUse": "#fdba74",
+            "MethodCall": "#fda4af"
+        }
+    }
+}

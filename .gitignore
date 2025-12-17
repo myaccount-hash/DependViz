@@ -24,6 +24,8 @@ java/dependency-reduced-pom.xml
 # IDE
 .vscode/*
 !.vscode/launch.json
+!.vscode/dependviz/
+!.vscode/dependviz/analyzer.json
 .idea/
 *.swp
 *.swo

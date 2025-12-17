@@ -43,12 +43,6 @@ function registerCommands(context, providers) {
                 await configManager.updateControl(key, parseFloat(value));
             }
         }),
-        vscode.commands.registerCommand('forceGraphViewer.showColorPicker', async (key, currentColor) => {
-            const color = await vscode.window.showInputBox({ prompt: '色を入力 (例: #ff0000)', value: currentColor, validateInput: (v) => /^#[0-9a-fA-F]{6}$/.test(v) ? null : '有効な16進数カラーコードを入力してください (例: #ff0000)' });
-            if (color !== undefined) {
-                await configManager.updateControl(key, color);
-            }
-        }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeJavaProject', async () => {
             const graphData = await javaAnalyzer.analyze();
             if (graphData) {

@@ -77,11 +77,6 @@
         "icon": "$(close)"
       },
       {
-        "command": "forceGraphViewer.showColorPicker",
-        "title": "Pick Color",
-        "category": "DependViz"
-      },
-      {
         "command": "forceGraphViewer.analyzeJavaProject",
         "title": "Analyze Java Project",
         "category": "DependViz",
@@ -249,96 +244,6 @@
           "type": "boolean",
           "default": true,
           "description": "逆方向スライスを有効化"
-        },
-        "forceGraphViewer.showClass": {
-          "type": "boolean",
-          "default": true,
-          "description": "クラスを表示"
-        },
-        "forceGraphViewer.showAbstractClass": {
-          "type": "boolean",
-          "default": true,
-          "description": "抽象クラスを表示"
-        },
-        "forceGraphViewer.showInterface": {
-          "type": "boolean",
-          "default": true,
-          "description": "インターフェースを表示"
-        },
-        "forceGraphViewer.showUnknown": {
-          "type": "boolean",
-          "default": false,
-          "description": "不明なタイプを表示"
-        },
-        "forceGraphViewer.showObjectCreate": {
-          "type": "boolean",
-          "default": true,
-          "description": "オブジェクト作成エッジを表示"
-        },
-        "forceGraphViewer.showExtends": {
-          "type": "boolean",
-          "default": true,
-          "description": "継承エッジを表示"
-        },
-        "forceGraphViewer.showImplements": {
-          "type": "boolean",
-          "default": true,
-          "description": "実装エッジを表示"
-        },
-        "forceGraphViewer.showTypeUse": {
-          "type": "boolean",
-          "default": true,
-          "description": "型使用エッジを表示"
-        },
-        "forceGraphViewer.showMethodCall": {
-          "type": "boolean",
-          "default": true,
-          "description": "メソッド呼び出しエッジを表示"
-        },
-        "forceGraphViewer.colorClass": {
-          "type": "string",
-          "default": "#3b82f6",
-          "description": "クラスの色"
-        },
-        "forceGraphViewer.colorAbstractClass": {
-          "type": "string",
-          "default": "#a21caf",
-          "description": "抽象クラスの色"
-        },
-        "forceGraphViewer.colorInterface": {
-          "type": "string",
-          "default": "#10b981",
-          "description": "インターフェースの色"
-        },
-        "forceGraphViewer.colorUnknown": {
-          "type": "string",
-          "default": "#6b7280",
-          "description": "不明なタイプの色"
-        },
-        "forceGraphViewer.colorObjectCreate": {
-          "type": "string",
-          "default": "#facc15",
-          "description": "オブジェクト作成エッジの色"
-        },
-        "forceGraphViewer.colorExtends": {
-          "type": "string",
-          "default": "#a21caf",
-          "description": "継承エッジの色"
-        },
-        "forceGraphViewer.colorImplements": {
-          "type": "string",
-          "default": "#10b981",
-          "description": "実装エッジの色"
-        },
-        "forceGraphViewer.colorTypeUse": {
-          "type": "string",
-          "default": "#fb923c",
-          "description": "型使用エッジの色"
-        },
-        "forceGraphViewer.colorMethodCall": {
-          "type": "string",
-          "default": "#fb923c",
-          "description": "メソッド呼び出しエッジの色"
         }
       }
     }
