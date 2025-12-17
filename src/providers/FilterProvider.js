@@ -8,6 +8,10 @@ const FILTER_ITEMS = JavaAnalyzer.getTypeInfo().map(info => {
     return ['checkbox', `${prefix}: ${info.type}`, info.filterKey];
 });
 
+/**
+ * フィルタ設定UIを提供するTreeDataProvider実装
+ * Analyzerに唯一依存する
+ */
 class FilterProvider extends BaseProvider {
     constructor() {
         super();
