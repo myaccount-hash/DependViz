@@ -42,6 +42,10 @@ class JavaAnalyzer extends BaseAnalyzer {
         this.outputChannel = null;
     }
 
+    isFileSupported(filePath) {
+        return typeof filePath === 'string' && filePath.endsWith('.java');
+    }
+
     /**
      * Language Clientを起動
      */

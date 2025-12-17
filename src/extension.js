@@ -6,19 +6,22 @@ const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./utils/StackTrace');
 const JavaAnalyzer = require('./analyzers/JavaAnalyzer');
+const JavaScriptAnalyzer = require('./analyzers/JavaScriptAnalyzer');
 
 process.env.VSCODE_DISABLE_TELEMETRY = '1';
 
 // グローバルなLanguage Client インスタンス
 let javaAnalyzer = null;
+let javascriptAnalyzer = null;
 
 function activate(context) {
     const settingsProvider = new GraphSettingsProvider();
     const filterProvider = new FilterProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
 
-    // Java Analyzer (Language Client) を初期化（起動はコマンド実行時にオンデマンドで行う）
+    // Analyzer インスタンスを初期化
     javaAnalyzer = new JavaAnalyzer(context);
+    javascriptAnalyzer = new JavaScriptAnalyzer();
 
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.createTreeView('forceGraphViewer.filters', { treeDataProvider: filterProvider });
@@ -46,7 +49,10 @@ function activate(context) {
         settingsProvider,
         filterProvider,
         graphViewProvider,
-        javaAnalyzer
+        analyzers: {
+            [JavaAnalyzer.analyzerId]: javaAnalyzer,
+            [JavaScriptAnalyzer.analyzerId]: javascriptAnalyzer
+        }
     };
 
     const commands = registerCommands(context, providers);

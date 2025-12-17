@@ -1,4 +1,8 @@
 class BaseAnalyzer {
+    constructor() {
+        this.analyzerId = this.constructor.analyzerId;
+    }
+
     static get analyzerId() {
         throw new Error('analyzerId must be implemented');
     }

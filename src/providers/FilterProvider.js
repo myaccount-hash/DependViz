@@ -5,7 +5,7 @@ const { getAnalyzerClassById, getAnalyzerOptions, getDefaultAnalyzerId } = requi
 
 /**
  * フィルタ設定UIを提供するTreeDataProvider実装
- * Analyzer関連操作を集約
+ * Providerの中で唯一Analyzerの情報を参照する
  */
 class FilterProvider extends BaseProvider {
     constructor() {

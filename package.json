@@ -82,8 +82,8 @@
         "icon": "$(close)"
       },
       {
-        "command": "forceGraphViewer.analyzeJavaProject",
-        "title": "Analyze Java Project",
+        "command": "forceGraphViewer.analyzeProject",
+        "title": "Analyze Project",
         "category": "DependViz",
         "icon": "$(play)"
       },
@@ -121,7 +121,7 @@
           "group": "navigation@1"
         },
         {
-          "command": "forceGraphViewer.analyzeJavaProject",
+          "command": "forceGraphViewer.analyzeProject",
           "when": "view == forceGraphViewer.sidebar",
           "group": "navigation@2"
         },

@@ -209,6 +209,10 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         return links.some(link => link.source === source && link.target === target && link.type === type);
     }
 
+    isFileSupported(filePath) {
+        return this._isSupportedFile(filePath);
+    }
+
     _isSupportedFile(filePath) {
         return this.supportedExtensions.includes(path.extname(filePath));
     }
