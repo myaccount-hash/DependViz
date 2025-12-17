@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterProvider = require('./providers/FilterProvider');
-const SettingsProvider = require('./providers/SettingsProvider');
+const GraphSettingsProvider = require('./providers/GraphSettingsProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./utils/StackTrace');
@@ -13,7 +13,7 @@ process.env.VSCODE_DISABLE_TELEMETRY = '1';
 let javaAnalyzer = null;
 
 function activate(context) {
-    const settingsProvider = new SettingsProvider();
+    const settingsProvider = new GraphSettingsProvider();
     const filterProvider = new FilterProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
 

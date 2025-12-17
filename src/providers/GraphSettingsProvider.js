@@ -42,7 +42,7 @@ const DETAIL_ITEMS = [
 /**
 * 設定UIを提供するTreeDataProvider実装
 */
-class SettingsProvider extends BaseProvider {
+class GraphSettingsProvider extends BaseProvider {
     constructor() {
         super();
         this._onDidChangeTreeData = new vscode.EventEmitter();
@@ -94,4 +94,4 @@ class SettingsProvider extends BaseProvider {
     }
 }
 
-module.exports = SettingsProvider;
+module.exports = GraphSettingsProvider;
