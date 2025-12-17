@@ -1,5 +1,6 @@
 /**
  * 拡張機能とWebView間の通信を管理するシングルトンクラス
+ * 通信は必ずこのクラスを介して行う
  */
 class ExtensionBridge {
   static instance = null;

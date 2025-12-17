@@ -64,6 +64,8 @@ const messageCreators = {
 /**
  * Webviewとのメッセージングを管理するクラス
  * ExtensionBridgeと対応する
+ * 通信は必ずこのクラスを介して行う
+ * GraphViewProviderからのみ使用される
  */
 class WebviewBridge {
     constructor() {
@@ -141,6 +143,10 @@ class WebviewBridge {
     }
 }
 
+/**
+ * Graph Viewを提供するTreeDataProvider実装
+ * 主にWebviewとの通信を管理する
+ */
 class GraphViewProvider extends BaseProvider {
     constructor(extensionUri) {
         super();

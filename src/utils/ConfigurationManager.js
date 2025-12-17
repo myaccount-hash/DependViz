@@ -94,7 +94,7 @@ function buildTypeControlMap(typeInfo) {
 
 /**
  * VS Code設定を一元管理するシングルトンクラス
- * - 設定の読み書きを統一
+ * 設定の読み書きを統一
  */
 class ConfigurationManager {
     static instance = null;
