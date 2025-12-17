@@ -8,7 +8,7 @@ const { ConfigurationManager } = require('./utils/ConfigurationManager');
  * @returns 
  */
 function registerCommands(context, providers) {
-    const { settingsProvider, graphViewProvider, javaAnalyzer } = providers;
+    const { settingsProvider, filterProvider, graphViewProvider, javaAnalyzer } = providers;
     const configManager = ConfigurationManager.getInstance();
 
     const createSliceCommand = (direction) => async () => {
@@ -19,6 +19,7 @@ function registerCommands(context, providers) {
     const commands = [
         vscode.commands.registerCommand('forceGraphViewer.refresh', async () => {
             settingsProvider.refresh();
+            filterProvider.refresh();
             await graphViewProvider.refresh();
         }),
         vscode.commands.registerCommand('forceGraphViewer.showSearchInput', async () => {

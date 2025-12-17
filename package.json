@@ -36,6 +36,11 @@
           "icon": "$(settings-gear)"
         },
         {
+          "id": "forceGraphViewer.filters",
+          "name": "フィルタ",
+          "icon": "$(filter)"
+        },
+        {
           "id": "forceGraphViewer.sidebar",
           "name": "グラフビュー",
           "type": "webview",

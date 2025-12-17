@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const BaseSettingsConsumer = require('./BaseSettingsConsumer');
+const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
 const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../utils/ConfigurationManager');
 
@@ -141,7 +141,7 @@ class WebviewBridge {
     }
 }
 
-class GraphViewProvider extends BaseSettingsConsumer {
+class GraphViewProvider extends BaseProvider {
     constructor(extensionUri) {
         super();
         this._extensionUri = extensionUri;

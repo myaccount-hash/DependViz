@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const BaseSettingsConsumer = require('./BaseSettingsConsumer');
+const { BaseProvider, CheckboxControlItem, SliderControlItem, SectionItem, SearchControlItem } = require('./BaseProvider');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
 
 const SLIDER_RANGES = {
@@ -13,18 +13,6 @@ const SLIDER_RANGES = {
     sliceDepth: { min: 1, max: 10, step: 1 },
     dimOpacity: { min: 0.05, max: 1, step: 0.05 }
 };
-
-const JAVA_ITEMS = [
-    ['checkbox', 'Node: Class', 'showClass'],
-    ['checkbox', 'Node: AbstractClass', 'showAbstractClass'],
-    ['checkbox', 'Node: Interface', 'showInterface'],
-    ['checkbox', 'Node: Unknown', 'showUnknown'],
-    ['checkbox', 'Link: ObjectCreate', 'showObjectCreate'],
-    ['checkbox', 'Link: Extends', 'showExtends'],
-    ['checkbox', 'Link: Implements', 'showImplements'],
-    ['checkbox', 'Link: TypeUse', 'showTypeUse'],
-    ['checkbox', 'Link: MethodCall', 'showMethodCall']
-];
 
 const APPEARANCE_ITEMS = [
     ['search', '検索', 'search'],
@@ -54,7 +42,7 @@ const DETAIL_ITEMS = [
 /**
 * 設定UIを提供するTreeDataProvider実装
 */
-class SettingsProvider extends BaseSettingsConsumer {
+class SettingsProvider extends BaseProvider {
     constructor() {
         super();
         this._onDidChangeTreeData = new vscode.EventEmitter();
@@ -86,7 +74,6 @@ class SettingsProvider extends BaseSettingsConsumer {
 
     getRootItems() {
         return [
-            new SectionItem('Java設定', JAVA_ITEMS.map(c => this.createControlItem(c))),
             new SectionItem('表示設定', APPEARANCE_ITEMS.map(c => this.createControlItem(c))),
             new SectionItem('詳細設定', DETAIL_ITEMS.map(c => this.createControlItem(c)))
         ];
@@ -104,59 +91,6 @@ class SettingsProvider extends BaseSettingsConsumer {
     handleSettingsChanged(controls) {
         super.handleSettingsChanged(controls);
         this.refresh();
-    }
-}
-
-class CheckboxControlItem extends vscode.TreeItem {
-    constructor(label, checked, key) {
-        super(label, vscode.TreeItemCollapsibleState.None);
-        this.contextValue = 'checkboxControl';
-        this.key = key;
-        this.checked = checked;
-        this.iconPath = new vscode.ThemeIcon(checked ? 'check' : 'circle-outline');
-        this.command = {
-            command: 'forceGraphViewer.toggleCheckbox',
-            title: 'Toggle',
-            arguments: [key]
-        };
-    }
-}
-
-class SliderControlItem extends vscode.TreeItem {
-    constructor(label, value, min, max, step, key) {
-        super(label, vscode.TreeItemCollapsibleState.None);
-        this.contextValue = 'sliderControl';
-        this.key = key;
-        this.value = value;
-        this.min = min;
-        this.max = max;
-        this.step = step;
-        this.description = value.toString();
-        this.command = {
-            command: 'forceGraphViewer.showSliderInput',
-            title: 'Adjust',
-            arguments: [key, min, max, step, value]
-        };
-    }
-}
-
-class SectionItem extends vscode.TreeItem {
-    constructor(label, children) {
-        super(label, vscode.TreeItemCollapsibleState.Collapsed);
-        this.contextValue = 'section';
-        this.children = children;
-    }
-}
-
-class SearchControlItem extends vscode.TreeItem {
-    constructor(label, value) {
-        super(label, vscode.TreeItemCollapsibleState.None);
-        this.contextValue = 'searchControl';
-        this.description = value || '検索...';
-        this.command = {
-            command: 'forceGraphViewer.showSearchInput',
-            title: '検索'
-        };
     }
 }
 

@@ -1,6 +1,7 @@
 const vscode = require('vscode');
-const SettingsProvider = require('./providers/SettingsProvider');
 const GraphViewProvider = require('./providers/GraphViewProvider');
+const FilterProvider = require('./providers/FilterProvider');
+const SettingsProvider = require('./providers/SettingsProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const { updateStackTrace } = require('./utils/StackTrace');
@@ -13,18 +14,21 @@ let javaAnalyzer = null;
 
 function activate(context) {
     const settingsProvider = new SettingsProvider();
+    const filterProvider = new FilterProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
 
     // Java Analyzer (Language Client) を初期化（起動はコマンド実行時にオンデマンドで行う）
     javaAnalyzer = new JavaAnalyzer(context);
 
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
+    vscode.window.createTreeView('forceGraphViewer.filters', { treeDataProvider: filterProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
     const configManager = ConfigurationManager.getInstance();
     const broadcastSettings = (controlsOverride) => {
         const controls = controlsOverride || configManager.loadControls({ ignoreCache: true });
         settingsProvider.handleSettingsChanged(controls);
+        filterProvider.handleSettingsChanged(controls);
         graphViewProvider.handleSettingsChanged(controls);
         return controls;
     };
@@ -36,6 +40,7 @@ function activate(context) {
 
     const providers = {
         settingsProvider,
+        filterProvider,
         graphViewProvider,
         javaAnalyzer
     };
