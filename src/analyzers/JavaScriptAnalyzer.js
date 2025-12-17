@@ -12,13 +12,13 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
     }
 
     static get displayName() {
-        return 'JavaScript (Babel)';
+        return 'Babel(JavaScript)';
     }
 
     static getTypeDefinitions() {
         return {
             node: [
-                { type: 'JavaScriptFile', defaultEnabled: true, defaultColor: '#fcd34d' }
+                { type: 'File', defaultEnabled: true, defaultColor: '#fcd34d' }
             ],
             edge: [
                 { type: 'Import', defaultEnabled: true, defaultColor: '#38bdf8' },
@@ -105,7 +105,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         return {
             id: relativePath,
             name: relativePath,
-            type: 'JavaScriptFile',
+            type: 'File',
             filePath,
             linesOfCode: this._countLines(content)
         };

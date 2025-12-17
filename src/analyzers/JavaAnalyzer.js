@@ -14,7 +14,7 @@ class JavaAnalyzer extends BaseAnalyzer {
     }
 
     static get displayName() {
-        return 'Java (Language Server)';
+        return 'JavaParser(Java)';
     }
 
     static getTypeDefinitions() {
