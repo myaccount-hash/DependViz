@@ -300,6 +300,14 @@ class ConfigurationManager {
             const value = getValueAtPath(analyzerConfig, pathParts);
             controls[key] = value !== undefined ? value : defaultValue;
         }
+        controls.typeFilters = {
+            node: { ...(analyzerConfig.filters?.node || {}) },
+            edge: { ...(analyzerConfig.filters?.edge || {}) }
+        };
+        controls.typeColors = {
+            node: { ...(analyzerConfig.colors?.node || {}) },
+            edge: { ...(analyzerConfig.colors?.edge || {}) }
+        };
         return controls;
     }
 

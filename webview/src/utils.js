@@ -1,8 +1,16 @@
 export function applyFilter(nodes, links, state) {
   const controls = state.controls;
+  const typeFilters = controls.typeFilters || {};
 
-  let filteredNodes = nodes.filter(node => {
-    if (!controls[`show${node.type}`]) return false;
+  const isTypeVisible = (category, type) => {
+    const map = typeFilters[category];
+    if (!map) return true;
+    if (!type) return true;
+    return map[type] !== undefined ? !!map[type] : true;
+  };
+
+  const filteredNodes = nodes.filter(node => {
+    if (!isTypeVisible('node', node.type)) return false;
     if (controls.hideIsolatedNodes && (!node.neighbors || node.neighbors.length === 0)) return false;
     if (controls.search && !matchesSearchQuery(node, controls.search)) return false;
     return true;
@@ -10,7 +18,7 @@ export function applyFilter(nodes, links, state) {
 
   const nodeIds = new Set(filteredNodes.map(n => n.id));
   const filteredLinks = links.filter(link => {
-    if (!controls[`show${link.type}`]) return false;
+    if (!isTypeVisible('edge', link.type)) return false;
     const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
     const targetId = typeof link.target === 'object' ? link.target.id : link.target;
     return nodeIds.has(sourceId) && nodeIds.has(targetId);

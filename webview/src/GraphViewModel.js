@@ -29,13 +29,8 @@ class GraphViewModel {
     this._currentRenderer = null;
     this.nodeRules = [
       (node, ctx) => {
-        const map = {
-          Class: ctx.controls.colorClass,
-          AbstractClass: ctx.controls.colorAbstractClass,
-          Interface: ctx.controls.colorInterface,
-          Unknown: ctx.controls.colorUnknown
-        };
-        return map[node.type] ? { color: map[node.type] } : null;
+        const color = ctx._getTypeColor('node', node.type);
+        return color ? { color } : null;
       },
       (node, ctx) => ctx.controls.nodeSizeByLoc && node.linesOfCode > 0 && {
         sizeMultiplier: Math.max(1, Math.pow(node.linesOfCode, 0.7))
@@ -51,14 +46,8 @@ class GraphViewModel {
         };
       },
       (link, ctx) => {
-        const map = {
-          ObjectCreate: ctx.controls.colorObjectCreate,
-          Extends: ctx.controls.colorExtends,
-          Implements: ctx.controls.colorImplements,
-          TypeUse: ctx.controls.colorTypeUse,
-          MethodCall: ctx.controls.colorMethodCall
-        };
-        return map[link.type] ? { color: map[link.type] } : null;
+        const color = ctx._getTypeColor('edge', link.type);
+        return color ? { color } : null;
       }
     ];
   }
@@ -136,6 +125,14 @@ class GraphViewModel {
     if (!this.controls.shortNames) return node.name;
     const lastDot = node.name.lastIndexOf('.');
     return lastDot !== -1 ? node.name.substring(lastDot + 1) : node.name;
+  }
+
+  _getTypeColor(category, type) {
+    if (!type) return null;
+    const map = this.controls.typeColors?.[category];
+    if (!map) return null;
+    const color = map[type];
+    return typeof color === 'string' && color.length > 0 ? color : null;
   }
 
   _applyRules(item, rules, defaults) {
