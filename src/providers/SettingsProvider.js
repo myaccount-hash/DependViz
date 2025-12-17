@@ -51,18 +51,6 @@ const DETAIL_ITEMS = [
     ['slider', 'エッジ透明度', 'edgeOpacity', SLIDER_RANGES.opacity]
 ];
 
-const COLOR_ITEMS = [
-    ['color', 'Node: Class', 'colorClass'],
-    ['color', 'Node: AbstractClass', 'colorAbstractClass'],
-    ['color', 'Node: Interface', 'colorInterface'],
-    ['color', 'Node: Unknown', 'colorUnknown'],
-    ['color', 'Link: ObjectCreate', 'colorObjectCreate'],
-    ['color', 'Link: Extends', 'colorExtends'],
-    ['color', 'Link: Implements', 'colorImplements'],
-    ['color', 'Link: TypeUse', 'colorTypeUse'],
-    ['color', 'Link: MethodCall', 'colorMethodCall']
-];
-
 /**
 * 設定UIを提供するTreeDataProvider実装
 */
@@ -100,8 +88,7 @@ class SettingsProvider extends BaseSettingsConsumer {
         return [
             new SectionItem('フィルタ設定', FILTER_ITEMS.map(c => this.createControlItem(c))),
             new SectionItem('表示モード', APPEARANCE_ITEMS.map(c => this.createControlItem(c))),
-            new SectionItem('詳細設定', DETAIL_ITEMS.map(c => this.createControlItem(c))),
-            new SectionItem('色設定', COLOR_ITEMS.map(c => this.createControlItem(c)))
+            new SectionItem('詳細設定', DETAIL_ITEMS.map(c => this.createControlItem(c)))
         ];
     }
 
@@ -111,7 +98,6 @@ class SettingsProvider extends BaseSettingsConsumer {
         if (type === 'search') return new SearchControlItem(label, value);
         if (type === 'checkbox') return new CheckboxControlItem(label, value, key);
         if (type === 'slider') return new SliderControlItem(label, value, c[3].min, c[3].max, c[3].step, key);
-        if (type === 'color') return new ColorControlItem(label, value, key);
         throw new Error(`Unknown control type: ${type}`);
     }
 
@@ -150,21 +136,6 @@ class SliderControlItem extends vscode.TreeItem {
             command: 'forceGraphViewer.showSliderInput',
             title: 'Adjust',
             arguments: [key, min, max, step, value]
-        };
-    }
-}
-
-class ColorControlItem extends vscode.TreeItem {
-    constructor(label, value, key) {
-        super(label, vscode.TreeItemCollapsibleState.None);
-        this.contextValue = 'colorControl';
-        this.key = key;
-        this.value = value;
-        this.description = value;
-        this.command = {
-            command: 'forceGraphViewer.showColorPicker',
-            title: 'Pick Color',
-            arguments: [key, value]
         };
     }
 }
