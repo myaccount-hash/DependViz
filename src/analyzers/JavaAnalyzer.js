@@ -8,6 +8,75 @@ const { mergeGraphData, validateGraphData } = require('../utils/utils');
  * Language Serverを使用してJavaプロジェクトを解析
  */
 class JavaAnalyzer {
+    static getTypeInfo() {
+        if (!this._typeInfo) {
+            this._typeInfo = this._buildTypeInfo();
+        }
+        return this._typeInfo.map(info => ({ ...info }));
+    }
+
+    static getTypeDefaults() {
+        if (!this._typeDefaults) {
+            this._typeDefaults = this._buildTypeDefaults();
+        }
+        return JSON.parse(JSON.stringify(this._typeDefaults));
+    }
+
+    static _buildTypeInfo() {
+        const definitions = this._getTypeDefinitions();
+        const list = [];
+        for (const [category, defs] of Object.entries(definitions)) {
+            defs.forEach((def) => {
+                list.push({
+                    category,
+                    type: def.type,
+                    defaultEnabled: def.defaultEnabled !== undefined ? !!def.defaultEnabled : true,
+                    defaultColor: def.defaultColor,
+                    filterKey: this._buildSettingKey('show', def.type),
+                    colorKey: this._buildSettingKey('color', def.type)
+                });
+            });
+        }
+        return list;
+    }
+
+    static _buildTypeDefaults() {
+        if (!this._typeInfo) {
+            this._typeInfo = this._buildTypeInfo();
+        }
+        const defaults = { filters: { node: {}, edge: {} }, colors: { node: {}, edge: {} } };
+        this._typeInfo.forEach(info => {
+            defaults.filters[info.category][info.type] = info.defaultEnabled;
+            defaults.colors[info.category][info.type] = info.defaultColor;
+        });
+        return defaults;
+    }
+
+    static _buildSettingKey(prefix, typeName) {
+        return `${prefix}${typeName}`;
+    }
+
+    static _getTypeDefinitions() {
+        if (!this._typeDefinitions) {
+            this._typeDefinitions = Object.freeze({
+                node: [
+                    { type: 'Class', defaultEnabled: true, defaultColor: '#93c5fd' },
+                    { type: 'AbstractClass', defaultEnabled: true, defaultColor: '#d8b4fe' },
+                    { type: 'Interface', defaultEnabled: true, defaultColor: '#6ee7b7' },
+                    { type: 'Unknown', defaultEnabled: false, defaultColor: '#9ca3af' }
+                ],
+                edge: [
+                    { type: 'ObjectCreate', defaultEnabled: true, defaultColor: '#fde047' },
+                    { type: 'Extends', defaultEnabled: true, defaultColor: '#d8b4fe' },
+                    { type: 'Implements', defaultEnabled: true, defaultColor: '#6ee7b7' },
+                    { type: 'TypeUse', defaultEnabled: true, defaultColor: '#fdba74' },
+                    { type: 'MethodCall', defaultEnabled: true, defaultColor: '#fda4af' }
+                ]
+            });
+        }
+        return this._typeDefinitions;
+    }
+
     constructor(context) {
         this.context = context;
         this.client = null;
@@ -220,4 +289,3 @@ JavaAnalyzer.prototype._getWorkspaceFolder = function () {
 };
 
 module.exports = JavaAnalyzer;
-

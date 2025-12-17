@@ -1,18 +1,12 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem } = require('./BaseProvider');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
+const JavaAnalyzer = require('../analyzers/JavaAnalyzer');
 
-const FILTER_ITEMS = [
-    ['checkbox', 'Node: Class', 'showClass'],
-    ['checkbox', 'Node: AbstractClass', 'showAbstractClass'],
-    ['checkbox', 'Node: Interface', 'showInterface'],
-    ['checkbox', 'Node: Unknown', 'showUnknown'],
-    ['checkbox', 'Link: ObjectCreate', 'showObjectCreate'],
-    ['checkbox', 'Link: Extends', 'showExtends'],
-    ['checkbox', 'Link: Implements', 'showImplements'],
-    ['checkbox', 'Link: TypeUse', 'showTypeUse'],
-    ['checkbox', 'Link: MethodCall', 'showMethodCall']
-];
+const FILTER_ITEMS = JavaAnalyzer.getTypeInfo().map(info => {
+    const prefix = info.category === 'node' ? 'Node' : 'Link';
+    return ['checkbox', `${prefix}: ${info.type}`, info.filterKey];
+});
 
 class FilterProvider extends BaseProvider {
     constructor() {

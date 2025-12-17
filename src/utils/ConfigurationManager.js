@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const JavaAnalyzer = require('../analyzers/JavaAnalyzer');
 
 const COLORS = {
     STACK_TRACE_LINK: '#51cf66',
@@ -35,64 +36,10 @@ const CONTROL_DEFAULTS = {
 
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
 
-const ANALYZER_DEFAULTS = {
-    filters: {
-        node: {
-            Class: true,
-            AbstractClass: true,
-            Interface: true,
-            Unknown: false
-        },
-        edge: {
-            ObjectCreate: true,
-            Extends: true,
-            Implements: true,
-            TypeUse: true,
-            MethodCall: true
-        }
-    },
-    colors: {
-        node: {
-            Class: '#93c5fd',
-            AbstractClass: '#d8b4fe',
-            Interface: '#6ee7b7',
-            Unknown: '#9ca3af'
-        },
-        edge: {
-            ObjectCreate: '#fde047',
-            Extends: '#d8b4fe',
-            Implements: '#6ee7b7',
-            TypeUse: '#fdba74',
-            MethodCall: '#fda4af'
-        }
-    }
-};
-
-const FILTER_KEY_MAP = {
-    showClass: ['filters', 'node', 'Class'],
-    showAbstractClass: ['filters', 'node', 'AbstractClass'],
-    showInterface: ['filters', 'node', 'Interface'],
-    showUnknown: ['filters', 'node', 'Unknown'],
-    showObjectCreate: ['filters', 'edge', 'ObjectCreate'],
-    showExtends: ['filters', 'edge', 'Extends'],
-    showImplements: ['filters', 'edge', 'Implements'],
-    showTypeUse: ['filters', 'edge', 'TypeUse'],
-    showMethodCall: ['filters', 'edge', 'MethodCall']
-};
-
-const COLOR_KEY_MAP = {
-    colorClass: ['colors', 'node', 'Class'],
-    colorAbstractClass: ['colors', 'node', 'AbstractClass'],
-    colorInterface: ['colors', 'node', 'Interface'],
-    colorUnknown: ['colors', 'node', 'Unknown'],
-    colorObjectCreate: ['colors', 'edge', 'ObjectCreate'],
-    colorExtends: ['colors', 'edge', 'Extends'],
-    colorImplements: ['colors', 'edge', 'Implements'],
-    colorTypeUse: ['colors', 'edge', 'TypeUse'],
-    colorMethodCall: ['colors', 'edge', 'MethodCall']
-};
-
-const ANALYZER_KEY_MAP = { ...FILTER_KEY_MAP, ...COLOR_KEY_MAP };
+const JAVA_TYPE_INFO = JavaAnalyzer.getTypeInfo();
+const ANALYZER_DEFAULTS = JavaAnalyzer.getTypeDefaults();
+const ANALYZER_KEY_MAP = buildAnalyzerKeyMap(JAVA_TYPE_INFO);
+const TYPE_CONTROL_MAP = buildTypeControlMap(JAVA_TYPE_INFO);
 
 function cloneAnalyzerDefaults() {
     return JSON.parse(JSON.stringify(ANALYZER_DEFAULTS));
@@ -134,24 +81,24 @@ function mergeWithDefaults(overrides) {
     return deepMerge(base, overrides);
 }
 
-/**
- * ノード・エッジタイプと設定キーのマッピング
- */
-const TYPE_CONTROL_MAP = {
-    node: {
-        'Class': 'showClass',
-        'AbstractClass': 'showAbstractClass',
-        'Interface': 'showInterface',
-        'Unknown': 'showUnknown'
-    },
-    edge: {
-        'ObjectCreate': 'showObjectCreate',
-        'Extends': 'showExtends',
-        'Implements': 'showImplements',
-        'TypeUse': 'showTypeUse',
-        'MethodCall': 'showMethodCall'
-    }
-};
+function buildAnalyzerKeyMap(typeInfo) {
+    const map = {};
+    typeInfo.forEach(info => {
+        map[info.filterKey] = ['filters', info.category, info.type];
+        map[info.colorKey] = ['colors', info.category, info.type];
+    });
+    return map;
+}
+
+function buildTypeControlMap(typeInfo) {
+    return typeInfo.reduce((acc, info) => {
+        if (!acc[info.category]) {
+            acc[info.category] = {};
+        }
+        acc[info.category][info.type] = info.filterKey;
+        return acc;
+    }, { node: {}, edge: {} });
+}
 
 /**
  * VS Code設定を一元管理するシングルトンクラス
