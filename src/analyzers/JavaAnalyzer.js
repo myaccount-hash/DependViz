@@ -220,3 +220,4 @@ JavaAnalyzer.prototype._getWorkspaceFolder = function () {
 };
 
 module.exports = JavaAnalyzer;
+
