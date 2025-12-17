@@ -12,7 +12,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
     }
 
     static get displayName() {
-        return 'Babel(JavaScript)';
+        return '実験中: Babel(JavaScript)';
     }
 
     static getTypeDefinitions() {
