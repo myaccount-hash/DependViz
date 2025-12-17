@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const { ConfigurationManager } = require('../utils/ConfigurationManager');
 
-class StackTraceProvider {
+class CallStackProvider {
     constructor() {
         this._sessions = [];
         this._configManager = ConfigurationManager.getInstance();
@@ -195,7 +195,7 @@ class StackTraceProvider {
 
     async _persistSessions() {
         try {
-            await this._configManager.updateStackTraceCache(this._sessions);
+            await this._configManager.updateCallStackCache(this._sessions);
         } catch (e) {
             console.warn('Failed to persist stack trace cache:', e.message);
         }
@@ -203,7 +203,7 @@ class StackTraceProvider {
 
     _loadCache() {
         try {
-            const cache = this._configManager.getStackTraceCache();
+            const cache = this._configManager.getCallStackCache();
             if (Array.isArray(cache) && cache.length > 0) {
                 this._sessions = cache;
             }
@@ -271,4 +271,4 @@ function truncate(text, maxLength) {
     return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
 }
 
-module.exports = StackTraceProvider;
+module.exports = CallStackProvider;

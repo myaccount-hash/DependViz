@@ -18,7 +18,7 @@ const APPEARANCE_ITEMS = [
     ['search', '検索', 'search'],
     ['checkbox', '3D表示', 'is3DMode'],
     ['checkbox', '行数反映', 'nodeSizeByLoc'],
-    ['checkbox', 'スタックトレース', 'showStackTrace'],
+    ['checkbox', 'スタックトレース', 'showCallStack'],
     ['checkbox', '名前表示', 'showNames'],
     ['checkbox', '短縮名表示', 'shortNames'],
     ['checkbox', '孤立ノード非表示', 'hideIsolatedNodes'],

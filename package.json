@@ -98,12 +98,12 @@
         "category": "DependViz"
       },
       {
-        "command": "forceGraphViewer.updateStackTrace",
+        "command": "forceGraphViewer.updateCallStack",
         "title": "Update Stack Trace",
         "category": "DependViz"
       },
       {
-        "command": "forceGraphViewer.removeStackTraceEntry",
+        "command": "forceGraphViewer.removeCallStackEntry",
         "title": "スタックトレース履歴を削除",
         "category": "DependViz"
         ,
@@ -145,7 +145,7 @@
       ],
       "view/item/context": [
         {
-          "command": "forceGraphViewer.removeStackTraceEntry",
+          "command": "forceGraphViewer.removeCallStackEntry",
           "when": "view == forceGraphViewer.stackTrace && viewItem == stackTraceEntry",
           "group": "inline"
         }
@@ -179,7 +179,7 @@
           "default": false,
           "description": "孤立ノードを非表示"
         },
-        "forceGraphViewer.showStackTrace": {
+        "forceGraphViewer.showCallStack": {
           "type": "boolean",
           "default": true,
           "description": "スタックトレース表示"

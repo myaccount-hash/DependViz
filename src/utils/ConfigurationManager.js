@@ -17,7 +17,7 @@ const CONTROL_DEFAULTS = {
     is3DMode: false,
     nodeSizeByLoc: false,
     hideIsolatedNodes: false,
-    showStackTrace: true,
+    showCallStack: true,
     showNames: true,
     shortNames: true,
     nodeSize: 3.0,
@@ -366,14 +366,14 @@ class ConfigurationManager {
         return filePath;
     }
 
-    _getStackTraceCachePath() {
+    _getCallStackCachePath() {
         const folder = vscode.workspace.workspaceFolders?.[0];
         if (!folder) return null;
         return path.join(folder.uri.fsPath, STACKTRACE_CACHE_RELATIVE_PATH);
     }
 
-    _ensureStackTraceCacheFile() {
-        const filePath = this._getStackTraceCachePath();
+    _ensureCallStackCacheFile() {
+        const filePath = this._getCallStackCachePath();
         if (!filePath) return null;
         if (!fs.existsSync(filePath)) {
             fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -382,7 +382,7 @@ class ConfigurationManager {
         return filePath;
     }
 
-    _loadStackTraceCacheFromDisk(filePath) {
+    _loadCallStackCacheFromDisk(filePath) {
         try {
             const raw = fs.readFileSync(filePath, 'utf8');
             const parsed = JSON.parse(raw);
@@ -401,19 +401,19 @@ class ConfigurationManager {
         return [];
     }
 
-    getStackTraceCache() {
-        const filePath = this._getStackTraceCachePath();
+    getCallStackCache() {
+        const filePath = this._getCallStackCachePath();
         if (!filePath) {
             return [];
         }
         if (!fs.existsSync(filePath)) {
             return [];
         }
-        return this._loadStackTraceCacheFromDisk(filePath);
+        return this._loadCallStackCacheFromDisk(filePath);
     }
 
-    async updateStackTraceCache(entries) {
-        const filePath = this._ensureStackTraceCacheFile();
+    async updateCallStackCache(entries) {
+        const filePath = this._ensureCallStackCacheFile();
         if (!filePath) return;
 
         const data = { traces: Array.isArray(entries) ? entries : [] };

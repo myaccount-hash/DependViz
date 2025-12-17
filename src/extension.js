@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterProvider = require('./providers/FilterProvider');
 const GraphSettingsProvider = require('./providers/GraphSettingsProvider');
-const StackTraceProvider = require('./providers/StackTraceProvider');
+const CallStackProvider = require('./providers/CallStackProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
 const JavaAnalyzer = require('./analyzers/JavaAnalyzer');
@@ -18,7 +18,7 @@ function activate(context) {
     const settingsProvider = new GraphSettingsProvider();
     const filterProvider = new FilterProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
-    const stackTraceProvider = new StackTraceProvider();
+    const stackTraceProvider = new CallStackProvider();
 
     // Analyzer インスタンスを初期化
     javaAnalyzer = new JavaAnalyzer(context);
@@ -43,7 +43,7 @@ function activate(context) {
     };
 
     const initialControls = broadcastSettings();
-    if (initialControls.showStackTrace) {
+    if (initialControls.showCallStack) {
         stackTraceProvider.restore(graphViewProvider);
         stackTraceProvider.update(graphViewProvider);
     }
@@ -64,7 +64,7 @@ function activate(context) {
     const eventHandlers = [
         configManager.onDidChange(async (controls) => {
             const nextControls = broadcastSettings(controls);
-            if (nextControls.showStackTrace) {
+            if (nextControls.showCallStack) {
                 await stackTraceProvider.update(graphViewProvider);
             }
         }),
@@ -76,19 +76,19 @@ function activate(context) {
         vscode.window.onDidChangeActiveColorTheme(() => broadcastSettings()),
         vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
             const controls = broadcastSettings();
-            if (controls.showStackTrace && stackItem) {
+            if (controls.showCallStack && stackItem) {
                 await stackTraceProvider.update(graphViewProvider);
             }
         }),
         vscode.debug.onDidStartDebugSession(async () => {
             const controls = broadcastSettings();
-            if (controls.showStackTrace) {
+            if (controls.showCallStack) {
                 await stackTraceProvider.update(graphViewProvider);
             }
         }),
         vscode.debug.onDidTerminateDebugSession(() => {
             const controls = broadcastSettings();
-            if (controls.showStackTrace) {
+            if (controls.showCallStack) {
                 graphViewProvider.update({ type: 'stackTrace', paths: [] });
             }
         })

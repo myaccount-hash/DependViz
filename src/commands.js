@@ -98,7 +98,7 @@ function registerCommands(context, providers) {
                 vscode.window.showErrorMessage(`解析失敗: ${e.message}`);
             }
         }),
-        vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
+        vscode.commands.registerCommand('forceGraphViewer.updateCallStack', async () => {
             try {
                 await stackTraceProvider.update(graphViewProvider);
                 vscode.window.showInformationMessage('スタックトレースを更新しました');
@@ -106,7 +106,7 @@ function registerCommands(context, providers) {
                 vscode.window.showErrorMessage(`取得失敗: ${e.message}`);
             }
         }),
-        vscode.commands.registerCommand('forceGraphViewer.removeStackTraceEntry', async (item) => {
+        vscode.commands.registerCommand('forceGraphViewer.removeCallStackEntry', async (item) => {
             if (!item?.id) {
                 return;
             }
