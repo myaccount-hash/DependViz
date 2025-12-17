@@ -5,143 +5,7 @@ const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
 const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../utils/ConfigurationManager');
 
-const messageCreators = {
-    'graph:update': payload => {
-        if (!payload || typeof payload !== 'object') {
-            throw new Error('graph:update: payload must be an object');
-        }
-        const { controls, data, callStackPaths = [], dataVersion } = payload;
-        if (!controls || typeof controls !== 'object') {
-            throw new Error('graph:update: controls must be provided');
-        }
-        validateGraphData(data);
-        const message = {
-            type: 'graph:update',
-            payload: {
-                controls,
-                data,
-                callStackPaths: Array.isArray(callStackPaths) ? callStackPaths : []
-            }
-        };
-        if (typeof dataVersion === 'number') {
-            message.payload.dataVersion = dataVersion;
-        }
-        return message;
-    },
 
-    'view:update': payload => {
-        const validPayload = payload && typeof payload === 'object' ? payload : null;
-        if (!validPayload) {
-            throw new Error('view:update: payload must be an object');
-        }
-        const message = { type: 'view:update', payload: {} };
-
-        if (validPayload.controls && typeof validPayload.controls === 'object') {
-            message.payload.controls = validPayload.controls;
-        }
-        if (Array.isArray(validPayload.callStackPaths)) {
-            message.payload.callStackPaths = validPayload.callStackPaths;
-        }
-        return message;
-    },
-
-    'node:focus': nodeId => {
-        if (nodeId === undefined || nodeId === null) {
-            throw new Error('node:focus: nodeId is required');
-        }
-        return { type: 'node:focus', payload: { nodeId } };
-    },
-
-    'mode:toggle': () => {
-        return { type: 'mode:toggle', payload: {} };
-    },
-
-    'focus:clear': () => {
-        return { type: 'focus:clear', payload: {} };
-    }
-};
-
-/**
- * Webviewとのメッセージングを管理するクラス
- * ExtensionBridgeと対応する
- * 通信は必ずこのクラスを介して行う
- * GraphViewProviderからのみ使用される
- */
-class WebviewBridge {
-    constructor() {
-        this._webview = null;
-        this._ready = false;
-        this._queue = [];
-    }
-
-    attach(webview, handlers = {}) {
-        this._webview = webview;
-        this._ready = false;
-        this._queue = [];
-        this._handlers = handlers;
-        if (this._webview?.onDidReceiveMessage) {
-            this._webview.onDidReceiveMessage(async message => {
-                await this._handleReceive(message);
-            });
-        }
-    }
-
-    detach() {
-        this._webview = null;
-        this._ready = false;
-        this._queue = [];
-        this._handlers = null;
-    }
-
-    markReady() {
-        this._ready = true;
-        this._flush();
-    }
-
-    send(type, payload) {
-        const creator = messageCreators[type];
-        if (!creator) {
-            throw new Error(`Unknown message type: ${type}`);
-        }
-        this._dispatch(creator(payload));
-    }
-
-    _dispatch(message) {
-        if (!message || typeof message.type !== 'string') {
-            throw new Error('Invalid webview message payload');
-        }
-        if (!this._webview) {
-            return false;
-        }
-        if (this._ready) {
-            this._webview.postMessage(message);
-            return true;
-        }
-        this._queue.push(message);
-        return false;
-    }
-
-    _flush() {
-        if (!this._webview || !this._ready) return;
-        while (this._queue.length > 0) {
-            const message = this._queue.shift();
-            this._webview.postMessage(message);
-        }
-    }
-
-    async _handleReceive(message) {
-        if (!message || typeof message.type !== 'string') {
-            return;
-        }
-        if (message.type === 'ready') {
-            this.markReady();
-        }
-        const handler = this._handlers?.[message.type];
-        if (handler) {
-            await handler(message);
-        }
-    }
-}
 
 /**
  * Graph Viewを提供するTreeDataProvider実装
@@ -321,3 +185,140 @@ class GraphViewProvider extends BaseProvider {
 }
 
 module.exports = GraphViewProvider;
+const messageCreators = {
+    'graph:update': payload => {
+        if (!payload || typeof payload !== 'object') {
+            throw new Error('graph:update: payload must be an object');
+        }
+        const { controls, data, callStackPaths = [], dataVersion } = payload;
+        if (!controls || typeof controls !== 'object') {
+            throw new Error('graph:update: controls must be provided');
+        }
+        validateGraphData(data);
+        const message = {
+            type: 'graph:update',
+            payload: {
+                controls,
+                data,
+                callStackPaths: Array.isArray(callStackPaths) ? callStackPaths : []
+            }
+        };
+        if (typeof dataVersion === 'number') {
+            message.payload.dataVersion = dataVersion;
+        }
+        return message;
+    },
+
+    'view:update': payload => {
+        const validPayload = payload && typeof payload === 'object' ? payload : null;
+        if (!validPayload) {
+            throw new Error('view:update: payload must be an object');
+        }
+        const message = { type: 'view:update', payload: {} };
+
+        if (validPayload.controls && typeof validPayload.controls === 'object') {
+            message.payload.controls = validPayload.controls;
+        }
+        if (Array.isArray(validPayload.callStackPaths)) {
+            message.payload.callStackPaths = validPayload.callStackPaths;
+        }
+        return message;
+    },
+
+    'node:focus': nodeId => {
+        if (nodeId === undefined || nodeId === null) {
+            throw new Error('node:focus: nodeId is required');
+        }
+        return { type: 'node:focus', payload: { nodeId } };
+    },
+
+    'mode:toggle': () => {
+        return { type: 'mode:toggle', payload: {} };
+    },
+
+    'focus:clear': () => {
+        return { type: 'focus:clear', payload: {} };
+    }
+};
+
+/**
+ * Webviewとのメッセージングを管理するクラス
+ * ExtensionBridgeと対応する
+ * 通信は必ずこのクラスを介して行う
+ * GraphViewProviderからのみ使用される
+ */
+class WebviewBridge {
+    constructor() {
+        this._webview = null;
+        this._ready = false;
+        this._queue = [];
+    }
+
+    attach(webview, handlers = {}) {
+        this._webview = webview;
+        this._ready = false;
+        this._queue = [];
+        this._handlers = handlers;
+        if (this._webview?.onDidReceiveMessage) {
+            this._webview.onDidReceiveMessage(async message => {
+                await this._handleReceive(message);
+            });
+        }
+    }
+
+    detach() {
+        this._webview = null;
+        this._ready = false;
+        this._queue = [];
+        this._handlers = null;
+    }
+
+    markReady() {
+        this._ready = true;
+        this._flush();
+    }
+
+    send(type, payload) {
+        const creator = messageCreators[type];
+        if (!creator) {
+            throw new Error(`Unknown message type: ${type}`);
+        }
+        this._dispatch(creator(payload));
+    }
+
+    _dispatch(message) {
+        if (!message || typeof message.type !== 'string') {
+            throw new Error('Invalid webview message payload');
+        }
+        if (!this._webview) {
+            return false;
+        }
+        if (this._ready) {
+            this._webview.postMessage(message);
+            return true;
+        }
+        this._queue.push(message);
+        return false;
+    }
+
+    _flush() {
+        if (!this._webview || !this._ready) return;
+        while (this._queue.length > 0) {
+            const message = this._queue.shift();
+            this._webview.postMessage(message);
+        }
+    }
+
+    async _handleReceive(message) {
+        if (!message || typeof message.type !== 'string') {
+            return;
+        }
+        if (message.type === 'ready') {
+            this.markReady();
+        }
+        const handler = this._handlers?.[message.type];
+        if (handler) {
+            await handler(message);
+        }
+    }
+}
