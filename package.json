@@ -41,6 +41,11 @@
           "icon": "$(filter)"
         },
         {
+          "id": "forceGraphViewer.stackTrace",
+          "name": "スタックトレース",
+          "icon": "$(list-selection)"
+        },
+        {
           "id": "forceGraphViewer.sidebar",
           "name": "グラフビュー",
           "type": "webview",
@@ -98,6 +103,13 @@
         "category": "DependViz"
       },
       {
+        "command": "forceGraphViewer.removeStackTraceEntry",
+        "title": "スタックトレース履歴を削除",
+        "category": "DependViz"
+        ,
+        "icon": "$(trash)"
+      },
+      {
         "command": "forceGraphViewer.forwardSlice",
         "title": "Forward Slice",
         "category": "DependViz"
@@ -129,6 +141,13 @@
           "command": "forceGraphViewer.clearFocus",
           "when": "view == forceGraphViewer.sidebar",
           "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "forceGraphViewer.removeStackTraceEntry",
+          "when": "view == forceGraphViewer.stackTrace && viewItem == stackTraceEntry",
+          "group": "inline"
         }
       ]
     },

@@ -36,6 +36,7 @@ const CONTROL_DEFAULTS = {
 };
 
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
+const STACKTRACE_CACHE_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'stacktrace.json');
 
 function getValueAtPath(target, pathParts) {
     return pathParts.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), target);
@@ -363,6 +364,60 @@ class ConfigurationManager {
             fs.writeFileSync(filePath, JSON.stringify({ analyzers: {} }, null, 4), 'utf8');
         }
         return filePath;
+    }
+
+    _getStackTraceCachePath() {
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        if (!folder) return null;
+        return path.join(folder.uri.fsPath, STACKTRACE_CACHE_RELATIVE_PATH);
+    }
+
+    _ensureStackTraceCacheFile() {
+        const filePath = this._getStackTraceCachePath();
+        if (!filePath) return null;
+        if (!fs.existsSync(filePath)) {
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, JSON.stringify({ traces: [] }, null, 4), 'utf8');
+        }
+        return filePath;
+    }
+
+    _loadStackTraceCacheFromDisk(filePath) {
+        try {
+            const raw = fs.readFileSync(filePath, 'utf8');
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.traces)) {
+                return parsed.traces.map(entry => ({
+                    id: entry.id,
+                    sessionName: entry.sessionName,
+                    sessionType: entry.sessionType,
+                    capturedAt: entry.capturedAt,
+                    classes: Array.isArray(entry.classes) ? [...entry.classes] : []
+                }));
+            }
+        } catch (e) {
+            // ignore
+        }
+        return [];
+    }
+
+    getStackTraceCache() {
+        const filePath = this._getStackTraceCachePath();
+        if (!filePath) {
+            return [];
+        }
+        if (!fs.existsSync(filePath)) {
+            return [];
+        }
+        return this._loadStackTraceCacheFromDisk(filePath);
+    }
+
+    async updateStackTraceCache(entries) {
+        const filePath = this._ensureStackTraceCacheFile();
+        if (!filePath) return;
+
+        const data = { traces: Array.isArray(entries) ? entries : [] };
+        await fs.promises.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8');
     }
 
     handleAnalyzerConfigExternalChange() {

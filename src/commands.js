@@ -1,5 +1,4 @@
 const vscode = require('vscode');
-const { updateStackTrace } = require('./utils/StackTrace');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { getDefaultAnalyzerId } = require('./analyzers');
 
@@ -9,7 +8,7 @@ const { getDefaultAnalyzerId } = require('./analyzers');
  * @returns 
  */
 function registerCommands(context, providers) {
-    const { settingsProvider, filterProvider, graphViewProvider, analyzers } = providers;
+    const { settingsProvider, filterProvider, graphViewProvider, stackTraceProvider, analyzers } = providers;
     const configManager = ConfigurationManager.getInstance();
     const getActiveAnalyzer = () => {
         const controls = configManager.loadControls();
@@ -101,10 +100,20 @@ function registerCommands(context, providers) {
         }),
         vscode.commands.registerCommand('forceGraphViewer.updateStackTrace', async () => {
             try {
-                await updateStackTrace(graphViewProvider);
+                await stackTraceProvider.update(graphViewProvider);
                 vscode.window.showInformationMessage('スタックトレースを更新しました');
             } catch (e) {
                 vscode.window.showErrorMessage(`取得失敗: ${e.message}`);
+            }
+        }),
+        vscode.commands.registerCommand('forceGraphViewer.removeStackTraceEntry', async (item) => {
+            if (!item?.id) {
+                return;
+            }
+            try {
+                await stackTraceProvider.removeSession(item.id, graphViewProvider);
+            } catch (e) {
+                vscode.window.showErrorMessage(`削除失敗: ${e.message}`);
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.forwardSlice', createSliceCommand('forward')),

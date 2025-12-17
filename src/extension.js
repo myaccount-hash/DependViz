@@ -2,9 +2,9 @@ const vscode = require('vscode');
 const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterProvider = require('./providers/FilterProvider');
 const GraphSettingsProvider = require('./providers/GraphSettingsProvider');
+const StackTraceProvider = require('./providers/StackTraceProvider');
 const { ConfigurationManager } = require('./utils/ConfigurationManager');
 const { registerCommands } = require('./commands');
-const { updateStackTrace } = require('./utils/StackTrace');
 const JavaAnalyzer = require('./analyzers/JavaAnalyzer');
 const JavaScriptAnalyzer = require('./analyzers/JavaScriptAnalyzer');
 
@@ -18,6 +18,7 @@ function activate(context) {
     const settingsProvider = new GraphSettingsProvider();
     const filterProvider = new FilterProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
+    const stackTraceProvider = new StackTraceProvider();
 
     // Analyzer インスタンスを初期化
     javaAnalyzer = new JavaAnalyzer(context);
@@ -25,6 +26,7 @@ function activate(context) {
 
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.createTreeView('forceGraphViewer.filters', { treeDataProvider: filterProvider });
+    vscode.window.createTreeView('forceGraphViewer.stackTrace', { treeDataProvider: stackTraceProvider });
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
     const configManager = ConfigurationManager.getInstance();
@@ -42,13 +44,15 @@ function activate(context) {
 
     const initialControls = broadcastSettings();
     if (initialControls.showStackTrace) {
-        updateStackTrace(graphViewProvider);
+        stackTraceProvider.restore(graphViewProvider);
+        stackTraceProvider.update(graphViewProvider);
     }
 
     const providers = {
         settingsProvider,
         filterProvider,
         graphViewProvider,
+        stackTraceProvider,
         analyzers: {
             [JavaAnalyzer.analyzerId]: javaAnalyzer,
             [JavaScriptAnalyzer.analyzerId]: javascriptAnalyzer
@@ -61,7 +65,7 @@ function activate(context) {
         configManager.onDidChange(async (controls) => {
             const nextControls = broadcastSettings(controls);
             if (nextControls.showStackTrace) {
-                await updateStackTrace(graphViewProvider);
+                await stackTraceProvider.update(graphViewProvider);
             }
         }),
         vscode.window.onDidChangeActiveTextEditor(async (editor) => {
@@ -73,13 +77,13 @@ function activate(context) {
         vscode.debug.onDidChangeActiveStackItem(async (stackItem) => {
             const controls = broadcastSettings();
             if (controls.showStackTrace && stackItem) {
-                await updateStackTrace(graphViewProvider);
+                await stackTraceProvider.update(graphViewProvider);
             }
         }),
         vscode.debug.onDidStartDebugSession(async () => {
             const controls = broadcastSettings();
             if (controls.showStackTrace) {
-                await updateStackTrace(graphViewProvider);
+                await stackTraceProvider.update(graphViewProvider);
             }
         }),
         vscode.debug.onDidTerminateDebugSession(() => {
