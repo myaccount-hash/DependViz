@@ -195,29 +195,6 @@ class GraphRenderer {
     };
   }
 
-  // 視覚属性キャッシュを構築
-  _buildVisualCache() {
-    const nodes = this.state.data.nodes || [];
-    const links = this.state.data.links || [];
-    
-    const nodeVisualCache = new Map();
-    nodes.forEach(node => {
-      nodeVisualCache.set(node, this.getNodeVisualProps(node));
-    });
-
-    const linkVisualCache = new Map();
-    links.forEach(link => {
-      linkVisualCache.set(link, this.getLinkVisualProps(link));
-    });
-
-    return {
-      nodes,
-      links,
-      getNodeProps: node => nodeVisualCache.get(node),
-      getLinkProps: link => linkVisualCache.get(link)
-    };
-  }
-
   // ラベルを適用
   _applyLabels(getNodeProps) {
     const labelRenderer = this.createLabelRenderer();
@@ -259,7 +236,10 @@ class GraphRenderer {
 
     this.state.graph.backgroundColor(this.state.getBackgroundColor());
 
-    const { nodes, links, getNodeProps, getLinkProps } = this._buildVisualCache();
+    const nodes = this.state.data.nodes || [];
+    const links = this.state.data.links || [];
+    const getNodeProps = node => this.getNodeVisualProps(node);
+    const getLinkProps = link => this.getLinkVisualProps(link);
 
     const filteredData = applyFilter(nodes, links, this.state);
     this.state.graph.graphData(filteredData);
@@ -298,7 +278,8 @@ class GraphRenderer {
   updateVisuals() {
     if (!this.state.graph) return;
 
-    const { getNodeProps, getLinkProps } = this._buildVisualCache();
+    const getNodeProps = node => this.getNodeVisualProps(node);
+    const getLinkProps = link => this.getLinkVisualProps(link);
 
     this._applyLabels(getNodeProps);
     this._applyColors(getNodeProps, getLinkProps);
