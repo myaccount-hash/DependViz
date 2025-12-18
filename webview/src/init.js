@@ -1,5 +1,6 @@
 import ExtensionBridge from './ExtensionBridge';
 import state from './GraphViewModel';
+import './DevConsoleTests';
 
 export function initializeApplication() {
   window.addEventListener('resize', () => state.handleResize());
