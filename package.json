@@ -2,7 +2,7 @@
   "name": "vscode-force-graph-viewer",
   "displayName": "DependViz",
   "description": "2D force graph visualization for code dependency analysis",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "publisher": "myaccount-hash",
   "license": "MIT",
   "icon": "images/force-graph.png",
@@ -110,8 +110,7 @@
       {
         "command": "forceGraphViewer.removeCallStackEntry",
         "title": "コールスタック履歴を削除",
-        "category": "DependViz"
-        ,
+        "category": "DependViz",
         "icon": "$(trash)"
       },
       {
