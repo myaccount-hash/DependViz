@@ -1,6 +1,5 @@
 /**
  * 拡張機能とWebView間の通信を管理するシングルトンクラス
- * 通信は必ずこのクラスを介して行う
  */
 class ExtensionBridge {
   static instance = null;
@@ -16,27 +15,30 @@ class ExtensionBridge {
     this.state = state;
     this.vscode = null;
     this.handlers = {
-      'graph:update': msg => this._handleGraphUpdate(msg),
-      'view:update': msg => this._handleViewUpdate(msg),
-      'node:focus': msg => this._handleFocusNode(msg),
+      'graph:update': msg => this.state.handleGraphUpdate(msg?.payload || {}),
+      'view:update': msg => this.state.handleViewUpdate(msg?.payload || {}),
+      'node:focus': msg => this.state.focusNodeById(msg?.payload || {}),
       'mode:toggle': () => this._handleToggleMode(),
-      'focus:clear': () => this._handleClearFocus()
+      'focus:clear': () => this.state.clearFocus()
     };
   }
 
+  // VSCode APIを初期化
   initialize() {
     if (typeof acquireVsCodeApi === 'function') {
       this.vscode = acquireVsCodeApi();
     }
     if (!this.vscode) return null;
+    
     window.addEventListener('message', event => {
-      const msg = event.data;
-      this.handle(msg);
+      this.handle(event.data);
     });
+    
     this.send('ready');
     return this.vscode;
   }
 
+  // メッセージを処理
   handle(message) {
     const handler = message && this.handlers[message.type];
     if (handler) {
@@ -46,6 +48,7 @@ class ExtensionBridge {
     }
   }
 
+  // メッセージを送信
   send(type, payload) {
     if (!this.vscode) return;
     const message = { type };
@@ -59,24 +62,12 @@ class ExtensionBridge {
     return this.vscode;
   }
 
-  _handleGraphUpdate(msg) {
-    this.state.handleGraphUpdate(msg?.payload || {});
-  }
-
-  _handleViewUpdate(msg) {
-    this.state.handleViewUpdate(msg?.payload || {});
-  }
-
-  _handleFocusNode(msg) {
-    this.state.focusNodeById(msg?.payload || {});
-  }
-
+  // モード切り替えを処理
   _handleToggleMode() {
-    this.state.toggleMode();
-  }
-
-  _handleClearFocus() {
-    this.state.clearFocus();
+    const newMode = !this.state.controls.is3DMode;
+    this.state.updateControls({ is3DMode: newMode });
+    this.state.clearRenderer();
+    this.state.updateGraph({ reheatSimulation: true });
   }
 }
 

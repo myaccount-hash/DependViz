@@ -14,6 +14,7 @@ class GraphViewModel {
       sliceNodes: null,
       sliceLinks: null,
       focusedNode: null,
+      highlightedPath: null,
       isUserInteracting: false
     };
     this.rotation = {
@@ -148,6 +149,47 @@ class GraphViewModel {
     );
     this.ui.sliceNodes = sliceNodes;
     this.ui.sliceLinks = sliceLinks;
+  }
+
+  // パスハイライトを更新
+  updateHighlightedPath(nodeNames) {
+    if (!nodeNames || nodeNames.length === 0) {
+      this.ui.highlightedPath = null;
+      return;
+    }
+    
+    const nodeSet = new Set();
+    const pathLinks = [];
+    
+    nodeNames.forEach(name => {
+      const node = this.data.nodes.find(n => n.name === name);
+      if (node) nodeSet.add(node.id);
+    });
+    
+    for (let i = 0; i < nodeNames.length - 1; i++) {
+      const sourceName = nodeNames[i];
+      const targetName = nodeNames[i + 1];
+      const sourceNode = this.data.nodes.find(n => n.name === sourceName);
+      const targetNode = this.data.nodes.find(n => n.name === targetName);
+      
+      if (sourceNode && targetNode) {
+        pathLinks.push({
+          source: sourceNode.id,
+          target: targetNode.id
+        });
+      }
+    }
+    
+    this.ui.highlightedPath = { 
+      nodes: nodeSet,
+      pathLinks: pathLinks
+    };
+  }
+
+  // パスハイライトをクリア
+  clearHighlightedPath() {
+    this.ui.highlightedPath = null;
+    this.updateVisuals();
   }
 
   // レンダリングモードをクリア

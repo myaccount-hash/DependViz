@@ -10,7 +10,6 @@ class GraphRenderer {
     this.state = state;
     this.is3DMode = state.controls.is3DMode ?? false;
     
-    // ノードの視覚属性を決定するルール配列
     this.nodeRules = [
       (node, ctx) => {
         const color = ctx._getTypeColor('node', node.type);
@@ -21,8 +20,29 @@ class GraphRenderer {
       }
     ];
     
-    // リンクの視覚属性を決定するルール配列
     this.linkRules = [
+      (link, ctx) => {
+        const hasPath = ctx.state.ui.highlightedPath;
+        if (!hasPath || !hasPath.pathLinks) return null;
+        
+        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+        
+        const isPathLink = hasPath.pathLinks.some(pl => 
+          (pl.source === sourceId && pl.target === targetId) ||
+          (pl.source === targetId && pl.target === sourceId)
+        );
+        
+        if (isPathLink) {
+          const COLORS = ctx.state.controls.COLORS || {};
+          return {
+            color: COLORS.PATH_LINK || '#fbbf24',
+            widthMultiplier: 2.5,
+            particles: 5
+          };
+        }
+        return null;
+      },
       (link, ctx) => {
         const COLORS = ctx.state.controls.COLORS || {};
         return ctx.state.ui.callStackLinks.has(link) && {
@@ -75,7 +95,20 @@ class GraphRenderer {
       opacity: this.state.controls.nodeOpacity
     });
 
+    const hasPath = this.state.ui.highlightedPath;
     const hasSlice = this.state.ui.sliceNodes && this.state.ui.sliceNodes.size > 0;
+
+    if (hasPath) {
+      if (hasPath.nodes.has(node.id)) {
+        props.sizeMultiplier = (props.sizeMultiplier || 1) * 1.3;
+      } else {
+        props.opacity = (props.opacity || 1) * 0.15;
+      }
+      return { 
+        ...props, 
+        size: (props.sizeMultiplier || 1) * this.state.controls.nodeSize 
+      };
+    }
 
     if (hasSlice) {
       if (!this.state.ui.sliceNodes.has(node.id)) {
@@ -110,7 +143,26 @@ class GraphRenderer {
       arrowSize: this.state.controls.arrowSize
     });
 
+    const hasPath = this.state.ui.highlightedPath;
     const hasSlice = this.state.ui.sliceNodes && this.state.ui.sliceNodes.size > 0;
+
+    if (hasPath) {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      
+      const isPathLink = hasPath.pathLinks.some(pl => 
+        (pl.source === sourceId && pl.target === targetId) ||
+        (pl.source === targetId && pl.target === sourceId)
+      );
+      
+      if (!isPathLink) {
+        props.opacity = (props.opacity || 1) * 0.15;
+      }
+      return { 
+        ...props, 
+        width: (props.widthMultiplier || 1) * this.state.controls.linkWidth 
+      };
+    }
 
     if (hasSlice) {
       const inSlice = this.state.ui.sliceLinks ? this.state.ui.sliceLinks.has(link) : false;
