@@ -1,10 +1,8 @@
-import GraphRenderer2D from './GraphRenderer2D';
-import GraphRenderer3D from './GraphRenderer3D';
+// GraphViewModel.js
 import { computeSlice } from './utils';
 
 /**
  * アプリケーションのグラフ状態を管理するクラス
- * Webviewプロセスの中心的な役割を果たす
  */
 class GraphViewModel {
   constructor() {
@@ -27,29 +25,6 @@ class GraphViewModel {
     this._graph = null;
     this._labelRenderer = null;
     this._currentRenderer = null;
-    this.nodeRules = [
-      (node, ctx) => {
-        const color = ctx._getTypeColor('node', node.type);
-        return color ? { color } : null;
-      },
-      (node, ctx) => ctx.controls.nodeSizeByLoc && node.linesOfCode > 0 && {
-        sizeMultiplier: Math.max(1, Math.pow(node.linesOfCode, 0.7))
-      }
-    ];
-    this.linkRules = [
-      (link, ctx) => {
-        const COLORS = ctx.controls.COLORS || {};
-        return ctx.ui.callStackLinks.has(link) && {
-          color: COLORS.STACK_TRACE_LINK || '#51cf66',
-          widthMultiplier: 2.5,
-          particles: 5
-        };
-      },
-      (link, ctx) => {
-        const color = ctx._getTypeColor('edge', link.type);
-        return color ? { color } : null;
-      }
-    ];
   }
 
   get graph() { return this._graph; }
@@ -58,6 +33,7 @@ class GraphViewModel {
   setGraph(graph) { this._graph = graph; }
   setLabelRenderer(renderer) { this._labelRenderer = renderer; }
 
+  // VSCode背景色を取得
   getBackgroundColor() {
     const style = getComputedStyle(document.body);
     const bgColor = style.getPropertyValue('--vscode-editor-background').trim();
@@ -65,8 +41,14 @@ class GraphViewModel {
     return bgColor || COLORS.BACKGROUND_DARK || '#1a1a1a';
   }
 
+  // グラフデータとバージョンを更新
   updateData(data, version) {
-    this.data = { nodes: [...(data.nodes || [])], links: [...(data.links || [])] };
+    this.data = { 
+      nodes: [...(data.nodes || [])], 
+      links: [...(data.links || [])] 
+    };
+    this._buildNeighborRelations();
+    
     if (typeof version === 'number') {
       this.dataVersion = version;
     } else {
@@ -74,14 +56,44 @@ class GraphViewModel {
     }
   }
 
+  // 隣接関係を構築
+  _buildNeighborRelations() {
+    const nodeById = new Map();
+    
+    this.data.nodes.forEach(node => {
+      node.neighbors = [];
+      node.links = [];
+      if (node.id != null) {
+        nodeById.set(node.id, node);
+      }
+    });
+
+    this.data.links.forEach(link => {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+
+      const a = nodeById.get(sourceId);
+      const b = nodeById.get(targetId);
+      if (!a || !b) return;
+
+      a.neighbors.push(b);
+      b.neighbors.push(a);
+      a.links.push(link);
+      b.links.push(link);
+    });
+  }
+
+  // コントロール設定を更新
   updateControls(controls) {
     this.controls = { ...this.controls, ...controls };
   }
 
+  // ノードのファイルパスを取得
   getNodeFilePath(node) {
     return node.filePath || node.file;
   }
 
+  // パスを正規化
   _normalizePath(path) {
     if (!path) return '';
     let normalized = path.replace(/\\/g, '/');
@@ -102,6 +114,7 @@ class GraphViewModel {
     return result.join('/');
   }
 
+  // 2つのパスが一致するか判定
   _pathsMatch(path1, path2) {
     if (!path1 || !path2) return false;
     const norm1 = this._normalizePath(path1);
@@ -120,121 +133,25 @@ class GraphViewModel {
     return false;
   }
 
-  _computeNodeLabel(node) {
-    if (!node.name) return node.id || '';
-    if (!this.controls.shortNames) return node.name;
-    const lastDot = node.name.lastIndexOf('.');
-    return lastDot !== -1 ? node.name.substring(lastDot + 1) : node.name;
-  }
-
-  _getTypeColor(category, type) {
-    if (!type) return null;
-    const map = this.controls.typeColors?.[category];
-    if (!map) return null;
-    const color = map[type];
-    return typeof color === 'string' && color.length > 0 ? color : null;
-  }
-
-  _applyRules(item, rules, defaults) {
-    const result = { ...defaults };
-    for (const rule of rules) {
-      const ruleResult = rule(item, this);
-      if (ruleResult) Object.assign(result, ruleResult);
-    }
-    return result;
-  }
-
-  getNodeVisualProps(node) {
-    const COLORS = this.controls.COLORS || {};
-    const props = this._applyRules(node, this.nodeRules, {
-      color: COLORS.NODE_DEFAULT || '#93c5fd',
-      sizeMultiplier: 1,
-      label: this._computeNodeLabel(node),
-      opacity: this.controls.nodeOpacity
-    });
-
-    const hasSlice = this.ui.sliceNodes && this.ui.sliceNodes.size > 0;
-
-    // Apply slice-aware dimming
-    if (hasSlice) {
-      if (!this.ui.sliceNodes.has(node.id)) {
-        props.opacity = (props.opacity || 1) * 0.1;
-      }
-    } else if (this.ui.focusedNode && (this.controls.enableForwardSlice || this.controls.enableBackwardSlice)) {
-      const isFocused = node.id === this.ui.focusedNode.id;
-      const isNeighbor = this.ui.focusedNode.neighbors &&
-                         this.ui.focusedNode.neighbors.some(n => n.id === node.id);
-
-      if (!isFocused && !isNeighbor) {
-        const dim = this.controls.dimOpacity ?? 0.2;
-        props.opacity = (props.opacity || 1) * dim;
-      }
-    }
-
-    return { ...props, size: (props.sizeMultiplier || 1) * this.controls.nodeSize };
-  }
-
-  getLinkVisualProps(link) {
-    const COLORS = this.controls.COLORS || {};
-    const props = this._applyRules(link, this.linkRules, {
-      color: COLORS.EDGE_DEFAULT || '#4b5563',
-      widthMultiplier: 1,
-      particles: 0,
-      opacity: this.controls.edgeOpacity,
-      arrowSize: this.controls.arrowSize
-    });
-
-    // Apply focus dimming and highlighting
-    const hasSlice = this.ui.sliceNodes && this.ui.sliceNodes.size > 0;
-
-    if (hasSlice) {
-      const inSlice = this.ui.sliceLinks ? this.ui.sliceLinks.has(link) : false;
-      if (inSlice) {
-        props.particles = Math.max(props.particles || 0, 2);
-        props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
-      } else {
-        props.opacity = (props.opacity || 1) * 0.1;
-      }
-    } else if (this.ui.focusedNode && (this.controls.enableForwardSlice || this.controls.enableBackwardSlice)) {
-      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-      const focusedId = this.ui.focusedNode.id;
-
-      const isConnectedToFocus = sourceId === focusedId || targetId === focusedId;
-
-      if (isConnectedToFocus) {
-        // Add particles to focused edges
-        props.particles = 3;
-        props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
-      } else {
-        const dim = this.controls.dimOpacity ?? 0.2;
-        props.opacity = (props.opacity || 1) * dim;
-      }
-    }
-
-    return { ...props, width: (props.widthMultiplier || 1) * this.controls.linkWidth };
-  }
-
-  initGraph() {
-    const renderer = this.controls.is3DMode
-      ? new GraphRenderer3D(this)
-      : new GraphRenderer2D(this);
-    return renderer.initGraph();
-  }
-
-  updateSliceHighlight(nodes, links) {
+  // スライスハイライトを更新
+  updateSliceHighlight() {
     if (!this.ui.focusedNode || (!this.controls.enableForwardSlice && !this.controls.enableBackwardSlice)) {
       this.ui.sliceNodes = null;
       this.ui.sliceLinks = null;
       return;
     }
-    const { sliceNodes, sliceLinks } = computeSlice(this.ui.focusedNode, this.controls, nodes, links);
+    const { sliceNodes, sliceLinks } = computeSlice(
+      this.ui.focusedNode, 
+      this.controls, 
+      this.data.nodes, 
+      this.data.links
+    );
     this.ui.sliceNodes = sliceNodes;
     this.ui.sliceLinks = sliceLinks;
   }
 
-  toggleMode() {
-    // 設定値は外部（GraphViewProvider）で更新されるので、ここではグラフをリセットするだけ
+  // レンダリングモードをクリア
+  clearRenderer() {
     if (this.rotation.frame) {
       cancelAnimationFrame(this.rotation.frame);
       this.rotation.frame = null;
@@ -245,8 +162,12 @@ class GraphViewModel {
     this._currentRenderer = null;
   }
 
+  // 現在のレンダラーを取得
   getRenderer() {
-    if (!this._currentRenderer || this._currentRenderer.state.controls.is3DMode !== this.controls.is3DMode) {
+    const GraphRenderer2D = require('./GraphRenderer2D').default;
+    const GraphRenderer3D = require('./GraphRenderer3D').default;
+    
+    if (!this._currentRenderer || this._currentRenderer.is3DMode !== this.controls.is3DMode) {
       this._currentRenderer = this.controls.is3DMode
         ? new GraphRenderer3D(this)
         : new GraphRenderer2D(this);
@@ -254,6 +175,13 @@ class GraphViewModel {
     return this._currentRenderer;
   }
 
+  // グラフインスタンスを初期化
+  initGraph() {
+    const renderer = this.getRenderer();
+    return renderer.initGraph();
+  }
+
+  // グラフを更新
   updateGraph(options = {}) {
     const { reheatSimulation = false } = options;
 
@@ -267,11 +195,13 @@ class GraphViewModel {
     this.getRenderer().updateGraph({ reheatSimulation });
   }
 
+  // 視覚属性のみを更新
   updateVisuals() {
     if (!this._graph) return;
     this.getRenderer().updateVisuals();
   }
 
+  // グラフ更新メッセージを処理
   handleGraphUpdate(payload = {}) {
     const incomingVersion = typeof payload.dataVersion === 'number' ? payload.dataVersion : null;
     const hasDataChange = payload.data && (incomingVersion === null || incomingVersion !== this.dataVersion);
@@ -288,12 +218,12 @@ class GraphViewModel {
     }
 
     if (payload.data || payload.controls) {
-      this.updateSliceHighlight(this.data.nodes, this.data.links);
+      this.updateSliceHighlight();
     }
 
     const newIs3DMode = this.controls.is3DMode ?? false;
     const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
-    if (modeChanged) this.toggleMode();
+    if (modeChanged) this.clearRenderer();
 
     const reheatSimulation = hasDataChange || modeChanged;
     if (payload.data || payload.controls) {
@@ -303,6 +233,7 @@ class GraphViewModel {
     }
   }
 
+  // ビュー更新メッセージを処理
   handleViewUpdate(payload = {}) {
     const oldIs3DMode = this.controls.is3DMode ?? false;
 
@@ -314,14 +245,14 @@ class GraphViewModel {
     }
 
     if (payload.controls) {
-      this.updateSliceHighlight(this.data.nodes, this.data.links);
+      this.updateSliceHighlight();
     }
 
     const newIs3DMode = this.controls.is3DMode ?? false;
     const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
 
     if (modeChanged) {
-      this.toggleMode();
+      this.clearRenderer();
       this.updateGraph({ reheatSimulation: true });
     } else if (payload.controls) {
       this.updateGraph();
@@ -330,6 +261,7 @@ class GraphViewModel {
     }
   }
 
+  // ウィンドウリサイズを処理
   handleResize() {
     if (!this._graph) return;
     const container = document.getElementById('graph-container');
@@ -341,17 +273,19 @@ class GraphViewModel {
     this._graph.width(width).height(height);
   }
 
+  // ファイルパスでノードをフォーカス
   focusNodeByPath(filePath) {
     if (!filePath) return;
     const node = this.data.nodes.find(n => this._pathsMatch(this.getNodeFilePath(n), filePath));
     if (node) {
       this.ui.focusedNode = node;
       this.getRenderer().focusNode(node);
-      this.updateSliceHighlight(this.data.nodes, this.data.links);
+      this.updateSliceHighlight();
       this.updateVisuals();
     }
   }
 
+  // IDでノードをフォーカス
   focusNodeById(msg) {
     const nodeId = msg.nodeId || (msg.node && msg.node.id);
     const node = this.data.nodes.find(n => n.id === nodeId);
@@ -365,16 +299,17 @@ class GraphViewModel {
 
     this.ui.focusedNode = node;
     this.getRenderer().focusNode(node);
-    this.updateSliceHighlight(this.data.nodes, this.data.links);
+    this.updateSliceHighlight();
     this.updateVisuals();
   }
 
+  // フォーカスをクリア
   clearFocus() {
     this.ui.focusedNode = null;
     const renderer = this.getRenderer();
     if (renderer?.cancelRotation) renderer.cancelRotation();
     if (renderer?.updateAutoRotation) renderer.updateAutoRotation();
-    this.updateSliceHighlight(this.data.nodes, this.data.links);
+    this.updateSliceHighlight();
     this.updateVisuals();
   }
 }
