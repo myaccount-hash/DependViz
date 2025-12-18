@@ -42,7 +42,7 @@
         },
         {
           "id": "forceGraphViewer.callStack",
-          "name": "コールスタック",
+          "name": "コールスタック(未実装)",
           "icon": "$(list-selection)"
         },
         {
