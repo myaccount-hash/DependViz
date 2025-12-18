@@ -4,6 +4,7 @@ import ExtensionBridge from './ExtensionBridge';
 
 /**
  * グラフのレンダリングと視覚属性計算を管理する基底クラス
+ * TODO: ExtensionBridgeの依存を解消
  */
 class GraphRenderer {
   constructor(state) {

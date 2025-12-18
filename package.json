@@ -71,6 +71,11 @@
         "category": "DependViz"
       },
       {
+        "command": "forceGraphViewer.toggleCallStackEntry",
+        "title": "Toggle Call Stack Entry",
+        "category": "DependViz"
+      },
+      {
         "command": "forceGraphViewer.selectAnalyzer",
         "title": "Select Analyzer",
         "category": "DependViz"
@@ -183,6 +188,14 @@
           "type": "boolean",
           "default": true,
           "description": "コールスタック表示"
+        },
+        "forceGraphViewer.callStackSelection": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "ハイライト対象のコールスタックセッションID"
         },
         "forceGraphViewer.showNames": {
           "type": "boolean",

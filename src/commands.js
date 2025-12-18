@@ -43,6 +43,19 @@ function registerCommands(context, providers) {
             const controls = configManager.loadControls({ ignoreCache: true });
             await configManager.updateControl(key, !controls[key]);
         }),
+        vscode.commands.registerCommand('forceGraphViewer.toggleCallStackEntry', async (sessionId) => {
+            if (!sessionId) return;
+            const controls = configManager.loadControls({ ignoreCache: true });
+            const selection = Array.isArray(controls.callStackSelection) ? [...controls.callStackSelection] : [];
+            const index = selection.indexOf(sessionId);
+            if (index === -1) {
+                selection.push(sessionId);
+            } else {
+                selection.splice(index, 1);
+            }
+            await configManager.updateControl('callStackSelection', selection);
+            await callStackProvider.notifySelectionChanged(graphViewProvider);
+        }),
         vscode.commands.registerCommand('forceGraphViewer.selectAnalyzer', async (analyzerId) => {
             if (typeof analyzerId === 'string' && analyzerId.length > 0) {
                 await configManager.updateControl('analyzerId', analyzerId);

@@ -15,7 +15,7 @@ async function getAllSessions() {
 
             for (const thread of threads) {
                 try {
-                    const stackResponse = await session.customRequest('callStack', {
+                    const stackResponse = await session.customRequest('stackTrace', {
                         threadId: thread.id,
                         levels: 200
                     });

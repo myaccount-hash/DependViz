@@ -18,6 +18,7 @@ const CONTROL_DEFAULTS = {
     nodeSizeByLoc: false,
     hideIsolatedNodes: false,
     showCallStack: true,
+    callStackSelection: [],
     showNames: true,
     shortNames: true,
     nodeSize: 3.0,
@@ -392,7 +393,8 @@ class ConfigurationManager {
                     sessionName: entry.sessionName,
                     sessionType: entry.sessionType,
                     capturedAt: entry.capturedAt,
-                    classes: Array.isArray(entry.classes) ? [...entry.classes] : []
+                    classes: Array.isArray(entry.classes) ? [...entry.classes] : [],
+                    paths: Array.isArray(entry.paths) ? [...entry.paths] : []
                 }));
             }
         } catch (e) {

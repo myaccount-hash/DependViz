@@ -30,6 +30,7 @@ function activate(context) {
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
     const configManager = ConfigurationManager.getInstance();
+    let lastCallStackSelectionValue = [];
     const analyzerWatcher = createAnalyzerConfigWatcher(configManager);
     if (analyzerWatcher) {
         context.subscriptions.push(analyzerWatcher);
@@ -43,6 +44,7 @@ function activate(context) {
     };
 
     const initialControls = broadcastSettings();
+    lastCallStackSelectionValue = Array.isArray(initialControls.callStackSelection) ? [...initialControls.callStackSelection] : [];
     if (initialControls.showCallStack) {
         callStackProvider.restore(graphViewProvider);
         callStackProvider.update(graphViewProvider);
@@ -64,7 +66,12 @@ function activate(context) {
     const eventHandlers = [
         configManager.onDidChange(async (controls) => {
             const nextControls = broadcastSettings(controls);
-            if (nextControls.showCallStack) {
+            const nextSelection = Array.isArray(nextControls.callStackSelection)
+                ? [...nextControls.callStackSelection]
+                : [];
+            const selectionChanged = !areCallStackSelectionsEqual(nextSelection, lastCallStackSelectionValue);
+            lastCallStackSelectionValue = nextSelection;
+            if (nextControls.showCallStack && !selectionChanged) {
                 await callStackProvider.update(graphViewProvider);
             }
         }),
@@ -126,4 +133,12 @@ function createAnalyzerConfigWatcher(configManager) {
     watcher.onDidCreate(handler);
     watcher.onDidDelete(handler);
     return watcher;
+}
+
+function areCallStackSelectionsEqual(a = [], b = []) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort();
+    const sortedB = [...b].sort();
+    return sortedA.every((value, index) => value === sortedB[index]);
 }

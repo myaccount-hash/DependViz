@@ -27,11 +27,6 @@ class CallStackProvider {
             }
 
             const uniquePaths = this._extractPaths(firstSession.frames);
-            graphViewProvider.update({ type: 'callStack', paths: uniquePaths });
-
-            if (uniquePaths.length === 0) {
-                return;
-            }
 
             const classes = this._extractClasses(firstSession.frames);
             const signature = this._computeSignature(firstSession, classes);
@@ -40,7 +35,7 @@ class CallStackProvider {
             }
             this._lastSavedSignature = signature;
 
-            const entry = this._buildEntry(firstSession, classes);
+            const entry = this._buildEntry(firstSession, classes, uniquePaths);
             if (!entry) {
                 return;
             }
@@ -48,6 +43,7 @@ class CallStackProvider {
             this._sessions = [entry, ...this._sessions];
             await this._persistSessions();
             this._onDidChangeTreeData.fire();
+            await this._emitCallStackPaths(graphViewProvider);
         } catch (e) {
             console.error('Failed to update stack trace:', e.message, e.stack);
             await this.clear();
@@ -96,7 +92,8 @@ class CallStackProvider {
         if (this._sessions.length === 0) {
             return [this._createInfoItem('コールスタックなし', '保存された履歴がありません')];
         }
-        return this._sessions.map((session) => this._createSessionItem(session));
+        const selectionSet = this._getSelectedSessionIds();
+        return this._sessions.map((session) => this._createSessionItem(session, selectionSet));
     }
 
     _createInfoItem(label, description) {
@@ -106,11 +103,18 @@ class CallStackProvider {
         return item;
     }
 
-    _createSessionItem(session) {
+    _createSessionItem(session, selectionSet) {
         const label = `${session.sessionName} (${session.sessionType || 'unknown'})`;
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
         item.id = session.id;
         item.contextValue = 'callStackEntry';
+        const checked = selectionSet?.has(session.id);
+        item.iconPath = new vscode.ThemeIcon(checked ? 'check' : 'circle-outline');
+        item.command = {
+            command: 'forceGraphViewer.toggleCallStackEntry',
+            title: checked ? 'Toggle Call Stack Entry' : 'Toggle Call Stack Entry',
+            arguments: [session.id]
+        };
         const descriptionParts = [];
         const count = session.classes?.length || 0;
         descriptionParts.push(`${count}クラス`);
@@ -134,7 +138,7 @@ class CallStackProvider {
         return lines.join('\n');
     }
 
-    _buildEntry(session, classes) {
+    _buildEntry(session, classes, paths = []) {
         if (!classes || classes.length === 0) {
             return null;
         }
@@ -146,8 +150,48 @@ class CallStackProvider {
             sessionName: session.sessionName || 'Debug Session',
             sessionType: session.sessionType || '',
             capturedAt: timestamp,
-            classes
+            classes,
+            paths: Array.isArray(paths) ? [...paths] : []
         };
+    }
+
+    _getSelectedSessionIds() {
+        const controls = this._configManager.loadControls({ ignoreCache: true });
+        const selection = controls.callStackSelection;
+        if (!Array.isArray(selection)) {
+            return new Set();
+        }
+        return new Set(selection.filter(id => typeof id === 'string' && id.length > 0));
+    }
+
+    _getCallStackPathsForCurrentSelection() {
+        const selection = this._getSelectedSessionIds();
+        const pathsSet = new Set();
+        if (selection.size > 0) {
+            for (const session of this._sessions) {
+                if (selection.has(session.id) && Array.isArray(session.paths)) {
+                    session.paths.forEach(path => pathsSet.add(path));
+                }
+            }
+        }
+        if (pathsSet.size === 0 && this._sessions.length > 0) {
+            const latestPaths = this._sessions[0]?.paths;
+            if (Array.isArray(latestPaths)) {
+                latestPaths.forEach(path => pathsSet.add(path));
+            }
+        }
+        return Array.from(pathsSet);
+    }
+
+    async _emitCallStackPaths(graphViewProvider) {
+        if (!graphViewProvider) return;
+        const paths = this._getCallStackPathsForCurrentSelection();
+        await graphViewProvider.update({ type: 'callStack', paths });
+    }
+
+    async notifySelectionChanged(graphViewProvider) {
+        this._onDidChangeTreeData.fire();
+        await this._emitCallStackPaths(graphViewProvider);
     }
 
     _extractPaths(frames = []) {
@@ -227,7 +271,7 @@ class CallStackProvider {
 
                 for (const thread of threads) {
                     try {
-                        const stackResponse = await session.customRequest('callStack', {
+                        const stackResponse = await session.customRequest('stackTrace', {
                             threadId: thread.id,
                             levels: 200
                         });
