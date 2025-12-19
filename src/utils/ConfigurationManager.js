@@ -6,7 +6,7 @@ const { getAnalyzerClassById, getDefaultAnalyzerId } = require('../analyzers');
 const COLORS = {
     STACK_TRACE_LINK: '#51cf66',
     BACKGROUND_DARK: '#1a1a1a',
-    NODE_DEFAULT: '#93c5fd',
+    NODE_DEFAULT: '#187bebff',
     EDGE_DEFAULT: '#4b5563'
 };
 
@@ -24,7 +24,7 @@ const CONTROL_DEFAULTS = {
     nodeSize: 3.0,
     linkWidth: 0.5,
     nodeOpacity: 1.0,
-    edgeOpacity: 0.6,
+    edgeOpacity: 1.0,
     dimOpacity: 0.2,
     linkDistance: 50,
     focusDistance: 120,

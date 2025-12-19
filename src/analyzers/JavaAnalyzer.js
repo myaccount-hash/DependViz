@@ -20,15 +20,15 @@ class JavaAnalyzer extends BaseAnalyzer {
     static getTypeDefinitions() {
         return {
             node: [
-                { type: 'Class', defaultEnabled: true, defaultColor: '#93c5fd' },
-                { type: 'AbstractClass', defaultEnabled: true, defaultColor: '#d8b4fe' },
-                { type: 'Interface', defaultEnabled: true, defaultColor: '#6ee7b7' },
+                { type: 'Class', defaultEnabled: true, defaultColor: '#157df4ff' },
+                { type: 'AbstractClass', defaultEnabled: true, defaultColor: '#f03e9dff' },
+                { type: 'Interface', defaultEnabled: true, defaultColor: '#26f9a5ff' },
                 { type: 'Unknown', defaultEnabled: false, defaultColor: '#9ca3af' }
             ],
             edge: [
                 { type: 'ObjectCreate', defaultEnabled: true, defaultColor: '#fde047' },
-                { type: 'Extends', defaultEnabled: true, defaultColor: '#d8b4fe' },
-                { type: 'Implements', defaultEnabled: true, defaultColor: '#6ee7b7' },
+                { type: 'Extends', defaultEnabled: true, defaultColor: '#ff83c5ff' },
+                { type: 'Implements', defaultEnabled: true, defaultColor: '#26f9a5ff' },
                 { type: 'TypeUse', defaultEnabled: true, defaultColor: '#fdba74' },
                 { type: 'MethodCall', defaultEnabled: true, defaultColor: '#fda4af' }
             ]

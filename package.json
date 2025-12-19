@@ -2,7 +2,7 @@
   "name": "vscode-force-graph-viewer",
   "displayName": "DependViz",
   "description": "2D force graph visualization for code dependency analysis",
-  "version": "0.1.10",
+  "version": "1.0.0",
   "publisher": "myaccount-hash",
   "license": "MIT",
   "icon": "images/force-graph.png",
@@ -223,15 +223,15 @@
         "forceGraphViewer.nodeOpacity": {
           "type": "number",
           "default": 1,
-          "minimum": 0.1,
-          "maximum": 1,
+          "minimum": 0,
+          "maximum": 2,
           "description": "ノード透明度"
         },
         "forceGraphViewer.edgeOpacity": {
           "type": "number",
           "default": 1,
-          "minimum": 0.1,
-          "maximum": 1,
+          "minimum": 0,
+          "maximum": 2,
           "description": "エッジ透明度"
         },
         "forceGraphViewer.dimOpacity": {
