@@ -57,7 +57,7 @@ function activate(context) {
     const commands = registerCommands(context, providers);
 
     const eventHandlers = [
-        configManager.onDidChange(async (controls) => {
+        configManager.addObserver(async (controls) => {
             const nextControls = broadcastSettings(controls);
             const nextSelection = Array.isArray(nextControls.callStackSelection)
                 ? [...nextControls.callStackSelection]

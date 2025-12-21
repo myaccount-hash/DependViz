@@ -112,7 +112,7 @@ class ConfigurationManager {
         this._cache = null;
         this._cacheTime = 0;
         this._cacheDuration = 100; // ms
-        this._onDidChange = new vscode.EventEmitter();
+        this._observers = new Set();
         this._analyzerConfigCache = null;
         this._analyzerConfigMtime = 0;
         this._activeAnalyzerId = CONTROL_DEFAULTS.analyzerId;
@@ -123,8 +123,18 @@ class ConfigurationManager {
         this._analyzerDefaults = this._activeAnalyzerClass.getTypeDefaults();
     }
 
-    get onDidChange() {
-        return this._onDidChange.event;
+    addObserver(observer) {
+        if (typeof observer !== 'function') {
+            return { dispose: () => { } };
+        }
+        this._observers.add(observer);
+        return {
+            dispose: () => this.removeObserver(observer)
+        };
+    }
+
+    removeObserver(observer) {
+        this._observers.delete(observer);
     }
 
     /**
@@ -210,11 +220,14 @@ class ConfigurationManager {
     }
 
     _emitChange() {
-        if (!this._onDidChange) {
-            return;
-        }
         const controls = this.loadControls({ ignoreCache: true });
-        this._onDidChange.fire(controls);
+        this._notifyObservers(controls);
+    }
+
+    _notifyObservers(controls) {
+        this._observers.forEach((observer) => {
+            observer(controls);
+        });
     }
 
     /**
