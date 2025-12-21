@@ -148,6 +148,10 @@ class JavaAnalyzer extends BaseAnalyzer {
         }
     }
 
+    async stop() {
+        await this.stopLanguageClient();
+    }
+
     /**
      * 単一ファイルの依存関係グラフを取得
      */

@@ -9,8 +9,8 @@ const { ConfigurationManager } = require('./ConfigurationManager');
 function registerCommands(context, providers) {
     const { settingsProvider, filterProvider, graphViewProvider, callStackProvider, analyzerManager } = providers;
     const configManager = ConfigurationManager.getInstance();
-    const getActiveAnalyzer = () => analyzerManager.getActiveAnalyzer();
-    const getAnalyzerName = (analyzer) => analyzerManager.getAnalyzerName(analyzer);
+    const getAnalyzerName = () => analyzerManager.getActiveAnalyzerName();
+    const getAnalyzerId = () => analyzerManager.getActiveAnalyzerId();
 
     const createSliceCommand = (direction) => async () => {
         const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
@@ -63,11 +63,10 @@ function registerCommands(context, providers) {
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeProject', async () => {
-            const analyzer = getActiveAnalyzer();
-            if (!analyzer || typeof analyzer.analyze !== 'function') {
+            const graphData = await analyzerManager.analyzeProject();
+            if (!graphData) {
                 return vscode.window.showErrorMessage('有効なアナライザーが選択されていません');
             }
-            const graphData = await analyzer.analyze();
             if (graphData) {
                 graphViewProvider.setGraphData(graphData);
             }
@@ -78,27 +77,27 @@ function registerCommands(context, providers) {
                 return vscode.window.showErrorMessage('アクティブなエディタがありません');
             }
 
-            const analyzer = getActiveAnalyzer();
-            if (!analyzer || typeof analyzer.analyzeFile !== 'function') {
+            const analyzerId = getAnalyzerId();
+            if (!analyzerId) {
                 return vscode.window.showErrorMessage('有効なアナライザーが選択されていません');
             }
-            const analyzerName = getAnalyzerName(analyzer);
+            const analyzerName = getAnalyzerName();
             const filePath = editor.document.uri.fsPath;
-            if (!analyzerManager.isFileSupported(analyzer, filePath)) {
+            if (!analyzerManager.isFileSupported(filePath)) {
                 return vscode.window.showErrorMessage(`${analyzerName} では解析できないファイルです`);
             }
 
             try {
-                if (analyzer.analyzerId === 'java') {
+                if (analyzerId === 'java') {
                     const graphData = await vscode.window.withProgress({
                         location: vscode.ProgressLocation.Notification,
                         title: 'ファイルを解析中...',
                         cancellable: false
-                    }, () => analyzer.analyzeFile(filePath));
+                    }, () => analyzerManager.analyzeFile(filePath));
                     graphViewProvider.mergeGraphData(graphData);
                     vscode.window.showInformationMessage(`解析完了: ${graphData.nodes.length}ノード, ${graphData.links.length}リンク`);
                 } else {
-                    const graphData = await analyzer.analyzeFile(filePath);
+                    const graphData = await analyzerManager.analyzeFile(filePath);
                     graphViewProvider.mergeGraphData(graphData);
                     vscode.window.showInformationMessage(`${analyzerName} の解析完了: ${graphData.nodes.length}ノード, ${graphData.links.length}リンク`);
                 }

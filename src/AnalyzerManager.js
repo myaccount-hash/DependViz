@@ -6,16 +6,16 @@ const REGISTERED_ANALYZERS = [JavaAnalyzer, JavaScriptAnalyzer];
 class AnalyzerManager {
     constructor(context, configManager) {
         this._configManager = configManager;
-        this._analyzers = this._createAnalyzers(context);
+        this._analyzers = this._createAnalyzers(context, REGISTERED_ANALYZERS);
     }
 
-    _createAnalyzers(context) {
-        const javaAnalyzer = new JavaAnalyzer(context);
-        const javascriptAnalyzer = new JavaScriptAnalyzer();
-        return {
-            [JavaAnalyzer.analyzerId]: javaAnalyzer,
-            [JavaScriptAnalyzer.analyzerId]: javascriptAnalyzer
-        };
+    _createAnalyzers(context, list) {
+        const map = {};
+        list.forEach((Analyzer) => {
+            const analyzer = new Analyzer(context);
+            map[Analyzer.analyzerId] = analyzer;
+        });
+        return map;
     }
 
     static getAnalyzerClassById(analyzerId) {
@@ -40,22 +40,49 @@ class AnalyzerManager {
         return this._analyzers[analyzerId] || this._analyzers[AnalyzerManager.getDefaultAnalyzerId()];
     }
 
+    getActiveAnalyzerId() {
+        const controls = this._configManager.loadControls();
+        return controls.analyzerId || AnalyzerManager.getDefaultAnalyzerId();
+    }
+
+    getActiveAnalyzerName() {
+        const analyzer = this.getActiveAnalyzer();
+        return this.getAnalyzerName(analyzer);
+    }
+
     getAnalyzerName(analyzer) {
         return analyzer?.constructor?.displayName || analyzer?.constructor?.name || 'Analyzer';
     }
 
-    isFileSupported(analyzer, filePath) {
+    isFileSupported(filePath) {
+        const analyzer = this.getActiveAnalyzer();
         if (!analyzer || typeof analyzer.isFileSupported !== 'function') {
             return true;
         }
         return analyzer.isFileSupported(filePath);
     }
 
+    async analyzeProject() {
+        const analyzer = this.getActiveAnalyzer();
+        if (!analyzer || typeof analyzer.analyze !== 'function') {
+            return null;
+        }
+        return analyzer.analyze();
+    }
+
+    async analyzeFile(filePath) {
+        const analyzer = this.getActiveAnalyzer();
+        if (!analyzer || typeof analyzer.analyzeFile !== 'function') {
+            return null;
+        }
+        return analyzer.analyzeFile(filePath);
+    }
+
     async stopAll() {
         const analyzers = Object.values(this._analyzers);
         for (const analyzer of analyzers) {
-            if (typeof analyzer.stopLanguageClient === 'function') {
-                await analyzer.stopLanguageClient();
+            if (typeof analyzer.stop === 'function') {
+                await analyzer.stop();
             }
         }
     }

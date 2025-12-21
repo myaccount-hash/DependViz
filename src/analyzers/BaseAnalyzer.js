@@ -3,6 +3,21 @@ class BaseAnalyzer {
         this.analyzerId = this.constructor.analyzerId;
     }
 
+    analyze() {
+        throw new Error('analyze must be implemented');
+    }
+
+    analyzeFile() {
+        throw new Error('analyzeFile must be implemented');
+    }
+
+    isFileSupported() {
+        return true;
+    }
+
+    async stop() {
+    }
+
     static get analyzerId() {
         throw new Error('analyzerId must be implemented');
     }
