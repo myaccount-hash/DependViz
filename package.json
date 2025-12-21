@@ -17,7 +17,7 @@
     "Visualization",
     "Other"
   ],
-  "main": "./src/extension.js",
+  "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -292,13 +292,15 @@
   "scripts": {
     "build": "npm run build:java && npm run build:extension",
     "build:java": "cd java && mvn clean package",
-    "build:extension": "npm install && npm run build:webview",
+    "build:extension": "npm install && tsc -p . && npm run build:webview",
     "build:webview": "npm --prefix webview install && npm --prefix webview run build",
-    "clean": "cd java && mvn clean && rm -f dependency-reduced-pom.xml",
-    "lint:extension": "eslint \"src/**/*.js\"",
+    "clean": "cd java && mvn clean && rm -f dependency-reduced-pom.xml && rm -rf out",
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "lint:extension": "eslint \"src/**/*.{js,ts}\"",
     "lint:webview": "npm --prefix webview run lint",
     "lint": "npm run lint:extension && npm run lint:webview",
-    "lint:fix:extension": "eslint \"src/**/*.js\" --fix",
+    "lint:fix:extension": "eslint \"src/**/*.{js,ts}\" --fix",
     "lint:fix:webview": "npm --prefix webview run lint:fix",
     "lint:fix": "npm run lint:fix:extension && npm run lint:fix:webview"
   },
@@ -308,10 +310,13 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@types/vscode": "^1.107.0",
     "chai": "^4.3.0",
     "eslint": "^8.57.0",
     "mocha": "^10.0.0",
-    "sinon": "^21.0.0"
+    "sinon": "^21.0.0",
+    "typescript": "^5.9.3"
   },
   "enableTelemetry": false
 }
