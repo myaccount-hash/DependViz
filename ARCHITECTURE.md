@@ -12,6 +12,12 @@
 - 書き込み: `updateControl()` / `updateControls()` が VS Code設定 or `analyzer.json` を書き分け
 - 変更通知: `.vscode/dependviz/analyzer.json` の監視は `src/extension.js` が行い、`handleAnalyzerConfigExternalChange()` 経由で更新を伝播
 
+## AnalyzerManager
+- 対象: `src/AnalyzerManager.js`
+- 役割: Analyzerのインスタンス生成と保持、選択/参照の窓口
+- 参照API: `getActiveAnalyzer()` / `getAnalyzerName()` / `isFileSupported()`
+- 登録/既定: `getAnalyzerClassById()` / `getAnalyzerOptions()` / `getDefaultAnalyzerId()` を提供
+
 ## Analyzers
 - BaseAnalyzer
   - 解析機能のインタフェース
