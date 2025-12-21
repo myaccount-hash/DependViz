@@ -294,7 +294,13 @@
     "build:java": "cd java && mvn clean package",
     "build:extension": "npm install && npm run build:webview",
     "build:webview": "npm --prefix webview install && npm --prefix webview run build",
-    "clean": "cd java && mvn clean && rm -f dependency-reduced-pom.xml"
+    "clean": "cd java && mvn clean && rm -f dependency-reduced-pom.xml",
+    "lint:extension": "eslint \"src/**/*.js\"",
+    "lint:webview": "npm --prefix webview run lint",
+    "lint": "npm run lint:extension && npm run lint:webview",
+    "lint:fix:extension": "eslint \"src/**/*.js\" --fix",
+    "lint:fix:webview": "npm --prefix webview run lint:fix",
+    "lint:fix": "npm run lint:fix:extension && npm run lint:fix:webview"
   },
   "dependencies": {
     "@babel/parser": "^7.28.5",
@@ -303,6 +309,7 @@
   },
   "devDependencies": {
     "chai": "^4.3.0",
+    "eslint": "^8.57.0",
     "mocha": "^10.0.0",
     "sinon": "^21.0.0"
   },

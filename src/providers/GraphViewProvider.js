@@ -32,7 +32,7 @@ class GraphViewProvider extends BaseProvider {
         return fs.readFileSync(htmlPath, 'utf8');
     }
 
-    async resolveWebviewView(webviewView, context, token) {
+    async resolveWebviewView(webviewView) {
         this._view = webviewView;
         this._webviewBridge.attach(webviewView.webview, {
             ready: () => {

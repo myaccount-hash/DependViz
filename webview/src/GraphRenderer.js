@@ -336,11 +336,11 @@ class GraphRenderer {
     throw new Error('createLabelRenderer() must be implemented by subclass');
   }
 
-  createGraph(container) {
+  createGraph() {
     throw new Error('createGraph() must be implemented by subclass');
   }
 
-  focusNode(node) {
+  focusNode() {
     throw new Error('focusNode() must be implemented by subclass');
   }
 
@@ -356,8 +356,8 @@ class GraphRenderer {
     throw new Error('getModeName() must be implemented by subclass');
   }
 
-  setupRenderer(container) {}
-  setupEventListeners(graph) {}
+  setupRenderer() {}
+  setupEventListeners() {}
   onGraphUpdated() {}
 }
 

@@ -16,11 +16,11 @@ import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.WorkspaceFolder;
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
-import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 
 public class DependVizLanguageServer implements LanguageServer {
   private static final Logger logger = Logger.getLogger(DependVizLanguageServer.class.getName());
@@ -51,6 +51,7 @@ public class DependVizLanguageServer implements LanguageServer {
     // TextDocumentServiceにワークスペースルートを設定
     textDocumentService.setWorkspaceRoot(workspaceRoot);
 
+    
     // サーバー機能を設定
     ServerCapabilities capabilities = new ServerCapabilities();
 
