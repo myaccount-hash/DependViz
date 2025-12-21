@@ -1,4 +1,4 @@
-package com.example.parser.analyzer;
+package com.example.parser.stage;
 
 import java.util.List;
 
@@ -11,12 +11,10 @@ import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.VariableDeclarationExpr;
 
-public class TypeUseAnalyzer extends Analyzer {
+public class TypeUseStage extends BaseStage {
 
   @Override
-  public CodeGraph process(CompilationUnit cu) {
-    CodeGraph codeGraph = new CodeGraph();
-
+  public void process(CompilationUnit cu, CodeGraph codeGraph) {
     // クラスごとに処理
     List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
     for (ClassOrInterfaceDeclaration clazz : classes) {
@@ -64,6 +62,5 @@ public class TypeUseAnalyzer extends Analyzer {
       }
     }
 
-    return codeGraph;
   }
 }

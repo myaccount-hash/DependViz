@@ -1,4 +1,4 @@
-package com.example.parser.analyzer;
+package com.example.parser.stage;
 
 import java.util.List;
 
@@ -8,7 +8,7 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
-public class ImplementsAnalyzer extends Analyzer {
+public class ImplementsStage extends BaseStage {
 
   @Override
   protected List<? extends Node> extractNodes(CompilationUnit cu) {

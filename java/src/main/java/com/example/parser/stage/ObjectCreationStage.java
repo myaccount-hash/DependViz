@@ -1,4 +1,4 @@
-package com.example.parser.analyzer;
+package com.example.parser.stage;
 
 import java.util.List;
 
@@ -7,7 +7,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 
-public class ObjectCreationAnalyzer extends Analyzer {
+public class ObjectCreationStage extends BaseStage {
 
   @Override
   protected List<? extends Node> extractNodes(CompilationUnit cu) {

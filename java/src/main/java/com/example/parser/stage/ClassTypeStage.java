@@ -1,4 +1,4 @@
-package com.example.parser.analyzer;
+package com.example.parser.stage;
 
 import java.util.List;
 
@@ -8,12 +8,10 @@ import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 
-public class ClassTypeAnalyzer extends Analyzer {
+public class ClassTypeStage extends BaseStage {
 
   @Override
-  public CodeGraph process(CompilationUnit cu) {
-    CodeGraph codeGraph = new CodeGraph();
-
+  public void process(CompilationUnit cu, CodeGraph codeGraph) {
     List<ClassOrInterfaceDeclaration> classOrInterfaces =
         cu.findAll(ClassOrInterfaceDeclaration.class);
 
@@ -38,7 +36,6 @@ public class ClassTypeAnalyzer extends Analyzer {
       codeGraph.setNodeType(annotationName, "Annotation");
     }
 
-    return codeGraph;
   }
 
   private String determineClassType(ClassOrInterfaceDeclaration decl) {

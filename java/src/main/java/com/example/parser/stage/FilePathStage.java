@@ -1,4 +1,4 @@
-package com.example.parser.analyzer;
+package com.example.parser.stage;
 
 import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
@@ -6,12 +6,10 @@ import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 
-public class FilePathAnalyzer extends Analyzer {
+public class FilePathStage extends BaseStage {
 
   @Override
-  public CodeGraph process(CompilationUnit cu) {
-    CodeGraph graph = new CodeGraph();
-    
+  public void process(CompilationUnit cu, CodeGraph graph) {
     cu.getStorage().ifPresent(storage -> {
       String filePath = storage.getPath().toString();
       
@@ -31,7 +29,5 @@ public class FilePathAnalyzer extends Analyzer {
       });
     });
     
-    return graph;
   }
 }
-

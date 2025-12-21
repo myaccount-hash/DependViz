@@ -1,14 +1,14 @@
 package com.example.parser;
 
-import com.example.parser.analyzer.Analyzer;
-import com.example.parser.analyzer.ClassTypeAnalyzer;
-import com.example.parser.analyzer.ExtendsAnalyzer;
-import com.example.parser.analyzer.FilePathAnalyzer;
-import com.example.parser.analyzer.ImplementsAnalyzer;
-import com.example.parser.analyzer.LinesOfCodeAnalyzer;
-import com.example.parser.analyzer.MethodCallAnalyzer;
-import com.example.parser.analyzer.ObjectCreationAnalyzer;
-import com.example.parser.analyzer.TypeUseAnalyzer;
+import com.example.parser.stage.BaseStage;
+import com.example.parser.stage.ClassTypeStage;
+import com.example.parser.stage.ExtendsStage;
+import com.example.parser.stage.FilePathStage;
+import com.example.parser.stage.ImplementsStage;
+import com.example.parser.stage.LinesOfCodeStage;
+import com.example.parser.stage.MethodCallStage;
+import com.example.parser.stage.ObjectCreationStage;
+import com.example.parser.stage.TypeUseStage;
 import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
@@ -26,13 +26,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * 解析エンジン - 既存のアナライザロジックをラップ
+ * 解析エンジン - 既存のステージロジックをラップ
  */
 public class AnalysisEngine {
   private static final Logger logger = Logger.getLogger(AnalysisEngine.class.getName());
 
   private final CombinedTypeSolver typeSolver;
-  private final List<Analyzer> analyzers;
+  private final List<BaseStage> stages;
 
   public AnalysisEngine(String workspaceRoot) {
     // TypeSolverの初期化
@@ -49,18 +49,18 @@ public class AnalysisEngine {
       this.typeSolver.add(new JavaParserTypeSolver(new File(workspaceRoot)));
     }
 
-    // アナライザのパイプライン構築（TypeSolverは各Analyzerで内部設定）
-    this.analyzers = new ArrayList<>();
-    this.analyzers.add(new TypeUseAnalyzer());
-    this.analyzers.add(new MethodCallAnalyzer());
-    this.analyzers.add(new ObjectCreationAnalyzer());
-    this.analyzers.add(new ExtendsAnalyzer());
-    this.analyzers.add(new ImplementsAnalyzer());
-    this.analyzers.add(new ClassTypeAnalyzer());
-    this.analyzers.add(new LinesOfCodeAnalyzer());
-    this.analyzers.add(new FilePathAnalyzer());
+    // ステージのパイプライン構築（TypeSolverは各Stageで内部設定）
+    this.stages = new ArrayList<>();
+    this.stages.add(new TypeUseStage());
+    this.stages.add(new MethodCallStage());
+    this.stages.add(new ObjectCreationStage());
+    this.stages.add(new ExtendsStage());
+    this.stages.add(new ImplementsStage());
+    this.stages.add(new ClassTypeStage());
+    this.stages.add(new LinesOfCodeStage());
+    this.stages.add(new FilePathStage());
 
-    logger.log(Level.INFO, "Analysis engine initialized with {0} analyzers", analyzers.size());
+    logger.log(Level.INFO, "Analysis engine initialized with {0} stages", stages.size());
   }
 
   /**
@@ -75,10 +75,9 @@ public class AnalysisEngine {
     try {
       CompilationUnit cu = createCompilationUnit(filePath, typeSolver);
 
-      // 各アナライザを実行してマージ
-      for (Analyzer analyzer : analyzers) {
-        CodeGraph analyzerResult = analyzer.process(cu);
-        codeGraph.merge(analyzerResult);
+      // パイプラインとして順に実行
+      for (BaseStage stage : stages) {
+        stage.process(cu, codeGraph);
       }
 
       logger.log(

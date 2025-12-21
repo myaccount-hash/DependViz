@@ -1,4 +1,4 @@
-package com.example.parser.analyzer;
+package com.example.parser.stage;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -8,13 +8,12 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 
-public abstract class Analyzer {
+public abstract class BaseStage {
 
-  private static final Logger logger = Logger.getLogger(Analyzer.class.getName());
+  private static final Logger logger = Logger.getLogger(BaseStage.class.getName());
 
-  // Template Method - 共通の処理フローを定義（デフォルト実装）
-  public CodeGraph process(CompilationUnit cu) {
-    CodeGraph codeGraph = new CodeGraph();
+  // Pipeline Stage - 共通の処理フローを定義（デフォルト実装）
+  public void process(CompilationUnit cu, CodeGraph codeGraph) {
     List<? extends Node> nodes = extractNodes(cu);
 
     for (Node node : nodes) {
@@ -24,8 +23,6 @@ public abstract class Analyzer {
         handleError(node, e);
       }
     }
-
-    return codeGraph;
   }
 
   // サブクラスで実装: 解析対象のノードを抽出（オプション）

@@ -1,4 +1,4 @@
-package com.example.parser.analyzer;
+package com.example.parser.stage;
 
 import java.util.List;
 
@@ -8,13 +8,11 @@ import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 
-/** クラス，インターフェース，Enum，アノテーションの行数を収集するAnalyzer */
-public class LinesOfCodeAnalyzer extends Analyzer {
+/** クラス，インターフェース，Enum，アノテーションの行数を収集するStage */
+public class LinesOfCodeStage extends BaseStage {
 
   @Override
-  public CodeGraph process(CompilationUnit cu) {
-    CodeGraph codeGraph = new CodeGraph();
-
+  public void process(CompilationUnit cu, CodeGraph codeGraph) {
     // クラス/インターフェースの行数収集
     List<ClassOrInterfaceDeclaration> classOrInterfaces = cu.findAll(ClassOrInterfaceDeclaration.class);
 
@@ -40,7 +38,6 @@ public class LinesOfCodeAnalyzer extends Analyzer {
       codeGraph.setNodeLinesOfCode(annotationName, linesOfCode);
     }
 
-    return codeGraph;
   }
 
   /** ノードの行数を計算 開始行と終了行の差分で計算（コメントや空行も含む） */
