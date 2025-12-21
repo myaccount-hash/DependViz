@@ -38,9 +38,9 @@ class GraphViewProvider extends BaseProvider {
             ready: () => {
                 this.syncToWebview();
             },
-            focusNode: async (message) => {
-                if (message.node?.filePath) {
-                    await vscode.window.showTextDocument(vscode.Uri.file(message.node.filePath));
+            focusNode: async (params) => {
+                if (params.node?.filePath) {
+                    await vscode.window.showTextDocument(vscode.Uri.file(params.node.filePath));
                 }
             }
         });
@@ -185,42 +185,39 @@ class GraphViewProvider extends BaseProvider {
 }
 
 module.exports = GraphViewProvider;
-const messageCreators = {
-    'graph:update': payload => {
-        if (!payload || typeof payload !== 'object') {
-            throw new Error('graph:update: payload must be an object');
+const messageParams = {
+    'graph:update': params => {
+        if (!params || typeof params !== 'object') {
+            throw new Error('graph:update: params must be an object');
         }
-        const { controls, data, callStackPaths = [], dataVersion } = payload;
+        const { controls, data, callStackPaths = [], dataVersion } = params;
         if (!controls || typeof controls !== 'object') {
             throw new Error('graph:update: controls must be provided');
         }
         validateGraphData(data);
         const message = {
-            type: 'graph:update',
-            payload: {
-                controls,
-                data,
-                callStackPaths: Array.isArray(callStackPaths) ? callStackPaths : []
-            }
+            controls,
+            data,
+            callStackPaths: Array.isArray(callStackPaths) ? callStackPaths : []
         };
         if (typeof dataVersion === 'number') {
-            message.payload.dataVersion = dataVersion;
+            message.dataVersion = dataVersion;
         }
         return message;
     },
 
-    'view:update': payload => {
-        const validPayload = payload && typeof payload === 'object' ? payload : null;
-        if (!validPayload) {
-            throw new Error('view:update: payload must be an object');
+    'view:update': params => {
+        const validParams = params && typeof params === 'object' ? params : null;
+        if (!validParams) {
+            throw new Error('view:update: params must be an object');
         }
-        const message = { type: 'view:update', payload: {} };
+        const message = {};
 
-        if (validPayload.controls && typeof validPayload.controls === 'object') {
-            message.payload.controls = validPayload.controls;
+        if (validParams.controls && typeof validParams.controls === 'object') {
+            message.controls = validParams.controls;
         }
-        if (Array.isArray(validPayload.callStackPaths)) {
-            message.payload.callStackPaths = validPayload.callStackPaths;
+        if (Array.isArray(validParams.callStackPaths)) {
+            message.callStackPaths = validParams.callStackPaths;
         }
         return message;
     },
@@ -229,15 +226,15 @@ const messageCreators = {
         if (nodeId === undefined || nodeId === null) {
             throw new Error('node:focus: nodeId is required');
         }
-        return { type: 'node:focus', payload: { nodeId } };
+        return { nodeId };
     },
 
     'mode:toggle': () => {
-        return { type: 'mode:toggle', payload: {} };
+        return undefined;
     },
 
     'focus:clear': () => {
-        return { type: 'focus:clear', payload: {} };
+        return undefined;
     }
 };
 
@@ -279,15 +276,20 @@ class WebviewBridge {
     }
 
     send(type, payload) {
-        const creator = messageCreators[type];
+        const creator = messageParams[type];
         if (!creator) {
             throw new Error(`Unknown message type: ${type}`);
         }
-        this._dispatch(creator(payload));
+        const params = creator(payload);
+        const message = { jsonrpc: '2.0', method: type };
+        if (params !== undefined) {
+            message.params = params;
+        }
+        this._dispatch(message);
     }
 
     _dispatch(message) {
-        if (!message || typeof message.type !== 'string') {
+        if (!message || message.jsonrpc !== '2.0' || typeof message.method !== 'string') {
             throw new Error('Invalid webview message payload');
         }
         if (!this._webview) {
@@ -310,15 +312,15 @@ class WebviewBridge {
     }
 
     async _handleReceive(message) {
-        if (!message || typeof message.type !== 'string') {
+        if (!message || message.jsonrpc !== '2.0' || typeof message.method !== 'string') {
             return;
         }
-        if (message.type === 'ready') {
+        if (message.method === 'ready') {
             this.markReady();
         }
-        const handler = this._handlers?.[message.type];
+        const handler = this._handlers?.[message.method];
         if (handler) {
-            await handler(message);
+            await handler(message.params || {});
         }
     }
 }

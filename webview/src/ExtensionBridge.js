@@ -15,9 +15,9 @@ class ExtensionBridge {
     this.state = state;
     this.vscode = null;
     this.handlers = {
-      'graph:update': msg => this.state.handleGraphUpdate(msg?.payload || {}),
-      'view:update': msg => this.state.handleViewUpdate(msg?.payload || {}),
-      'node:focus': msg => this.state.focusNodeById(msg?.payload || {}),
+      'graph:update': params => this.state.handleGraphUpdate(params || {}),
+      'view:update': params => this.state.handleViewUpdate(params || {}),
+      'node:focus': params => this.state.focusNodeById(params || {}),
       'mode:toggle': () => this._handleToggleMode(),
       'focus:clear': () => this.state.clearFocus()
     };
@@ -40,20 +40,23 @@ class ExtensionBridge {
 
   // メッセージを処理
   handle(message) {
-    const handler = message && this.handlers[message.type];
+    if (!message || message.jsonrpc !== '2.0' || typeof message.method !== 'string') {
+      return;
+    }
+    const handler = this.handlers[message.method];
     if (handler) {
-      handler(message);
-    } else if (message?.type) {
-      console.warn('[DependViz] Unknown message type:', message.type);
+      handler(message.params);
+    } else if (message.method) {
+      console.warn('[DependViz] Unknown message method:', message.method);
     }
   }
 
   // メッセージを送信
-  send(type, payload) {
+  send(method, params) {
     if (!this.vscode) return;
-    const message = { type };
-    if (payload && typeof payload === 'object') {
-      Object.assign(message, payload);
+    const message = { jsonrpc: '2.0', method };
+    if (params !== undefined) {
+      message.params = params;
     }
     this.vscode.postMessage(message);
   }
