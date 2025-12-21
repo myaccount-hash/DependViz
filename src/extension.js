@@ -3,26 +3,20 @@ const GraphViewProvider = require('./providers/GraphViewProvider');
 const FilterProvider = require('./providers/FilterProvider');
 const GraphSettingsProvider = require('./providers/GraphSettingsProvider');
 const CallStackProvider = require('./providers/CallStackProvider');
-const { ConfigurationManager } = require('./utils/ConfigurationManager');
+const { ConfigurationManager } = require('./ConfigurationManager');
 const { registerCommands } = require('./commands');
-const JavaAnalyzer = require('./analyzers/JavaAnalyzer');
-const JavaScriptAnalyzer = require('./analyzers/JavaScriptAnalyzer');
+const AnalyzerManager = require('./AnalyzerManager');
 
 process.env.VSCODE_DISABLE_TELEMETRY = '1';
 
-// グローバルなLanguage Client インスタンス
-let javaAnalyzer = null;
-let javascriptAnalyzer = null;
+// グローバルなAnalyzerManagerインスタンス
+let analyzerManager = null;
 
 function activate(context) {
     const settingsProvider = new GraphSettingsProvider();
     const filterProvider = new FilterProvider();
     const graphViewProvider = new GraphViewProvider(context.extensionUri);
     const callStackProvider = new CallStackProvider();
-
-    // Analyzer インスタンスを初期化
-    javaAnalyzer = new JavaAnalyzer(context);
-    javascriptAnalyzer = new JavaScriptAnalyzer();
 
     vscode.window.createTreeView('forceGraphViewer.settings', { treeDataProvider: settingsProvider });
     vscode.window.createTreeView('forceGraphViewer.filters', { treeDataProvider: filterProvider });
@@ -50,15 +44,14 @@ function activate(context) {
         callStackProvider.update(graphViewProvider);
     }
 
+    analyzerManager = new AnalyzerManager(context, configManager);
+
     const providers = {
         settingsProvider,
         filterProvider,
         graphViewProvider,
         callStackProvider,
-        analyzers: {
-            [JavaAnalyzer.analyzerId]: javaAnalyzer,
-            [JavaScriptAnalyzer.analyzerId]: javascriptAnalyzer
-        }
+        analyzerManager
     };
 
     const commands = registerCommands(context, providers);
@@ -105,9 +98,8 @@ function activate(context) {
 }
 
 async function deactivate() {
-    // Language Clientを停止
-    if (javaAnalyzer) {
-        await javaAnalyzer.stopLanguageClient();
+    if (analyzerManager) {
+        await analyzerManager.stopAll();
     }
 
     // リソースクリーンアップ

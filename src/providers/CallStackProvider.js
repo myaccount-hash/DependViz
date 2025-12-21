@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { ConfigurationManager } = require('../utils/ConfigurationManager');
+const { ConfigurationManager } = require('../ConfigurationManager');
 
 class CallStackProvider {
     constructor() {

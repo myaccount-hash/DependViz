@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
-const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../utils/ConfigurationManager');
+const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../ConfigurationManager');
 
 
 

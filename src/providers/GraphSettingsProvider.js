@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem, SliderControlItem, SectionItem, SearchControlItem } = require('./BaseProvider');
-const { ConfigurationManager } = require('../utils/ConfigurationManager');
+const { ConfigurationManager } = require('../ConfigurationManager');
 
 
 /**

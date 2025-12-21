@@ -1,6 +1,5 @@
 const vscode = require('vscode');
-const { ConfigurationManager } = require('./utils/ConfigurationManager');
-const { getDefaultAnalyzerId } = require('./analyzers');
+const { ConfigurationManager } = require('./ConfigurationManager');
 
 /**
  * @param {*} context 
@@ -8,14 +7,10 @@ const { getDefaultAnalyzerId } = require('./analyzers');
  * @returns 
  */
 function registerCommands(context, providers) {
-    const { settingsProvider, filterProvider, graphViewProvider, callStackProvider, analyzers } = providers;
+    const { settingsProvider, filterProvider, graphViewProvider, callStackProvider, analyzerManager } = providers;
     const configManager = ConfigurationManager.getInstance();
-    const getActiveAnalyzer = () => {
-        const controls = configManager.loadControls();
-        const analyzerId = controls.analyzerId || getDefaultAnalyzerId();
-        return analyzers?.[analyzerId] || analyzers?.[getDefaultAnalyzerId()];
-    };
-    const getAnalyzerName = (analyzer) => analyzer?.constructor?.displayName || analyzer?.constructor?.name || 'Analyzer';
+    const getActiveAnalyzer = () => analyzerManager.getActiveAnalyzer();
+    const getAnalyzerName = (analyzer) => analyzerManager.getAnalyzerName(analyzer);
 
     const createSliceCommand = (direction) => async () => {
         const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
@@ -89,7 +84,7 @@ function registerCommands(context, providers) {
             }
             const analyzerName = getAnalyzerName(analyzer);
             const filePath = editor.document.uri.fsPath;
-            if (typeof analyzer.isFileSupported === 'function' && !analyzer.isFileSupported(filePath)) {
+            if (!analyzerManager.isFileSupported(analyzer, filePath)) {
                 return vscode.window.showErrorMessage(`${analyzerName} では解析できないファイルです`);
             }
 

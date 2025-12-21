@@ -1,11 +1,10 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem, SectionItem } = require('./BaseProvider');
-const { ConfigurationManager } = require('../utils/ConfigurationManager');
-const { getAnalyzerClassById, getAnalyzerOptions, getDefaultAnalyzerId } = require('../analyzers');
+const { ConfigurationManager } = require('../ConfigurationManager');
+const AnalyzerManager = require('../AnalyzerManager');
 
 /**
  * フィルタ設定UIを提供するTreeDataProvider実装
- * Providerの中で唯一Analyzerの情報を参照する
  */
 class FilterProvider extends BaseProvider {
     constructor() {
@@ -44,14 +43,14 @@ class FilterProvider extends BaseProvider {
     }
 
     _createAnalyzerSection() {
-        const analyzerId = this.controls.analyzerId || getDefaultAnalyzerId();
-        const children = getAnalyzerOptions().map((option) => new AnalyzerChoiceItem(option, option.id === analyzerId));
+        const analyzerId = this.controls.analyzerId || AnalyzerManager.getDefaultAnalyzerId();
+        const children = AnalyzerManager.getAnalyzerOptions().map((option) => new AnalyzerChoiceItem(option, option.id === analyzerId));
         return new SectionItem('Analyzer', children);
     }
 
     _createFilterItems() {
-        const analyzerId = this.controls.analyzerId || getDefaultAnalyzerId();
-        const analyzerClass = getAnalyzerClassById(analyzerId);
+        const analyzerId = this.controls.analyzerId || AnalyzerManager.getDefaultAnalyzerId();
+        const analyzerClass = AnalyzerManager.getAnalyzerClassById(analyzerId);
         const typeInfo = analyzerClass.getTypeInfo();
         const nodes = typeInfo.filter(info => info.category === 'node');
         const edges = typeInfo.filter(info => info.category === 'edge');

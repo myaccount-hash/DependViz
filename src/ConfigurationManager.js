@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const { getAnalyzerClassById, getDefaultAnalyzerId } = require('../analyzers');
+const AnalyzerManager = require('./AnalyzerManager');
 
 const COLORS = {
     STACK_TRACE_LINK: '#51cf66',
@@ -33,7 +33,7 @@ const CONTROL_DEFAULTS = {
     sliceDepth: 3,
     enableForwardSlice: true,
     enableBackwardSlice: true,
-    analyzerId: getDefaultAnalyzerId()
+    analyzerId: AnalyzerManager.getDefaultAnalyzerId()
 };
 
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
@@ -116,7 +116,7 @@ class ConfigurationManager {
         this._analyzerConfigCache = null;
         this._analyzerConfigMtime = 0;
         this._activeAnalyzerId = CONTROL_DEFAULTS.analyzerId;
-        this._activeAnalyzerClass = getAnalyzerClassById(this._activeAnalyzerId);
+        this._activeAnalyzerClass = AnalyzerManager.getAnalyzerClassById(this._activeAnalyzerId);
         const typeInfo = this._activeAnalyzerClass.getTypeInfo();
         this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
         this._typeControlMap = buildTypeControlMap(typeInfo);
@@ -225,7 +225,7 @@ class ConfigurationManager {
     }
 
     _setActiveAnalyzer(analyzerId) {
-        const analyzerClass = getAnalyzerClassById(analyzerId);
+        const analyzerClass = AnalyzerManager.getAnalyzerClassById(analyzerId);
         if (!analyzerClass) return;
         if (this._activeAnalyzerClass && this._activeAnalyzerClass.analyzerId === analyzerClass.analyzerId) {
             return;
