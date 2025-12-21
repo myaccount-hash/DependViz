@@ -365,8 +365,13 @@ abstract class GraphRenderer {
   abstract getLibraryName(): string;
   abstract getModeName(): string;
 
-  setupRenderer(_container: HTMLElement): void {}
-  setupEventListeners(_graph: GraphInstance): void {}
+  setupRenderer(container: HTMLElement): void {
+    void container;
+  }
+
+  setupEventListeners(graph: GraphInstance): void {
+    void graph;
+  }
   onGraphUpdated(): void {}
 }
 

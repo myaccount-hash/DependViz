@@ -132,7 +132,7 @@ export interface RotationState {
   frame: number | null;
   startTime: number | null;
   startAngle: number | null;
-  timeout: NodeJS.Timeout | null;
+  timeout: number | null;
 }
 
 // Message handler types

@@ -120,7 +120,7 @@ function evaluateFieldQuery(node: GraphNode, query: string): boolean {
   if (isRegex) {
     try {
       return new RegExp(searchValue, 'i').test(nodeValue);
-    } catch (e) {
+    } catch {
       return false;
     }
   }

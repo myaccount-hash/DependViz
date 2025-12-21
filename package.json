@@ -298,11 +298,12 @@
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
     "lint:extension": "eslint \"src/**/*.{js,ts}\"",
+    "lint:tsc": "tsc -p . --noEmit",
     "lint:webview": "npm --prefix webview run lint",
-    "lint": "npm run lint:extension && npm run lint:webview",
+    "lint": "npm run lint:extension && npm run lint:tsc && npm run lint:webview",
     "lint:fix:extension": "eslint \"src/**/*.{js,ts}\" --fix",
     "lint:fix:webview": "npm --prefix webview run lint:fix",
-    "lint:fix": "npm run lint:fix:extension && npm run lint:fix:webview"
+    "lint:fix": "npm run lint:fix:extension && npm run lint:webview"
   },
   "dependencies": {
     "@babel/parser": "^7.28.5",

@@ -149,10 +149,10 @@ class GraphRenderer3D extends GraphRenderer {
       });
       controls.addEventListener('end', () => {
         this.cancelRotation();
-        this.state.rotation.timeout = setTimeout(() => {
+        this.state.rotation.timeout = window.setTimeout(() => {
           this.state.ui.isUserInteracting = false;
           this.updateAutoRotation();
-        }, AUTO_ROTATE_DELAY) as unknown as NodeJS.Timeout;
+        }, AUTO_ROTATE_DELAY);
       });
     }
   }
