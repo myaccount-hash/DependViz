@@ -502,22 +502,3 @@ export class ConfigurationManager {
         this._emitChange();
     }
 }
-
-// ヘルパー関数（後方互換性のため）
-export function loadControls(): Controls {
-    return ConfigurationManager.getInstance().loadControls();
-}
-
-export async function updateControl(key: string, value: any): Promise<void> {
-    return ConfigurationManager.getInstance().updateControl(key, value);
-}
-
-export function getTypeControlMap(): { node: Record<string, string>; edge: Record<string, string> } {
-    return ConfigurationManager.getInstance().getTypeControlMap();
-}
-
-export function typeMatches(type: string, controls: Controls, category: 'node' | 'edge'): boolean {
-    const map = getTypeControlMap();
-    const controlKey = map[category]?.[type];
-    return controlKey ? controls[controlKey] : true;
-}
