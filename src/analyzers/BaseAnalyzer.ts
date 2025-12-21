@@ -43,8 +43,8 @@ export abstract class BaseAnalyzer {
     abstract analyze(): Promise<GraphData>;
     abstract analyzeFile(filePath: string): Promise<GraphData>;
 
-    isFileSupported(_filePath: string): boolean {
-        return true;
+    isFileSupported(filePath: string): boolean {
+        return typeof filePath === 'string';
     }
 
     async stop(): Promise<void> {

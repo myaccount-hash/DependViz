@@ -33,7 +33,7 @@ export declare abstract class BaseAnalyzer {
     constructor();
     abstract analyze(): Promise<GraphData>;
     abstract analyzeFile(filePath: string): Promise<GraphData>;
-    isFileSupported(_filePath: string): boolean;
+    isFileSupported(filePath: string): boolean;
     stop(): Promise<void>;
     static get analyzerId(): string;
     static get displayName(): string;

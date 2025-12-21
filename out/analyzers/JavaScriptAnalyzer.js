@@ -223,7 +223,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer_1.BaseAnalyzer {
             const stat = fs.statSync(filePath);
             return stat.isFile() ? filePath : null;
         }
-        catch (e) {
+        catch {
             return null;
         }
     }

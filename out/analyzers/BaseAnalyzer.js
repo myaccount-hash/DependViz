@@ -5,8 +5,8 @@ class BaseAnalyzer {
     constructor() {
         this.analyzerId = this.constructor.analyzerId;
     }
-    isFileSupported(_filePath) {
-        return true;
+    isFileSupported(filePath) {
+        return typeof filePath === 'string';
     }
     async stop() {
         // Override in subclasses if needed

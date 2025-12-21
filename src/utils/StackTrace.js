@@ -26,7 +26,7 @@ async function getAllSessions() {
                         allFrames.push(...stackResponse.stackFrames);
                         console.log(`Captured ${stackResponse.stackFrames.length} frames from thread ${thread.id} (${thread.name || 'unnamed'}) [stopped=${thread.stopped}]`);
                     }
-                } catch (threadError) {
+                } catch {
                     // Ignore errors from running threads
                 }
             }

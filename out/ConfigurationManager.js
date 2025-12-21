@@ -320,7 +320,7 @@ class ConfigurationManager {
         try {
             mtime = fs.statSync(filePath).mtimeMs;
         }
-        catch (e) {
+        catch {
             this._analyzerConfigCache = { analyzers: {} };
             this._analyzerConfigMtime = 0;
             return this._analyzerConfigCache;
@@ -348,7 +348,7 @@ class ConfigurationManager {
             // backward compatibility: old format without analyzers map
             return { analyzers: { [CONTROL_DEFAULTS.analyzerId]: parsed } };
         }
-        catch (e) {
+        catch {
             return { analyzers: {} };
         }
     }
@@ -372,7 +372,7 @@ class ConfigurationManager {
             const stat = fs.statSync(filePath);
             this._analyzerConfigMtime = stat.mtimeMs;
         }
-        catch (e) {
+        catch {
             this._analyzerConfigMtime = Date.now();
         }
         this._analyzerConfigCache = data;
@@ -418,7 +418,7 @@ class ConfigurationManager {
                 }));
             }
         }
-        catch (e) {
+        catch {
             // ignore
         }
         return [];
