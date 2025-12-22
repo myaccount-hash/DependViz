@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
-const { validateGraphData } = require('../utils/utils');
+const { validateGraphData } = require('../utils/graph');
 const BaseAnalyzer = require('./BaseAnalyzer');
 
 class JavaScriptAnalyzer extends BaseAnalyzer {
@@ -30,8 +30,8 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
 
     constructor() {
         super();
-        this.supportedExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
-        this.parserOptions = {
+        this._supportedExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
+        this._parserOptions = {
             sourceType: 'unambiguous',
             plugins: [
                 'jsx',
@@ -80,7 +80,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         if (!this._isSupportedFile(filePath)) return;
         const content = await this._readFile(filePath);
         if (content === null) return;
-        const nodeId = this._getNodeId(filePath, workspaceFolder);
+        const nodeId = this._toRelative(filePath, workspaceFolder);
         if (!nodeMap.has(nodeId)) {
             nodeMap.set(nodeId, this._createNode(filePath, content, workspaceFolder));
         }
@@ -88,7 +88,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         for (const dep of deps) {
             const resolved = this._resolveDependency(dep.value, filePath, workspaceFolder);
             if (!resolved) continue;
-            const targetId = this._getNodeId(resolved, workspaceFolder);
+            const targetId = this._toRelative(resolved, workspaceFolder);
             if (!nodeMap.has(targetId)) {
                 const depContent = await this._readFile(resolved);
                 if (depContent === null) continue;
@@ -113,7 +113,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
 
     _extractDependencies(content, filePath) {
         try {
-            const ast = parser.parse(content, this.parserOptions);
+            const ast = parser.parse(content, this._parserOptions);
             const deps = [];
             const record = (value, kind) => {
                 if (typeof value === 'string' && value.length > 0) {
@@ -169,12 +169,12 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
     }
 
     _resolveWithExtensions(basePath) {
-        const candidates = [basePath, ...this.supportedExtensions.map(ext => `${basePath}${ext}`)];
+        const candidates = [basePath, ...this._supportedExtensions.map(ext => `${basePath}${ext}`)];
         for (const candidate of candidates) {
             const resolved = this._tryFile(candidate);
             if (resolved) return resolved;
         }
-        for (const ext of this.supportedExtensions) {
+        for (const ext of this._supportedExtensions) {
             const candidate = path.join(basePath, `index${ext}`);
             const resolved = this._tryFile(candidate);
             if (resolved) return resolved;
@@ -186,7 +186,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         try {
             const stat = fs.statSync(filePath);
             return stat.isFile() ? filePath : null;
-        } catch (e) {
+        } catch (error) {
             return null;
         }
     }
@@ -214,11 +214,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
     }
 
     _isSupportedFile(filePath) {
-        return this.supportedExtensions.includes(path.extname(filePath));
-    }
-
-    _getNodeId(filePath, workspaceFolder) {
-        return this._toRelative(filePath, workspaceFolder);
+        return this._supportedExtensions.includes(path.extname(filePath));
     }
 
     _toRelative(filePath, workspaceFolder) {

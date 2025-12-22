@@ -24,7 +24,7 @@ function activate(context) {
     vscode.window.registerWebviewViewProvider('forceGraphViewer.sidebar', graphViewProvider);
 
     const configManager = ConfigurationManager.getInstance();
-    let lastCallStackSelectionValue = [];
+    let lastCallStackSelectionValue;
     const analyzerWatcher = createAnalyzerConfigWatcher(configManager);
     if (analyzerWatcher) {
         context.subscriptions.push(analyzerWatcher);
@@ -54,7 +54,7 @@ function activate(context) {
         analyzerManager
     };
 
-    const commands = registerCommands(context, providers);
+    const commands = registerCommands(providers);
 
     const eventHandlers = [
         configManager.addObserver(async (controls) => {
@@ -127,10 +127,10 @@ function createAnalyzerConfigWatcher(configManager) {
     return watcher;
 }
 
-function areCallStackSelectionsEqual(a = [], b = []) {
-    if (!Array.isArray(a) || !Array.isArray(b)) return false;
-    if (a.length !== b.length) return false;
-    const sortedA = [...a].sort();
-    const sortedB = [...b].sort();
-    return sortedA.every((value, index) => value === sortedB[index]);
+function areCallStackSelectionsEqual(current = [], next = []) {
+    if (!Array.isArray(current) || !Array.isArray(next)) return false;
+    if (current.length !== next.length) return false;
+    const sortedCurrent = [...current].sort();
+    const sortedNext = [...next].sort();
+    return sortedCurrent.every((value, index) => value === sortedNext[index]);
 }

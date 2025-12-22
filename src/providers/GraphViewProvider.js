@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { BaseProvider } = require('./BaseProvider');
-const { validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
+const { validateGraphData, mergeGraphData } = require('../utils/graph');
 const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../ConfigurationManager');
 
 function isValidMessage(message) {
@@ -76,7 +76,6 @@ function createOutboundParams(type, params) {
             }
             return { nodeId: params };
         }
-        case 'mode:toggle':
         case 'focus:clear':
             return undefined;
         default:
@@ -121,10 +120,6 @@ class GraphViewProvider extends BaseProvider {
         this.syncToWebview();
     }
 
-    async refresh() {
-        this.syncToWebview();
-    }
-
     mergeGraphData(newData) {
         mergeGraphData(this._currentData, newData);
         this._dataVersion += 1;
@@ -162,20 +157,18 @@ class GraphViewProvider extends BaseProvider {
     }
 
     async _performUpdate(data) {
-        if (!data || data.type === 'controls') {
-            this.syncToWebview({ viewOnly: true });
-        } else if (data.type === 'callStack' && Array.isArray(data.paths)) {
+        if (data?.type === 'callStack' && Array.isArray(data.paths)) {
             this._callStackPaths = [...data.paths];
             this.syncToWebview({ viewOnly: true });
-        } else if (data.type === 'focusNode' && data.filePath) {
+        } else if (data?.type === 'focusNode' && data.filePath) {
             await this.focusNode(data.filePath);
         }
     }
 
     _findNodeByFilePath(filePath) {
         if (!filePath) return null;
-        return this._currentData.nodes.find(n => {
-            const nodePath = getNodeFilePath(n);
+        return this._currentData.nodes.find(node => {
+            const nodePath = node.filePath;
             if (!nodePath) return false;
             const nodeBasename = nodePath.split('/').pop();
             const fileBasename = filePath.split('/').pop();
@@ -192,13 +185,13 @@ class GraphViewProvider extends BaseProvider {
             return;
         }
 
-        const controls = this._getControls();
+        const controls = this.controls;
         const themeKind = vscode.window.activeColorTheme.kind;
         const darkMode = themeKind === vscode.ColorThemeKind.Dark ||
             themeKind === vscode.ColorThemeKind.HighContrast;
 
         const payload = {
-            controls: { ...controls, darkMode, COLORS, AUTO_ROTATE_DELAY },
+            controls: { ...controls, darkMode, COLORS, autoRotateDelay: AUTO_ROTATE_DELAY },
             callStackPaths: this._callStackPaths
         };
 
@@ -230,15 +223,8 @@ class GraphViewProvider extends BaseProvider {
             return;
         }
 
-        // 現在の設定を取得して反転
-        const currentMode = this._getControls().is3DMode;
+        const currentMode = this.controls.is3DMode;
         await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
-
-        // Webviewに通知してグラフをリセット
-        this._sendToWebview('mode:toggle');
-
-        // 更新された設定を送信
-        this.syncToWebview();
     }
 
     handleSettingsChanged(controls) {
@@ -256,12 +242,6 @@ class GraphViewProvider extends BaseProvider {
         this._webviewBridge.send(type, params);
     }
 
-    _getControls() {
-        if (this.controls && Object.keys(this.controls).length > 0) {
-            return this.controls;
-        }
-        return ConfigurationManager.getInstance().loadControls();
-    }
 }
 
 module.exports = GraphViewProvider;
@@ -289,13 +269,6 @@ class WebviewBridge {
                 await this._handleReceive(message);
             });
         }
-    }
-
-    detach() {
-        this._webview = null;
-        this._ready = false;
-        this._queue = [];
-        this._onMessage = null;
     }
 
     markReady() {

@@ -14,7 +14,6 @@ function createMessageHandlers(state) {
     'graph:update': params => state.handleGraphUpdate(params || {}),
     'view:update': params => state.handleViewUpdate(params || {}),
     'node:focus': params => state.focusNodeById(params || {}),
-    'mode:toggle': () => state.toggleMode(),
     'focus:clear': () => state.clearFocus()
   };
 }
@@ -39,7 +38,6 @@ class GraphViewModel {
       sliceNodes: null,
       sliceLinks: null,
       focusedNode: null,
-      highlightedPath: null,
       isUserInteracting: false
     };
     this.rotation = {
@@ -49,17 +47,13 @@ class GraphViewModel {
       timeout: null
     };
     this._graph = null;
-    this._labelRenderer = null;
     this._currentRenderer = null;
     this._extensionBridge = null;
     this._messageHandlers = null;
   }
 
   get graph() { return this._graph; }
-  get labelRenderer() { return this._labelRenderer; }
-
   setGraph(graph) { this._graph = graph; }
-  setLabelRenderer(renderer) { this._labelRenderer = renderer; }
 
   initializeBridge() {
     if (!this._extensionBridge) {
@@ -70,7 +64,7 @@ class GraphViewModel {
         dispatchMessage(this._messageHandlers, message);
       });
     }
-    return this._extensionBridge.initialize();
+    return this._extensionBridge.initializeBridge();
   }
 
   // VSCode背景色を取得
@@ -130,47 +124,7 @@ class GraphViewModel {
 
   // ノードのファイルパスを取得
   getNodeFilePath(node) {
-    return node.filePath || node.file;
-  }
-
-  // パスを正規化
-  _normalizePath(path) {
-    if (!path) return '';
-    let normalized = path.replace(/\\/g, '/');
-    normalized = normalized.replace(/\/+$/, '');
-    const parts = normalized.split('/').filter(p => p && p !== '.');
-    const result = [];
-    for (const part of parts) {
-      if (part === '..') {
-        if (result.length > 0 && result[result.length - 1] !== '..') {
-          result.pop();
-        } else {
-          result.push(part);
-        }
-      } else {
-        result.push(part);
-      }
-    }
-    return result.join('/');
-  }
-
-  // 2つのパスが一致するか判定
-  _pathsMatch(path1, path2) {
-    if (!path1 || !path2) return false;
-    const norm1 = this._normalizePath(path1);
-    const norm2 = this._normalizePath(path2);
-    if (norm1 === norm2) return true;
-    const parts1 = norm1.split('/').filter(Boolean);
-    const parts2 = norm2.split('/').filter(Boolean);
-    if (parts1.length === 0 || parts2.length === 0) return false;
-    const minLen = Math.min(parts1.length, parts2.length);
-    if (minLen < 2) return false;
-    for (let i = 1; i <= minLen; i++) {
-      const suffix1 = parts1.slice(-i).join('/');
-      const suffix2 = parts2.slice(-i).join('/');
-      if (suffix1 === suffix2) return true;
-    }
-    return false;
+    return node.filePath;
   }
 
   // スライスハイライトを更新
@@ -190,46 +144,6 @@ class GraphViewModel {
     this.ui.sliceLinks = sliceLinks;
   }
 
-  // パスハイライトを更新
-  updateHighlightedPath(nodeNames) {
-    if (!nodeNames || nodeNames.length === 0) {
-      this.ui.highlightedPath = null;
-      return;
-    }
-    
-    const nodeSet = new Set();
-    const pathLinks = [];
-    
-    nodeNames.forEach(name => {
-      const node = this.data.nodes.find(n => n.name === name);
-      if (node) nodeSet.add(node.id);
-    });
-    
-    for (let i = 0; i < nodeNames.length - 1; i++) {
-      const sourceName = nodeNames[i];
-      const targetName = nodeNames[i + 1];
-      const sourceNode = this.data.nodes.find(n => n.name === sourceName);
-      const targetNode = this.data.nodes.find(n => n.name === targetName);
-      
-      if (sourceNode && targetNode) {
-        pathLinks.push({
-          source: sourceNode.id,
-          target: targetNode.id
-        });
-      }
-    }
-    
-    this.ui.highlightedPath = { 
-      nodes: nodeSet,
-      pathLinks: pathLinks
-    };
-  }
-
-  // パスハイライトをクリア
-  clearHighlightedPath() {
-    this.ui.highlightedPath = null;
-    this.updateVisuals();
-  }
 
   // レンダリングモードをクリア
   clearRenderer() {
@@ -239,7 +153,6 @@ class GraphViewModel {
     }
     clearTimeout(this.rotation.timeout);
     this._graph = null;
-    this._labelRenderer = null;
     this._currentRenderer = null;
   }
 
@@ -274,7 +187,7 @@ class GraphViewModel {
   }
 
   // モード切り替えを処理
-  toggleMode() {
+  toggle3DMode() {
     const newMode = !this.controls.is3DMode;
     this.updateControls({ is3DMode: newMode });
     this.clearRenderer();
@@ -282,9 +195,9 @@ class GraphViewModel {
   }
 
   // グラフインスタンスを初期化
-  initGraph() {
+  initializeGraph() {
     const renderer = this.getRenderer();
-    return renderer.initGraph();
+    return renderer.initializeGraph();
   }
 
   // グラフを更新
@@ -292,7 +205,7 @@ class GraphViewModel {
     const { reheatSimulation = false } = options;
 
     if (!this._graph) {
-      if (!this.initGraph()) {
+      if (!this.initializeGraph()) {
         console.error('[DependViz] Failed to initialize graph');
         return;
       }
@@ -377,18 +290,6 @@ class GraphViewModel {
     const height = container.clientHeight;
 
     this._graph.width(width).height(height);
-  }
-
-  // ファイルパスでノードをフォーカス
-  focusNodeByPath(filePath) {
-    if (!filePath) return;
-    const node = this.data.nodes.find(n => this._pathsMatch(this.getNodeFilePath(n), filePath));
-    if (node) {
-      this.ui.focusedNode = node;
-      this.getRenderer().focusNode(node);
-      this.updateSliceHighlight();
-      this.updateVisuals();
-    }
   }
 
   // IDでノードをフォーカス

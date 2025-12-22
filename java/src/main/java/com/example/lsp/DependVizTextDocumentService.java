@@ -27,9 +27,6 @@ public class DependVizTextDocumentService implements TextDocumentService {
   // 解析エンジン
   private AnalysisEngine analysisEngine;
 
-  public DependVizTextDocumentService() {
-  }
-
   public void setWorkspaceRoot(String workspaceRoot) {
     // ワークスペースルートが設定されたら解析エンジンを初期化
     try {
@@ -81,8 +78,6 @@ public class DependVizTextDocumentService implements TextDocumentService {
 
   @Override
   public void didSave(DidSaveTextDocumentParams params) {
-    String uri = params.getTextDocument().getUri();
-    logger.info(() -> "Document saved: " + uri);
   }
 
   /**

@@ -1,12 +1,12 @@
 import state from './GraphViewModel';
 
-export function initializeApplication() {
-  window.addEventListener('resize', () => state.handleResize());
+function initializeApp() {
+  window.addEventListener('resize', state.handleResize.bind(state));
 
   state.initializeBridge();
 
   setTimeout(() => {
-    if (state.initGraph()) {
+    if (state.initializeGraph()) {
       state.updateGraph();
     } else {
       console.error('[DependViz] Failed to initialize graph on startup');
@@ -14,4 +14,4 @@ export function initializeApplication() {
   }, 100);
 }
 
-initializeApplication();
+initializeApp();

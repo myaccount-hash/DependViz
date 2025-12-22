@@ -19,8 +19,8 @@ public class MethodCallStage extends BaseStage {
     MethodCallExpr call = (MethodCallExpr) node;
 
     var resolved = call.resolve();
-    String target = resolved.getPackageName() + "." + resolved.getClassName();
-    String source = getSourceClassName(call);
-    codeGraph.addReferNode(source, target, "MethodCall");
+    String targetClassName = resolved.getPackageName() + "." + resolved.getClassName();
+    String sourceClassName = getSourceClassName(call);
+    codeGraph.addReferNode(sourceClassName, targetClassName, "MethodCall");
   }
 }

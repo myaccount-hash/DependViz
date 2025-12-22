@@ -71,8 +71,6 @@ public class AnalysisEngine {
     logger.log(Level.INFO, "Analyzing file: {0}", filePath);
 
     CodeGraph codeGraph = new CodeGraph();
-    Path path = Paths.get(filePath);
-
     try {
       CompilationUnit cu = createCompilationUnit(filePath, typeSolver);
 
@@ -87,7 +85,7 @@ public class AnalysisEngine {
           new Object[] {codeGraph.getGraphNodes().size(), codeGraph.getGraphEdges().size()});
 
     } catch (Exception e) {
-      logger.log(Level.WARNING, e, () -> "Failed to parse file: " + path);
+      logger.log(Level.WARNING, e, () -> "Failed to parse file: " + filePath);
       throw e;
     }
 

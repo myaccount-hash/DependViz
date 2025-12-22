@@ -1,5 +1,8 @@
 package com.example.parser.stage;
 
+import java.util.List;
+import java.util.function.Function;
+
 import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
@@ -9,25 +12,35 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 public class FilePathStage extends BaseStage {
 
   @Override
-  public void process(CompilationUnit cu, CodeGraph graph) {
+  public void process(CompilationUnit cu, CodeGraph codeGraph) {
     cu.getStorage().ifPresent(storage -> {
       String filePath = storage.getPath().toString();
-      
-      cu.findAll(ClassOrInterfaceDeclaration.class).forEach(decl -> {
-        String className = getFullyQualifiedName(decl);
-        graph.setNodeFilePath(className, filePath);
-      });
-      
-      cu.findAll(EnumDeclaration.class).forEach(decl -> {
-        String enumName = decl.getFullyQualifiedName().orElse("Unknown");
-        graph.setNodeFilePath(enumName, filePath);
-      });
-      
-      cu.findAll(AnnotationDeclaration.class).forEach(decl -> {
-        String annotationName = decl.getFullyQualifiedName().orElse("Unknown");
-        graph.setNodeFilePath(annotationName, filePath);
-      });
+
+      setFilePath(
+          cu.findAll(ClassOrInterfaceDeclaration.class),
+          codeGraph,
+          filePath,
+          BaseStage::getFullyQualifiedName);
+      setFilePath(
+          cu.findAll(EnumDeclaration.class),
+          codeGraph,
+          filePath,
+          decl -> decl.getFullyQualifiedName().orElse("Unknown"));
+      setFilePath(
+          cu.findAll(AnnotationDeclaration.class),
+          codeGraph,
+          filePath,
+          decl -> decl.getFullyQualifiedName().orElse("Unknown"));
     });
-    
+  }
+
+  private static <T> void setFilePath(
+      List<T> decls,
+      CodeGraph graph,
+      String filePath,
+      Function<T, String> nameResolver) {
+    for (T decl : decls) {
+      graph.setNodeFilePath(nameResolver.apply(decl), filePath);
+    }
   }
 }

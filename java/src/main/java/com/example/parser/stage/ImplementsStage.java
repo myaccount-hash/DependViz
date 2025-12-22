@@ -17,10 +17,10 @@ public class ImplementsStage extends BaseStage {
 
   @Override
   protected void processNode(Node node, CodeGraph codeGraph) throws Exception {
-    ClassOrInterfaceDeclaration clazz = (ClassOrInterfaceDeclaration) node;
-    String sourceClassName = getFullyQualifiedName(clazz);
+    ClassOrInterfaceDeclaration decl = (ClassOrInterfaceDeclaration) node;
+    String sourceClassName = getFullyQualifiedName(decl);
 
-    for (ClassOrInterfaceType implementedType : clazz.getImplementedTypes()) {
+    for (ClassOrInterfaceType implementedType : decl.getImplementedTypes()) {
       var resolvedType = implementedType.resolve();
       String targetClassName = resolvedType.describe();
       codeGraph.addReferNode(sourceClassName, targetClassName, "Implements");

@@ -1,8 +1,8 @@
 package com.example.parser.object;
 
 public class GraphNode {
-  final private String nodeName;
-  final private String id;
+  private final String nodeName;
+  private final String id;
   private String type = "Unknown";
   private int linesOfCode = -1; // 行数フィールドを追加（初期値-1）
   private String filePath = null;
@@ -10,8 +10,6 @@ public class GraphNode {
   GraphNode(String nodeName) {
     this.nodeName = nodeName;
     this.id = nodeName;
-    this.type = "Unknown";
-    this.linesOfCode = -1;
   }
 
   public String getNodeName() {

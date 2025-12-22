@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const { ConfigurationManager } = require('./ConfigurationManager');
 
-function registerCommands(context, providers) {
+function registerCommands(providers) {
     const { settingsProvider, filterProvider, graphViewProvider, callStackProvider, analyzerManager } = providers;
     const configManager = ConfigurationManager.getInstance();
     const getAnalyzerName = () => analyzerManager.getActiveAnalyzerName();
@@ -17,7 +17,7 @@ function registerCommands(context, providers) {
         vscode.commands.registerCommand('forceGraphViewer.refresh', async () => {
             settingsProvider.refresh();
             filterProvider.refresh();
-            await graphViewProvider.refresh();
+            graphViewProvider.syncToWebview();
         }),
         vscode.commands.registerCommand('forceGraphViewer.showSearchInput', async () => {
             const controls = getControls();
@@ -52,7 +52,7 @@ function registerCommands(context, providers) {
                 await configManager.updateControl('analyzerId', analyzerId);
             }
         }),
-        vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, step, currentValue) => {
+        vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, currentValue) => {
             const value = await vscode.window.showInputBox({
                 prompt: `${key} (${min} - ${max})`,
                 value: currentValue.toString(),
@@ -72,9 +72,7 @@ function registerCommands(context, providers) {
             if (!graphData) {
                 return vscode.window.showErrorMessage('有効なアナライザーが選択されていません');
             }
-            if (graphData) {
-                graphViewProvider.setGraphData(graphData);
-            }
+            graphViewProvider.setGraphData(graphData);
         }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeCurrentFile', async () => {
             const editor = vscode.window.activeTextEditor;
@@ -83,9 +81,6 @@ function registerCommands(context, providers) {
             }
 
             const analyzerId = getAnalyzerId();
-            if (!analyzerId) {
-                return vscode.window.showErrorMessage('有効なアナライザーが選択されていません');
-            }
             const analyzerName = getAnalyzerName();
             const filePath = editor.document.uri.fsPath;
             if (!analyzerManager.isFileSupported(filePath)) {
@@ -106,16 +101,16 @@ function registerCommands(context, providers) {
                     graphViewProvider.mergeGraphData(graphData);
                     vscode.window.showInformationMessage(`${analyzerName} の解析完了: ${graphData.nodes.length}ノード, ${graphData.links.length}リンク`);
                 }
-            } catch (e) {
-                vscode.window.showErrorMessage(`解析失敗: ${e.message}`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`解析失敗: ${error.message}`);
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.updateCallStack', async () => {
             try {
                 await callStackProvider.update(graphViewProvider);
                 vscode.window.showInformationMessage('コールスタックを更新しました');
-            } catch (e) {
-                vscode.window.showErrorMessage(`取得失敗: ${e.message}`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`取得失敗: ${error.message}`);
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.removeCallStackEntry', async (item) => {
@@ -124,8 +119,8 @@ function registerCommands(context, providers) {
             }
             try {
                 await callStackProvider.removeSession(item.id, graphViewProvider);
-            } catch (e) {
-                vscode.window.showErrorMessage(`削除失敗: ${e.message}`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`削除失敗: ${error.message}`);
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.forwardSlice', createSliceCommand('forward')),

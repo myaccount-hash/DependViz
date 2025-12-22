@@ -1,6 +1,5 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem, SliderControlItem, SectionItem, SearchControlItem } = require('./BaseProvider');
-const { ConfigurationManager } = require('../ConfigurationManager');
 
 
 /**
@@ -11,13 +10,6 @@ class GraphSettingsProvider extends BaseProvider {
         super();
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-    }
-
-    get controls() {
-        if (this._controls && Object.keys(this._controls).length > 0) {
-            return this._controls;
-        }
-        return ConfigurationManager.getInstance().loadControls();
     }
 
     refresh() {
@@ -38,17 +30,17 @@ class GraphSettingsProvider extends BaseProvider {
 
     getRootItems() {
         return [
-            new SectionItem('表示設定', APPEARANCE_ITEMS.map(c => this.createControlItem(c))),
-            new SectionItem('詳細設定', DETAIL_ITEMS.map(c => this.createControlItem(c)))
+            new SectionItem('表示設定', APPEARANCE_ITEMS.map(item => this.createControlItem(item))),
+            new SectionItem('詳細設定', DETAIL_ITEMS.map(item => this.createControlItem(item)))
         ];
     }
 
-    createControlItem(c) {
-        const [type, label, key] = c;
+    createControlItem(item) {
+        const [type, label, key] = item;
         const value = this.controls[key];
         if (type === 'search') return new SearchControlItem(label, value);
         if (type === 'checkbox') return new CheckboxControlItem(label, value, key);
-        if (type === 'slider') return new SliderControlItem(label, value, c[3].min, c[3].max, c[3].step, key);
+        if (type === 'slider') return new SliderControlItem(label, value, item[3].min, item[3].max, key);
         throw new Error(`Unknown control type: ${type}`);
     }
 
@@ -60,15 +52,15 @@ class GraphSettingsProvider extends BaseProvider {
 
 
 const SLIDER_RANGES = {
-    nodeSize: { min: 0, max: 20, step: 0.1 },
-    linkWidth: { min: 0, max: 10, step: 0.1 },
-    opacity: { min: 0, max: 2, step: 0.1 },
-    linkDistance: { min: 10, max: 200, step: 5 },
-    focusDistance: { min: 20, max: 300, step: 5 },
-    arrowSize: { min: 0, max: 20, step: 1 },
-    textSize: { min: 0, max: 24, step: 1 },
-    sliceDepth: { min: 1, max: 10, step: 1 },
-    dimOpacity: { min: 0, max: 10, step: 0.05 }
+    nodeSize: { min: 0, max: 20 },
+    linkWidth: { min: 0, max: 10 },
+    opacity: { min: 0, max: 2 },
+    linkDistance: { min: 10, max: 200 },
+    focusDistance: { min: 20, max: 300 },
+    arrowSize: { min: 0, max: 20 },
+    textSize: { min: 0, max: 24 },
+    sliceDepth: { min: 1, max: 10 },
+    dimOpacity: { min: 0, max: 10 }
 };
 
 const APPEARANCE_ITEMS = [

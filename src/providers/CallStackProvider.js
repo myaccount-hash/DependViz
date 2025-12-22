@@ -20,7 +20,7 @@ class CallStackProvider {
                 return;
             }
 
-            const firstSession = sessions.find((s) => s.captured);
+            const firstSession = sessions.find((session) => session.captured);
             if (!firstSession) {
                 graphViewProvider.update({ type: 'callStack', paths: [] });
                 return;
@@ -44,8 +44,8 @@ class CallStackProvider {
             await this._persistSessions();
             this._onDidChangeTreeData.fire();
             await this._emitCallStackPaths(graphViewProvider);
-        } catch (e) {
-            console.error('Failed to update stack trace:', e.message, e.stack);
+        } catch (error) {
+            console.error('Failed to update stack trace:', error.message, error.stack);
             await this.clear();
             graphViewProvider.update({ type: 'callStack', paths: [] });
         }
@@ -112,7 +112,7 @@ class CallStackProvider {
         item.iconPath = new vscode.ThemeIcon(checked ? 'check' : 'circle-outline');
         item.command = {
             command: 'forceGraphViewer.toggleCallStackEntry',
-            title: checked ? 'Toggle Call Stack Entry' : 'Toggle Call Stack Entry',
+            title: 'Toggle Call Stack Entry',
             arguments: [session.id]
         };
         const descriptionParts = [];
@@ -196,9 +196,9 @@ class CallStackProvider {
 
     _extractPaths(frames = []) {
         const paths = frames
-            .filter(f => f && f.source)
-            .map(f => f.source?.path)
-            .filter(p => p && p.trim());
+            .filter(frame => frame && frame.source)
+            .map(frame => frame.source?.path)
+            .filter(path => path && path.trim());
         return [...new Set(paths)];
     }
 
@@ -240,8 +240,8 @@ class CallStackProvider {
     async _persistSessions() {
         try {
             await this._configManager.updateCallStackCache(this._sessions);
-        } catch (e) {
-            console.warn('Failed to persist stack trace cache:', e.message);
+        } catch (error) {
+            console.warn('Failed to persist stack trace cache:', error.message);
         }
     }
 
@@ -251,8 +251,8 @@ class CallStackProvider {
             if (Array.isArray(cache) && cache.length > 0) {
                 this._sessions = cache;
             }
-        } catch (e) {
-            console.warn('Failed to load stack trace cache:', e.message);
+        } catch (error) {
+            console.warn('Failed to load stack trace cache:', error.message);
         }
     }
 

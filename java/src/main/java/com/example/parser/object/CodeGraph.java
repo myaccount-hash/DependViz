@@ -79,36 +79,4 @@ public class CodeGraph {
     return null;
   }
 
-  public void merge(CodeGraph other) {
-    // 他のCodeGraphのノードを追加
-    for (GraphNode otherNode : other.graphNodes) {
-      GraphNode existingNode = findGraphNode(otherNode.getNodeName());
-      if (existingNode == null) {
-        graphNodes.add(otherNode);
-      } else {
-        // タイプがUnknownの場合は上書き
-        if ("Unknown".equals(existingNode.getType()) && !"Unknown".equals(otherNode.getType())) {
-          existingNode.setType(otherNode.getType());
-        }
-        // 行数が-1の場合のみ上書き
-        if (existingNode.getLinesOfCode() == -1 && otherNode.getLinesOfCode() != -1) {
-          existingNode.setLinesOfCode(otherNode.getLinesOfCode());
-        }
-        // ファイルパスがnullの場合のみ上書き
-        if (existingNode.getFilePath() == null && otherNode.getFilePath() != null) {
-          existingNode.setFilePath(otherNode.getFilePath());
-        }
-      }
-    }
-
-    // 他のCodeGraphのエッジを追加
-    for (GraphEdge otherEdge : other.graphEdges) {
-      // エッジのソースとターゲットノードを現在のグラフで取得または作成
-      GraphNode sourceNode = getOrCreate(otherEdge.getSourceNode().getNodeName());
-      GraphNode targetNode = getOrCreate(otherEdge.getTargetNode().getNodeName());
-
-      // エッジの重複チェックを行って追加
-      getOrCreateEdge(sourceNode, targetNode, otherEdge.getType());
-    }
-  }
 }

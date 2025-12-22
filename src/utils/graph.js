@@ -4,9 +4,6 @@ function validateGraphData(data) {
     if (!Array.isArray(data.links)) throw new Error('data.links must be an array');
 }
 
-function getNodeFilePath(node) {
-    return node.filePath || node.file;
-}
 
 /**
  * グラフデータをマージ（重複を排除）
@@ -67,6 +64,5 @@ function mergeGraphData(target, source) {
 
 module.exports = {
     validateGraphData,
-    getNodeFilePath,
     mergeGraphData
 };

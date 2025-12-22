@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const { LanguageClient, TransportKind } = require('vscode-languageclient/node');
-const { mergeGraphData, validateGraphData } = require('../utils/utils');
+const { mergeGraphData, validateGraphData } = require('../utils/graph');
 const BaseAnalyzer = require('./BaseAnalyzer');
 
 /**
@@ -61,8 +61,6 @@ class JavaAnalyzer extends BaseAnalyzer {
         if (!this.outputChannel) {
             this.outputChannel = vscode.window.createOutputChannel('DependViz Java Language Server');
         }
-        const outputChannel = this.outputChannel;
-
         try {
             const workspaceFolder = this._getWorkspaceFolder();
             const jarPath = path.join(this.context.extensionPath, 'java', 'target', 'java-graph.jar');
@@ -96,8 +94,8 @@ class JavaAnalyzer extends BaseAnalyzer {
                     fileEvents: vscode.workspace.createFileSystemWatcher('**/*.java')
                 },
                 workspaceFolder: workspaceFolder,
-                outputChannel: outputChannel,
-                traceOutputChannel: outputChannel,
+                outputChannel: this.outputChannel,
+                traceOutputChannel: this.outputChannel,
                 revealOutputChannelOn: 4 // Never
             };
 
@@ -112,26 +110,26 @@ class JavaAnalyzer extends BaseAnalyzer {
             // エラーハンドラを設定
             this.client.onDidChangeState((event) => {
                 console.log(`Language Server state changed: ${event.oldState} -> ${event.newState}`);
-                outputChannel.appendLine(`State: ${event.oldState} -> ${event.newState}`);
+                this.outputChannel.appendLine(`State: ${event.oldState} -> ${event.newState}`);
             });
 
             this.client.onNotification('window/logMessage', (params) => {
-                outputChannel.appendLine(`[Server Log] ${params.message}`);
+                this.outputChannel.appendLine(`[Server Log] ${params.message}`);
             });
 
             // クライアントを起動して初期化を待つ
             console.log('Starting Language Server...');
-            outputChannel.appendLine('Starting Language Server...');
-            outputChannel.appendLine(`JAR path: ${jarPath}`);
+            this.outputChannel.appendLine('Starting Language Server...');
+            this.outputChannel.appendLine(`JAR path: ${jarPath}`);
 
             await this.client.start();
             console.log('Java Language Server started and ready');
-            outputChannel.appendLine('Language Server is ready');
+            this.outputChannel.appendLine('Language Server is ready');
         } catch (error) {
             const errorMsg = `Failed to start Language Server: ${error.message}\nStack: ${error.stack}`;
             console.error(errorMsg);
-            outputChannel.appendLine(errorMsg);
-            outputChannel.show();
+            this.outputChannel.appendLine(errorMsg);
+            this.outputChannel.show();
             this.client = null;
             throw error;
         }
@@ -200,7 +198,6 @@ class JavaAnalyzer extends BaseAnalyzer {
             // Language Clientを起動
             await this.startLanguageClient();
 
-            this._getWorkspaceFolder();
             const javaFiles = await vscode.workspace.findFiles('**/*.java', '**/node_modules/**');
 
             if (javaFiles.length === 0) {

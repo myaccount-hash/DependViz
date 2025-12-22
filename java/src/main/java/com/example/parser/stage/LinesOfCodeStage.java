@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
@@ -41,17 +42,7 @@ public class LinesOfCodeStage extends BaseStage {
   }
 
   /** ノードの行数を計算 開始行と終了行の差分で計算（コメントや空行も含む） */
-  private int calculateLinesOfCode(ClassOrInterfaceDeclaration node) {
-    return node.getRange().map(range -> range.end.line - range.begin.line + 1).orElse(0);
-  }
-
-  /** Enumの行数を計算 */
-  private int calculateLinesOfCode(EnumDeclaration node) {
-    return node.getRange().map(range -> range.end.line - range.begin.line + 1).orElse(0);
-  }
-
-  /** アノテーションの行数を計算 */
-  private int calculateLinesOfCode(AnnotationDeclaration node) {
+  private int calculateLinesOfCode(Node node) {
     return node.getRange().map(range -> range.end.line - range.begin.line + 1).orElse(0);
   }
 }

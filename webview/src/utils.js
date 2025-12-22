@@ -101,7 +101,7 @@ function evaluateFieldQuery(node, query) {
   let nodeValue = '';
   if (field === 'name') nodeValue = node.name || '';
   else if (field === 'type') nodeValue = node.type || '';
-  else if (field === 'path') nodeValue = node.filePath || node.file || '';
+  else if (field === 'path') nodeValue = node.filePath || '';
 
   if (isRegex) {
     try {

@@ -8,7 +8,7 @@ class ExtensionBridge {
   }
 
   // VSCode APIを初期化
-  initialize() {
+  initializeBridge() {
     if (typeof acquireVsCodeApi === 'function') {
       this.vscode = acquireVsCodeApi();
     }
@@ -37,11 +37,6 @@ class ExtensionBridge {
     }
     this.vscode.postMessage(message);
   }
-
-  getVsCodeApi() {
-    return this.vscode;
-  }
-
 }
 
 export default ExtensionBridge;

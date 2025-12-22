@@ -1,6 +1,7 @@
 package com.example.parser.stage;
 
 import java.util.List;
+import java.util.function.Function;
 
 import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
@@ -22,19 +23,16 @@ public class ClassTypeStage extends BaseStage {
       codeGraph.setNodeType(className, type);
     }
 
-    // Enumの収集
-    List<EnumDeclaration> enums = cu.findAll(EnumDeclaration.class);
-    for (EnumDeclaration enumDecl : enums) {
-      String enumName = enumDecl.getFullyQualifiedName().orElse("Unknown");
-      codeGraph.setNodeType(enumName, "Enum");
-    }
-
-    // アノテーションの収集
-    List<AnnotationDeclaration> annotations = cu.findAll(AnnotationDeclaration.class);
-    for (AnnotationDeclaration annotationDecl : annotations) {
-      String annotationName = annotationDecl.getFullyQualifiedName().orElse("Unknown");
-      codeGraph.setNodeType(annotationName, "Annotation");
-    }
+    setNodeType(
+        cu.findAll(EnumDeclaration.class),
+        codeGraph,
+        "Enum",
+        decl -> decl.getFullyQualifiedName().orElse("Unknown"));
+    setNodeType(
+        cu.findAll(AnnotationDeclaration.class),
+        codeGraph,
+        "Annotation",
+        decl -> decl.getFullyQualifiedName().orElse("Unknown"));
 
   }
 
@@ -45,6 +43,16 @@ public class ClassTypeStage extends BaseStage {
       return "AbstractClass";
     } else {
       return "Class";
+    }
+  }
+
+  private static <T> void setNodeType(
+      List<T> decls,
+      CodeGraph codeGraph,
+      String type,
+      Function<T, String> nameResolver) {
+    for (T decl : decls) {
+      codeGraph.setNodeType(nameResolver.apply(decl), type);
     }
   }
 }

@@ -21,11 +21,11 @@ public class ObjectCreationStage extends BaseStage {
     // ターゲットクラス名の取得
     var resolvedType = obj.getType().resolve();
     var referenceType = resolvedType.asReferenceType();
-    String target = referenceType.getQualifiedName();
+    String targetClassName = referenceType.getQualifiedName();
 
     // ソースクラス名の取得
-    String source = getSourceClassName(obj);
+    String sourceClassName = getSourceClassName(obj);
 
-    codeGraph.addReferNode(source, target, "ObjectCreate");
+    codeGraph.addReferNode(sourceClassName, targetClassName, "ObjectCreate");
   }
 }

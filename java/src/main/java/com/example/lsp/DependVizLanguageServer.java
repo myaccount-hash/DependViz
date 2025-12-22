@@ -31,7 +31,7 @@ public class DependVizLanguageServer implements LanguageServer {
 
   public DependVizLanguageServer() {
     this.textDocumentService = new DependVizTextDocumentService();
-    this.workspaceService = new NoopWorkspaceService();
+    this.workspaceService = new NoOpWorkspaceService();
   }
 
   // カスタムリクエストハンドラの実装
@@ -100,8 +100,6 @@ public class DependVizLanguageServer implements LanguageServer {
         org.eclipse.lsp4j.jsonrpc.Launcher.createLauncher(
             server, LanguageClient.class, in, out);
 
-    launcher.getRemoteProxy();
-
     logger.info("Language Server started, listening on stdin/stdout");
     try {
       launcher.startListening().get();
@@ -127,7 +125,7 @@ public class DependVizLanguageServer implements LanguageServer {
     return params.getRootPath();
   }
 
-  private static final class NoopWorkspaceService implements WorkspaceService {
+  private static final class NoOpWorkspaceService implements WorkspaceService {
     @Override
     public void didChangeConfiguration(DidChangeConfigurationParams params) {}
 

@@ -17,11 +17,11 @@ public class TypeUseStage extends BaseStage {
   public void process(CompilationUnit cu, CodeGraph codeGraph) {
     // クラスごとに処理
     List<ClassOrInterfaceDeclaration> classes = cu.findAll(ClassOrInterfaceDeclaration.class);
-    for (ClassOrInterfaceDeclaration clazz : classes) {
-      String className = getFullyQualifiedName(clazz);
+    for (ClassOrInterfaceDeclaration decl : classes) {
+      String className = getFullyQualifiedName(decl);
 
       // フィールドの型使用
-      for (FieldDeclaration field : clazz.getFields()) {
+      for (FieldDeclaration field : decl.getFields()) {
         try {
           String target = field.getElementType().resolve().describe();
           codeGraph.addReferNode(className, target, "TypeUse");
@@ -31,7 +31,7 @@ public class TypeUseStage extends BaseStage {
       }
 
       // メソッドの型使用
-      for (MethodDeclaration method : clazz.getMethods()) {
+      for (MethodDeclaration method : decl.getMethods()) {
         // 戻り値型
         String target = method.getType().resolve().describe();
         codeGraph.addReferNode(className, target, "TypeUse");

@@ -17,10 +17,10 @@ public class ExtendsStage extends BaseStage {
 
   @Override
   protected void processNode(Node node, CodeGraph codeGraph) throws Exception {
-    ClassOrInterfaceDeclaration clazz = (ClassOrInterfaceDeclaration) node;
-    String sourceClassName = getFullyQualifiedName(clazz);
+    ClassOrInterfaceDeclaration decl = (ClassOrInterfaceDeclaration) node;
+    String sourceClassName = getFullyQualifiedName(decl);
 
-    for (ClassOrInterfaceType extendedType : clazz.getExtendedTypes()) {
+    for (ClassOrInterfaceType extendedType : decl.getExtendedTypes()) {
       try {
         var resolvedType = extendedType.resolve();
         String targetClassName = resolvedType.describe();

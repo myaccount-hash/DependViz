@@ -1,6 +1,5 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem, SectionItem } = require('./BaseProvider');
-const { ConfigurationManager } = require('../ConfigurationManager');
 const AnalyzerManager = require('../AnalyzerManager');
 
 /**
@@ -11,13 +10,6 @@ class FilterProvider extends BaseProvider {
         super();
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-    }
-
-    get controls() {
-        if (this._controls && Object.keys(this._controls).length > 0) {
-            return this._controls;
-        }
-        return ConfigurationManager.getInstance().loadControls();
     }
 
     refresh() {

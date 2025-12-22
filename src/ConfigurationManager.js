@@ -37,7 +37,7 @@ const CONTROL_DEFAULTS = {
 };
 
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
-const STACKTRACE_CACHE_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'stacktrace.json');
+const STACK_TRACE_CACHE_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'stacktrace.json');
 
 function getValueAtPath(target, pathParts) {
     return pathParts.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), target);
@@ -104,7 +104,6 @@ class ConfigurationManager {
         this._activeAnalyzerClass = AnalyzerManager.getAnalyzerClassById(this._activeAnalyzerId);
         const typeInfo = this._activeAnalyzerClass.getTypeInfo();
         this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
-        this._analyzerDefaults = this._activeAnalyzerClass.getTypeDefaults();
     }
 
     addObserver(observer) {
@@ -113,12 +112,8 @@ class ConfigurationManager {
         }
         this._observers.add(observer);
         return {
-            dispose: () => this.removeObserver(observer)
+            dispose: () => this._observers.delete(observer)
         };
-    }
-
-    removeObserver(observer) {
-        this._observers.delete(observer);
     }
 
     /**
@@ -164,14 +159,6 @@ class ConfigurationManager {
         this._emitChange();
     }
 
-    /**
-     * 単一の設定値を取得
-     */
-    getControl(key) {
-        const controls = this.loadControls();
-        return controls[key];
-    }
-
     _emitChange() {
         const controls = this.loadControls();
         this._notifyObservers(controls);
@@ -201,7 +188,6 @@ class ConfigurationManager {
         this._activeAnalyzerId = analyzerClass.analyzerId;
         const typeInfo = analyzerClass.getTypeInfo();
         this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
-        this._analyzerDefaults = analyzerClass.getTypeDefaults();
     }
 
     _loadAnalyzerControls() {
@@ -257,7 +243,7 @@ class ConfigurationManager {
             }
             // backward compatibility: old format without analyzers map
             return { analyzers: { [CONTROL_DEFAULTS.analyzerId]: parsed } };
-        } catch (e) {
+        } catch (error) {
             return { analyzers: {} };
         }
     }
@@ -301,7 +287,7 @@ class ConfigurationManager {
     _getCallStackCachePath() {
         const folder = vscode.workspace.workspaceFolders?.[0];
         if (!folder) return null;
-        return path.join(folder.uri.fsPath, STACKTRACE_CACHE_RELATIVE_PATH);
+        return path.join(folder.uri.fsPath, STACK_TRACE_CACHE_RELATIVE_PATH);
     }
 
     _ensureCallStackCacheFile() {
@@ -324,7 +310,7 @@ class ConfigurationManager {
                     paths: Array.isArray(entry.paths) ? [...entry.paths] : []
                 }));
             }
-        } catch (e) {
+        } catch (error) {
             // ignore
         }
         return [];

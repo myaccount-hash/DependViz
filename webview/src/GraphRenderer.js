@@ -21,33 +21,10 @@ class GraphRenderer {
     
     this.linkRules = [
       (link, ctx) => {
-        const hasPath = ctx.state.ui.highlightedPath;
-        if (!hasPath || !hasPath.pathLinks) return null;
-        
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-        
-        const isPathLink = hasPath.pathLinks.some(pl => 
-          (pl.source === sourceId && pl.target === targetId) ||
-          (pl.source === targetId && pl.target === sourceId)
-        );
-        
-        if (isPathLink) {
-          const COLORS = ctx.state.controls.COLORS || {};
-          return {
-            color: COLORS.PATH_LINK || '#fbbf24',
-            widthMultiplier: 2.5,
-            particles: 5
-          };
-        }
-        return null;
-      },
-      (link, ctx) => {
         const COLORS = ctx.state.controls.COLORS || {};
         return ctx.state.ui.callStackLinks.has(link) && {
           color: COLORS.STACK_TRACE_LINK || '#51cf66',
-          widthMultiplier: 2.5,
-          particles: 5
+          widthMultiplier: 2.5
         };
       },
       (link, ctx) => {
@@ -94,20 +71,7 @@ class GraphRenderer {
       opacity: this.state.controls.nodeOpacity
     });
 
-    const hasPath = this.state.ui.highlightedPath;
     const hasSlice = this.state.ui.sliceNodes && this.state.ui.sliceNodes.size > 0;
-
-    if (hasPath) {
-      if (hasPath.nodes.has(node.id)) {
-        props.sizeMultiplier = (props.sizeMultiplier || 1) * 1.3;
-      } else {
-        props.opacity = (props.opacity || 1) * 0.15;
-      }
-      return { 
-        ...props, 
-        size: (props.sizeMultiplier || 1) * this.state.controls.nodeSize 
-      };
-    }
 
     if (hasSlice) {
       if (!this.state.ui.sliceNodes.has(node.id)) {
@@ -137,36 +101,14 @@ class GraphRenderer {
     const props = this._applyRules(link, this.linkRules, {
       color: COLORS.EDGE_DEFAULT || '#4b5563',
       widthMultiplier: 1,
-      particles: 0,
-      opacity: this.state.controls.edgeOpacity,
-      arrowSize: this.state.controls.arrowSize
+      opacity: this.state.controls.edgeOpacity
     });
 
-    const hasPath = this.state.ui.highlightedPath;
     const hasSlice = this.state.ui.sliceNodes && this.state.ui.sliceNodes.size > 0;
-
-    if (hasPath) {
-      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-      
-      const isPathLink = hasPath.pathLinks.some(pl => 
-        (pl.source === sourceId && pl.target === targetId) ||
-        (pl.source === targetId && pl.target === sourceId)
-      );
-      
-      if (!isPathLink) {
-        props.opacity = (props.opacity || 1) * 0.15;
-      }
-      return { 
-        ...props, 
-        width: (props.widthMultiplier || 1) * this.state.controls.linkWidth 
-      };
-    }
 
     if (hasSlice) {
       const inSlice = this.state.ui.sliceLinks ? this.state.ui.sliceLinks.has(link) : false;
       if (inSlice) {
-        props.particles = Math.max(props.particles || 0, 2);
         props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
       } else {
         props.opacity = (props.opacity || 1) * 0.1;
@@ -180,7 +122,6 @@ class GraphRenderer {
       const isConnectedToFocus = sourceId === focusedId || targetId === focusedId;
 
       if (isConnectedToFocus) {
-        props.particles = 3;
         props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
       } else {
         const dim = this.state.controls.dimOpacity ?? 0.2;
@@ -217,8 +158,7 @@ class GraphRenderer {
         const props = getLinkProps(link);
         const color = props ? props.color : (COLORS.EDGE_DEFAULT || '#4b5563');
         return applyOpacityToColor(color, props?.opacity);
-      })
-      .linkDirectionalParticles(() => 0);
+      });
   }
 
   // グラフを更新
@@ -255,8 +195,7 @@ class GraphRenderer {
         const props = getLinkProps(link);
         return props ? props.width : this.state.controls.linkWidth;
       })
-      .linkDirectionalArrowLength(this.state.controls.arrowSize)
-      .linkDirectionalParticleWidth(2);
+      .linkDirectionalArrowLength(this.state.controls.arrowSize);
 
     this._applyColors(getNodeProps, getLinkProps);
 
@@ -282,7 +221,7 @@ class GraphRenderer {
   }
 
   // グラフを初期化
-  initGraph() {
+  initializeGraph() {
     const container = document.getElementById('graph-container');
     if (!container) {
       console.error('[DependViz] Container not found!');

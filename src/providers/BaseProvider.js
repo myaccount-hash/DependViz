@@ -1,4 +1,5 @@
 const vscode = require('vscode');
+const { ConfigurationManager } = require('../ConfigurationManager');
 
 /**
  * Providerの設定更新を統一する基底クラス
@@ -13,7 +14,10 @@ class BaseProvider {
     }
 
     get controls() {
-        return this._controls || {};
+        if (this._controls && Object.keys(this._controls).length > 0) {
+            return this._controls;
+        }
+        return ConfigurationManager.getInstance().loadControls();
     }
 }
 
@@ -33,19 +37,18 @@ class CheckboxControlItem extends vscode.TreeItem {
 }
 
 class SliderControlItem extends vscode.TreeItem {
-    constructor(label, value, min, max, step, key) {
+    constructor(label, value, min, max, key) {
         super(label, vscode.TreeItemCollapsibleState.None);
         this.contextValue = 'sliderControl';
         this.key = key;
         this.value = value;
         this.min = min;
         this.max = max;
-        this.step = step;
         this.description = value.toString();
         this.command = {
             command: 'forceGraphViewer.showSliderInput',
             title: 'Adjust',
-            arguments: [key, min, max, step, value]
+            arguments: [key, min, max, value]
         };
     }
 }

@@ -10,7 +10,7 @@ class GraphRenderer3D extends GraphRenderer {
   createLabelRenderer() {
     return {
       apply: (graph, getNodeProps) => {
-        const getFontSize = () => this.state.controls.nameFontSize || 12;
+        const getFontSize = () => this.state.controls.textSize || 12;
         const getLabel = (node, props) => props?.label || node.name || node.id;
 
         graph.nodeThreeObject(node => {
@@ -51,7 +51,6 @@ class GraphRenderer3D extends GraphRenderer {
       renderer.domElement.style.top = '0';
       renderer.domElement.style.pointerEvents = 'none';
       container.appendChild(renderer.domElement);
-      this.state.setLabelRenderer(renderer);
       extraRenderers = [renderer];
     }
 
@@ -93,9 +92,9 @@ class GraphRenderer3D extends GraphRenderer {
       controls.target.set(target.x, target.y, target.z);
     }
 
-    const AUTO_ROTATE_DELAY = this.state.controls.AUTO_ROTATE_DELAY || 1000;
-    this.state.graph.cameraPosition(cameraPos, target, AUTO_ROTATE_DELAY);
-    setTimeout(() => this.updateAutoRotation(), AUTO_ROTATE_DELAY);
+    const delay = this._getAutoRotateDelay();
+    this.state.graph.cameraPosition(cameraPos, target, delay);
+    setTimeout(() => this.updateAutoRotation(), delay);
   }
 
   checkLibraryAvailability() {
@@ -113,7 +112,7 @@ class GraphRenderer3D extends GraphRenderer {
   setupEventListeners(graph) {
     const controls = graph.controls();
     if (controls) {
-      const AUTO_ROTATE_DELAY = this.state.controls.AUTO_ROTATE_DELAY || 1000;
+      const delay = this._getAutoRotateDelay();
       controls.addEventListener('start', () => {
         this.state.ui.isUserInteracting = true;
         this.cancelRotation();
@@ -124,7 +123,7 @@ class GraphRenderer3D extends GraphRenderer {
         this.state.rotation.timeout = setTimeout(() => {
           this.state.ui.isUserInteracting = false;
           this.updateAutoRotation();
-        }, AUTO_ROTATE_DELAY);
+        }, delay);
       });
     }
   }
@@ -139,6 +138,10 @@ class GraphRenderer3D extends GraphRenderer {
       this.state.rotation.frame = null;
     }
     clearTimeout(this.state.rotation.timeout);
+  }
+
+  _getAutoRotateDelay() {
+    return this.state.controls.autoRotateDelay || 1000;
   }
 
   updateAutoRotation() {
