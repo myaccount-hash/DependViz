@@ -33,18 +33,12 @@ public class TypeUseStage extends BaseStage {
       // メソッドの型使用
       for (MethodDeclaration method : clazz.getMethods()) {
         // 戻り値型
-        try {
-          String target = method.getType().resolve().describe();
-          codeGraph.addReferNode(className, target, "TypeUse");
-        } catch (Exception e) {
-        }
+        String target = method.getType().resolve().describe();
+        codeGraph.addReferNode(className, target, "TypeUse");
         // パラメータ型
         for (Parameter param : method.getParameters()) {
-          try {
-            String target = param.getType().resolve().describe();
-            codeGraph.addReferNode(className, target, "TypeUse");
-          } catch (Exception e) {
-          }
+          String paramTarget = param.getType().resolve().describe();
+          codeGraph.addReferNode(className, paramTarget, "TypeUse");
         }
       }
     }
@@ -53,12 +47,9 @@ public class TypeUseStage extends BaseStage {
     List<VariableDeclarationExpr> vars = cu.findAll(VariableDeclarationExpr.class);
     for (VariableDeclarationExpr var : vars) {
       for (VariableDeclarator declarator : var.getVariables()) {
-        try {
-          String target = declarator.getType().resolve().describe();
-          String source = getSourceClassName(var);
-          codeGraph.addReferNode(source, target, "TypeUse");
-        } catch (Exception e) {
-        }
+        String target = declarator.getType().resolve().describe();
+        String source = getSourceClassName(var);
+        codeGraph.addReferNode(source, target, "TypeUse");
       }
     }
 

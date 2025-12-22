@@ -310,28 +310,11 @@ class GraphViewModel {
   // グラフ更新メッセージを処理
   handleGraphUpdate(payload = {}) {
     const incomingVersion = typeof payload.dataVersion === 'number' ? payload.dataVersion : null;
-    const hasDataChange = payload.data && (incomingVersion === null || incomingVersion !== this.dataVersion);
-    const oldIs3DMode = this.controls.is3DMode ?? false;
-
-    if (payload.data && hasDataChange) {
-      this.updateData(payload.data, incomingVersion);
-    }
-    if (payload.controls) {
-      this.updateControls(payload.controls);
-    }
-    if (payload.callStackPaths) {
-      this.ui.callStackLinks = new Set(payload.callStackPaths.map(p => p.link));
-    }
-
-    if (payload.data || payload.controls) {
-      this.updateSliceHighlight();
-    }
-
-    const newIs3DMode = this.controls.is3DMode ?? false;
-    const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
-    if (modeChanged) this.clearRenderer();
-
-    const reheatSimulation = hasDataChange || modeChanged;
+    const result = this._applyPayload(payload, {
+      allowData: true,
+      dataVersion: incomingVersion
+    });
+    const reheatSimulation = result.dataChange || result.modeChanged;
     if (payload.data || payload.controls) {
       this.updateGraph({ reheatSimulation });
     } else if (payload.callStackPaths) {
@@ -341,23 +324,8 @@ class GraphViewModel {
 
   // ビュー更新メッセージを処理
   handleViewUpdate(payload = {}) {
-    const oldIs3DMode = this.controls.is3DMode ?? false;
-
-    if (payload.controls) {
-      this.updateControls(payload.controls);
-    }
-    if (payload.callStackPaths) {
-      this.ui.callStackLinks = new Set(payload.callStackPaths.map(p => p.link));
-    }
-
-    if (payload.controls) {
-      this.updateSliceHighlight();
-    }
-
-    const newIs3DMode = this.controls.is3DMode ?? false;
-    const modeChanged = payload.controls && (newIs3DMode !== oldIs3DMode);
-
-    if (modeChanged) {
+    const result = this._applyPayload(payload);
+    if (result.modeChanged) {
       this.clearRenderer();
       this.updateGraph({ reheatSimulation: true });
     } else if (payload.controls) {
@@ -365,6 +333,38 @@ class GraphViewModel {
     } else if (payload.callStackPaths) {
       this.updateVisuals();
     }
+  }
+
+  _applyPayload(payload, options = {}) {
+    const allowData = options.allowData === true;
+    const dataVersion = options.dataVersion ?? null;
+    const oldMode = this.controls.is3DMode ?? false;
+    let dataChange = false;
+
+    if (allowData && payload.data) {
+      const ok = dataVersion === null || dataVersion !== this.dataVersion;
+      if (ok) {
+        this.updateData(payload.data, dataVersion);
+      }
+      dataChange = ok;
+    }
+    if (payload.controls) {
+      this.updateControls(payload.controls);
+    }
+    if (payload.callStackPaths) {
+      this.ui.callStackLinks = new Set(payload.callStackPaths.map(p => p.link));
+    }
+    if (payload.data || payload.controls) {
+      this.updateSliceHighlight();
+    }
+
+    const newMode = this.controls.is3DMode ?? false;
+    const modeChanged = payload.controls && (newMode !== oldMode);
+    if (modeChanged) {
+      this.clearRenderer();
+    }
+
+    return { dataChange, modeChanged };
   }
 
   // ウィンドウリサイズを処理

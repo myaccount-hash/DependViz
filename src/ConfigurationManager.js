@@ -141,13 +141,7 @@ class ConfigurationManager {
      * 単一の設定を更新
      */
     async updateControl(key, value, target = vscode.ConfigurationTarget.Workspace) {
-        if (this._isAnalyzerControlKey(key)) {
-            await this._updateAnalyzerControls({ [key]: value });
-        } else {
-            const config = vscode.workspace.getConfiguration('forceGraphViewer');
-            await config.update(key, value, target);
-        }
-        this._emitChange();
+        await this.updateControls({ [key]: value }, target);
     }
 
     /**
@@ -163,12 +157,7 @@ class ConfigurationManager {
                 configUpdates[key] = value;
             }
         }
-        if (Object.keys(configUpdates).length > 0) {
-            const config = vscode.workspace.getConfiguration('forceGraphViewer');
-            for (const [key, value] of Object.entries(configUpdates)) {
-                await config.update(key, value, target);
-            }
-        }
+        await this._updateConfigControls(configUpdates, target);
         if (Object.keys(analyzerUpdates).length > 0) {
             await this._updateAnalyzerControls(analyzerUpdates);
         }
@@ -192,6 +181,14 @@ class ConfigurationManager {
         this._observers.forEach((observer) => {
             observer(controls);
         });
+    }
+
+    async _updateConfigControls(updates, target) {
+        if (Object.keys(updates).length === 0) return;
+        const config = vscode.workspace.getConfiguration('forceGraphViewer');
+        for (const [key, value] of Object.entries(updates)) {
+            await config.update(key, value, target);
+        }
     }
 
     _setActiveAnalyzer(analyzerId) {
@@ -240,22 +237,15 @@ class ConfigurationManager {
         if (!filePath) {
             return { analyzers: {} };
         }
-
-        try {
-            fs.statSync(filePath);
-        } catch (e) {
+        if (!fs.existsSync(filePath)) {
             return { analyzers: {} };
         }
-
         return this._loadAnalyzerConfigFromDisk(filePath);
     }
 
     _getStoredAnalyzerConfig() {
         const data = this._getAnalyzerConfigData();
-        if (!data.analyzers[this._activeAnalyzerId]) {
-            data.analyzers[this._activeAnalyzerId] = {};
-        }
-        return data.analyzers[this._activeAnalyzerId];
+        return this._ensureAnalyzerEntry(data);
     }
 
     _loadAnalyzerConfigFromDisk(filePath) {
@@ -272,15 +262,19 @@ class ConfigurationManager {
         }
     }
 
+    _ensureAnalyzerEntry(data) {
+        if (!data.analyzers[this._activeAnalyzerId]) {
+            data.analyzers[this._activeAnalyzerId] = {};
+        }
+        return data.analyzers[this._activeAnalyzerId];
+    }
+
     async _updateAnalyzerControls(updates) {
         const filePath = this._ensureAnalyzerConfigFile();
         if (!filePath) return;
 
         const data = this._getAnalyzerConfigData();
-        if (!data.analyzers[this._activeAnalyzerId]) {
-            data.analyzers[this._activeAnalyzerId] = {};
-        }
-        const target = data.analyzers[this._activeAnalyzerId];
+        const target = this._ensureAnalyzerEntry(data);
         for (const [key, value] of Object.entries(updates)) {
             const pathParts = this._analyzerKeyMap[key];
             if (!pathParts) continue;
@@ -290,14 +284,18 @@ class ConfigurationManager {
         await fs.promises.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8');
     }
 
+    _ensureJsonFile(filePath, data) {
+        if (!fs.existsSync(filePath)) {
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 4), 'utf8');
+        }
+        return filePath;
+    }
+
     _ensureAnalyzerConfigFile() {
         const filePath = this._getAnalyzerConfigPath();
         if (!filePath) return null;
-        if (!fs.existsSync(filePath)) {
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, JSON.stringify({ analyzers: {} }, null, 4), 'utf8');
-        }
-        return filePath;
+        return this._ensureJsonFile(filePath, { analyzers: {} });
     }
 
     _getCallStackCachePath() {
@@ -309,11 +307,7 @@ class ConfigurationManager {
     _ensureCallStackCacheFile() {
         const filePath = this._getCallStackCachePath();
         if (!filePath) return null;
-        if (!fs.existsSync(filePath)) {
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, JSON.stringify({ traces: [] }, null, 4), 'utf8');
-        }
-        return filePath;
+        return this._ensureJsonFile(filePath, { traces: [] });
     }
 
     _loadCallStackCacheFromDisk(filePath) {

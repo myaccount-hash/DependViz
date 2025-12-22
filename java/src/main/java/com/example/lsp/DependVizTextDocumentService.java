@@ -51,12 +51,8 @@ public class DependVizTextDocumentService implements TextDocumentService {
       return;
     }
 
-    try {
-      String filePath = URI.create(uri).getPath();
-      analyzeFile(filePath);
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e, () -> "Failed to analyze opened file: " + uri);
-    }
+    String filePath = URI.create(uri).getPath();
+    analyzeFile(filePath);
   }
 
   @Override
@@ -69,12 +65,8 @@ public class DependVizTextDocumentService implements TextDocumentService {
       return;
     }
 
-    try {
-      String filePath = URI.create(uri).getPath();
-      analyzeFile(filePath);
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e, () -> "Failed to analyze changed file: " + uri);
-    }
+    String filePath = URI.create(uri).getPath();
+    analyzeFile(filePath);
   }
 
   @Override
@@ -83,12 +75,8 @@ public class DependVizTextDocumentService implements TextDocumentService {
     logger.info(() -> "Document closed: " + uri);
 
     // クローズ時はキャッシュから削除
-    try {
-      String filePath = URI.create(uri).getPath();
-      graphCache.remove(filePath);
-    } catch (Exception e) {
-      logger.log(Level.WARNING, e, () -> "Failed to handle closed file: " + uri);
-    }
+    String filePath = URI.create(uri).getPath();
+    graphCache.remove(filePath);
   }
 
   @Override
