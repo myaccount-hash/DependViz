@@ -1,16 +1,7 @@
 /**
- * 拡張機能とWebView間の通信を管理するシングルトンクラス
+ * 拡張機能とWebView間の通信を管理するクラス
  */
 class ExtensionBridge {
-  static instance = null;
-
-  static getInstance(state) {
-    if (!ExtensionBridge.instance && state) {
-      ExtensionBridge.instance = new ExtensionBridge(state);
-    }
-    return ExtensionBridge.instance;
-  }
-
   constructor(state) {
     this.state = state;
     this.vscode = null;

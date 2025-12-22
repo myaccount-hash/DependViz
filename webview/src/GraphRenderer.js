@@ -1,15 +1,13 @@
 // GraphRenderer.js
 import { applyFilter } from './utils';
-import ExtensionBridge from './ExtensionBridge';
-
 /**
  * グラフのレンダリングと視覚属性計算を管理する基底クラス
- * TODO: ExtensionBridgeの依存を解消
  */
 class GraphRenderer {
-  constructor(state) {
+  constructor(state, extensionBridge) {
     this.state = state;
     this.is3DMode = state.controls.is3DMode ?? false;
+    this.extensionBridge = extensionBridge;
     
     this.nodeRules = [
       (node, ctx) => {
@@ -311,7 +309,7 @@ class GraphRenderer {
           if (!node) return;
           const filePath = this.state.getNodeFilePath(node);
           if (filePath) {
-            ExtensionBridge.getInstance()?.send('focusNode', {
+            this.extensionBridge?.send('focusNode', {
               node: {
                 id: node.id,
                 filePath: filePath,

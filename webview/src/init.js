@@ -1,11 +1,11 @@
 import ExtensionBridge from './ExtensionBridge';
 import state from './GraphViewModel';
-import './DevConsoleTests';
 
 export function initializeApplication() {
   window.addEventListener('resize', () => state.handleResize());
 
-  const extensionBridge = ExtensionBridge.getInstance(state);
+  const extensionBridge = new ExtensionBridge(state);
+  state.setExtensionBridge(extensionBridge);
   extensionBridge.initialize();
 
   setTimeout(() => {

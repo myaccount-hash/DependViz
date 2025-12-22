@@ -26,6 +26,7 @@ class GraphViewModel {
     this._graph = null;
     this._labelRenderer = null;
     this._currentRenderer = null;
+    this._extensionBridge = null;
   }
 
   get graph() { return this._graph; }
@@ -33,6 +34,7 @@ class GraphViewModel {
 
   setGraph(graph) { this._graph = graph; }
   setLabelRenderer(renderer) { this._labelRenderer = renderer; }
+  setExtensionBridge(bridge) { this._extensionBridge = bridge; }
 
   // VSCode背景色を取得
   getBackgroundColor() {
@@ -211,8 +213,8 @@ class GraphViewModel {
     
     if (!this._currentRenderer || this._currentRenderer.is3DMode !== this.controls.is3DMode) {
       this._currentRenderer = this.controls.is3DMode
-        ? new GraphRenderer3D(this)
-        : new GraphRenderer2D(this);
+        ? new GraphRenderer3D(this, this._extensionBridge)
+        : new GraphRenderer2D(this, this._extensionBridge);
     }
     return this._currentRenderer;
   }
