@@ -26,11 +26,11 @@ class JavaAnalyzer extends BaseAnalyzer {
                 { type: 'Unknown', defaultEnabled: false, defaultColor: '#9ca3af' }
             ],
             edge: [
-                { type: 'ObjectCreate', defaultEnabled: true, defaultColor: '#fde047' },
+                { type: 'ObjectCreate', defaultEnabled: true, defaultColor: '#ffd500ff' },
                 { type: 'Extends', defaultEnabled: true, defaultColor: '#ff83c5ff' },
                 { type: 'Implements', defaultEnabled: true, defaultColor: '#26f9a5ff' },
-                { type: 'TypeUse', defaultEnabled: true, defaultColor: '#fdba74' },
-                { type: 'MethodCall', defaultEnabled: true, defaultColor: '#fda4af' }
+                { type: 'TypeUse', defaultEnabled: true, defaultColor: '#ffd500ff' },
+                { type: 'MethodCall', defaultEnabled: true, defaultColor: '#ffd500ff' }
             ]
         };
     }
