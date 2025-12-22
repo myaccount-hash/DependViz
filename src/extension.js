@@ -111,11 +111,6 @@ async function deactivate() {
     if (analyzerManager) {
         await analyzerManager.stopAll();
     }
-
-    // リソースクリーンアップ
-    // context.subscriptions に登録された全てのリソースは
-    // VSCode が自動的に dispose() を呼び出すため、
-    // 明示的なクリーンアップは不要
     console.log('DependViz extension deactivated');
 }
 
