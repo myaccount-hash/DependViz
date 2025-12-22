@@ -218,10 +218,7 @@ class GraphRenderer {
         const color = props ? props.color : (COLORS.EDGE_DEFAULT || '#4b5563');
         return applyOpacityToColor(color, props?.opacity);
       })
-      .linkDirectionalParticles(link => {
-        const props = getLinkProps(link);
-        return props ? (props.particles || 0) : 0;
-      });
+      .linkDirectionalParticles(() => 0);
   }
 
   // グラフを更新

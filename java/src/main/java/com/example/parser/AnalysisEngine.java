@@ -1,5 +1,14 @@
 package com.example.parser;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import com.example.parser.object.CodeGraph;
 import com.example.parser.stage.BaseStage;
 import com.example.parser.stage.ClassTypeStage;
 import com.example.parser.stage.ExtendsStage;
@@ -9,7 +18,6 @@ import com.example.parser.stage.LinesOfCodeStage;
 import com.example.parser.stage.MethodCallStage;
 import com.example.parser.stage.ObjectCreationStage;
 import com.example.parser.stage.TypeUseStage;
-import com.example.parser.object.CodeGraph;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -17,13 +25,6 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * 解析エンジン - 既存のステージロジックをラップ
@@ -101,6 +102,8 @@ public class AnalysisEngine {
     ParserConfiguration parserConfiguration = new ParserConfiguration();
     JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
     parserConfiguration.setSymbolResolver(symbolSolver);
+    // TODO: 言語レベルの対応
+    parserConfiguration.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
     StaticJavaParser.setConfiguration(parserConfiguration);
     return StaticJavaParser.parse(Paths.get(filePath));
   }

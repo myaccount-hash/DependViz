@@ -235,7 +235,7 @@ class JavaAnalyzer extends BaseAnalyzer {
                     }
                 }
             });
-
+            // TODO: 現在エラー検知が甘い
             vscode.window.showInformationMessage(
                 `解析完了: ${successCount}ファイル成功, ${errorCount}ファイル失敗 (${mergedGraph.nodes.length}ノード, ${mergedGraph.links.length}リンク)`
             );
