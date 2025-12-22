@@ -4,6 +4,6 @@ hide_agent_reasoning = true
 network_access = true
 
 notify = ["bash", "-lc", "afplay /System/Library/Sounds/Ping.aiff"]
-
+ sandbox_permissions = ["network-access"]
 [tools]
 web_search = true
