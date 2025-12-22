@@ -65,16 +65,12 @@ class BaseAnalyzer {
                     type: def.type,
                     defaultEnabled: def.defaultEnabled !== undefined ? !!def.defaultEnabled : true,
                     defaultColor: def.defaultColor,
-                    filterKey: this._buildControlKey('show', def.type),
-                    colorKey: this._buildControlKey('color', def.type)
+                    filterKey: `show${def.type}`,
+                    colorKey: `color${def.type}`
                 });
             });
         }
         return items;
-    }
-
-    static _buildControlKey(prefix, type) {
-        return `${prefix}${type}`;
     }
 }
 

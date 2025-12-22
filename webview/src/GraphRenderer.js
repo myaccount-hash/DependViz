@@ -34,14 +34,6 @@ class GraphRenderer {
     ];
   }
 
-  // ノードの表示ラベルを計算
-  _computeNodeLabel(node) {
-    if (!node.name) return node.id || '';
-    if (!this.state.controls.shortNames) return node.name;
-    const lastDot = node.name.lastIndexOf('.');
-    return lastDot !== -1 ? node.name.substring(lastDot + 1) : node.name;
-  }
-
   // タイプに対応する色を取得
   _getTypeColor(category, type) {
     if (!type) return null;
@@ -64,10 +56,15 @@ class GraphRenderer {
   // ノードの視覚属性を計算
   getNodeVisualProps(node) {
     const COLORS = this.state.controls.COLORS || {};
+    let label = node.name || node.id || '';
+    if (node.name && this.state.controls.shortNames) {
+      const lastDot = node.name.lastIndexOf('.');
+      label = lastDot !== -1 ? node.name.substring(lastDot + 1) : node.name;
+    }
     const props = this._applyRules(node, this.nodeRules, {
       color: COLORS.NODE_DEFAULT || '#93c5fd',
       sizeMultiplier: 1,
-      label: this._computeNodeLabel(node),
+      label,
       opacity: this.state.controls.nodeOpacity
     });
 

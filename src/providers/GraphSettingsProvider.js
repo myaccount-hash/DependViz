@@ -29,19 +29,18 @@ class GraphSettingsProvider extends BaseProvider {
     }
 
     getRootItems() {
+        const makeItem = (item) => {
+            const [type, label, key] = item;
+            const value = this.controls[key];
+            if (type === 'search') return new SearchControlItem(label, value);
+            if (type === 'checkbox') return new CheckboxControlItem(label, value, key);
+            if (type === 'slider') return new SliderControlItem(label, value, item[3].min, item[3].max, key);
+            throw new Error(`Unknown control type: ${type}`);
+        };
         return [
-            new SectionItem('表示設定', APPEARANCE_ITEMS.map(item => this.createControlItem(item))),
-            new SectionItem('詳細設定', DETAIL_ITEMS.map(item => this.createControlItem(item)))
+            new SectionItem('表示設定', APPEARANCE_ITEMS.map(makeItem)),
+            new SectionItem('詳細設定', DETAIL_ITEMS.map(makeItem))
         ];
-    }
-
-    createControlItem(item) {
-        const [type, label, key] = item;
-        const value = this.controls[key];
-        if (type === 'search') return new SearchControlItem(label, value);
-        if (type === 'checkbox') return new CheckboxControlItem(label, value, key);
-        if (type === 'slider') return new SliderControlItem(label, value, item[3].min, item[3].max, key);
-        throw new Error(`Unknown control type: ${type}`);
     }
 
     handleSettingsChanged(controls) {

@@ -10,19 +10,16 @@ class GraphRenderer3D extends GraphRenderer {
   createLabelRenderer() {
     return {
       apply: (graph, getNodeProps) => {
-        const getFontSize = () => this.state.controls.textSize || 12;
-        const getLabel = (node, props) => props?.label || node.name || node.id;
-
         graph.nodeThreeObject(node => {
           const props = getNodeProps(node);
           const div = document.createElement('div');
-          div.textContent = getLabel(node, props);
+          div.textContent = props?.label || node.name || node.id;
 
           // 透明度を色とopacityの両方で反映
           const opacity = props.opacity !== undefined ? props.opacity : 1;
 
           Object.assign(div.style, {
-            fontSize: `${getFontSize()}px`,
+            fontSize: `${this.state.controls.textSize || 12}px`,
             fontFamily: 'sans-serif',
             padding: '2px 4px',
             borderRadius: '2px',
@@ -92,7 +89,7 @@ class GraphRenderer3D extends GraphRenderer {
       controls.target.set(target.x, target.y, target.z);
     }
 
-    const delay = this._getAutoRotateDelay();
+    const delay = this.state.controls.autoRotateDelay || 1000;
     this.state.graph.cameraPosition(cameraPos, target, delay);
     setTimeout(() => this.updateAutoRotation(), delay);
   }
@@ -112,7 +109,7 @@ class GraphRenderer3D extends GraphRenderer {
   setupEventListeners(graph) {
     const controls = graph.controls();
     if (controls) {
-      const delay = this._getAutoRotateDelay();
+      const delay = this.state.controls.autoRotateDelay || 1000;
       controls.addEventListener('start', () => {
         this.state.ui.isUserInteracting = true;
         this.cancelRotation();
@@ -138,10 +135,6 @@ class GraphRenderer3D extends GraphRenderer {
       this.state.rotation.frame = null;
     }
     clearTimeout(this.state.rotation.timeout);
-  }
-
-  _getAutoRotateDelay() {
-    return this.state.controls.autoRotateDelay || 1000;
   }
 
   updateAutoRotation() {

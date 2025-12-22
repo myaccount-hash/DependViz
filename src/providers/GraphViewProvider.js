@@ -5,35 +5,6 @@ const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, mergeGraphData } = require('../utils/graph');
 const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../ConfigurationManager');
 
-function isValidMessage(message) {
-    return message && message.jsonrpc === '2.0' && typeof message.method === 'string';
-}
-
-function createMessageHandlers(provider, bridge) {
-    return {
-        ready: () => {
-            bridge.markReady();
-            provider.syncToWebview();
-        },
-        focusNode: async (params) => {
-            if (params.node?.filePath) {
-                await vscode.window.showTextDocument(vscode.Uri.file(params.node.filePath));
-            }
-        }
-    };
-}
-
-function dispatchMessage(handlers, message) {
-    if (!isValidMessage(message)) return;
-    const handler = handlers?.[message.method];
-    if (handler) {
-        return handler(message.params || {});
-    }
-    if (message.method) {
-        console.warn('[GraphViewProvider] Unknown message method:', message.method);
-    }
-}
-
 function createOutboundParams(type, params) {
     switch (type) {
         case 'graph:update': {
@@ -99,9 +70,26 @@ class GraphViewProvider extends BaseProvider {
         this._pendingUpdate = null;
         this._callStackPaths = [];
         this._webviewBridge = new WebviewBridge(message => {
-            return dispatchMessage(this._messageHandlers, message);
+            if (!message || message.jsonrpc !== '2.0' || typeof message.method !== 'string') return;
+            const handler = this._messageHandlers?.[message.method];
+            if (handler) {
+                return handler(message.params || {});
+            }
+            if (message.method) {
+                console.warn('[GraphViewProvider] Unknown message method:', message.method);
+            }
         });
-        this._messageHandlers = createMessageHandlers(this, this._webviewBridge);
+        this._messageHandlers = {
+            ready: () => {
+                this._webviewBridge.markReady();
+                this.syncToWebview();
+            },
+            focusNode: async (params) => {
+                if (params.node?.filePath) {
+                    await vscode.window.showTextDocument(vscode.Uri.file(params.node.filePath));
+                }
+            }
+        };
     }
 
     _getHtmlForWebview() {

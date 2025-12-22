@@ -2,15 +2,11 @@ export function applyFilter(nodes, links, state) {
   const controls = state.controls;
   const typeFilters = controls.typeFilters || {};
 
-  const isTypeVisible = (category, type) => {
-    const map = typeFilters[category];
-    if (!map) return true;
-    if (!type) return true;
-    return map[type] !== undefined ? !!map[type] : true;
-  };
-
   const filteredNodes = nodes.filter(node => {
-    if (!isTypeVisible('node', node.type)) return false;
+    const nodeTypeMap = typeFilters.node;
+    if (nodeTypeMap && node.type && nodeTypeMap[node.type] !== undefined && !nodeTypeMap[node.type]) {
+      return false;
+    }
     if (controls.hideIsolatedNodes && (!node.neighbors || node.neighbors.length === 0)) return false;
     if (controls.search && !matchesSearchQuery(node, controls.search)) return false;
     return true;
@@ -18,7 +14,10 @@ export function applyFilter(nodes, links, state) {
 
   const nodeIds = new Set(filteredNodes.map(n => n.id));
   const filteredLinks = links.filter(link => {
-    if (!isTypeVisible('edge', link.type)) return false;
+    const edgeTypeMap = typeFilters.edge;
+    if (edgeTypeMap && link.type && edgeTypeMap[link.type] !== undefined && !edgeTypeMap[link.type]) {
+      return false;
+    }
     const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
     const targetId = typeof link.target === 'object' ? link.target.id : link.target;
     return nodeIds.has(sourceId) && nodeIds.has(targetId);
@@ -35,30 +34,38 @@ export function computeSlice(focusedNode, controls, nodes, links) {
   const sliceLinks = new Set();
   const getId = v => (typeof v === 'object' ? v.id : v);
 
-  const visit = (nodeId, depth, direction) => {
-    if (depth <= 0) return;
-    links.forEach(link => {
-      const sourceId = getId(link.source);
-      const targetId = getId(link.target);
-      const isForward = direction === 'forward' && sourceId === nodeId;
-      const isBackward = direction === 'backward' && targetId === nodeId;
-      if (!isForward && !isBackward) return;
-
-      sliceLinks.add(link);
-      const nextId = direction === 'forward' ? targetId : sourceId;
-      if (!sliceNodes.has(nextId)) {
-        sliceNodes.add(nextId);
-        visit(nextId, depth - 1, direction);
-      }
-    });
-  };
-
   sliceNodes.add(focusedNode.id);
   if (controls.enableForwardSlice) {
-    visit(focusedNode.id, controls.sliceDepth, 'forward');
+    const visitForward = (nodeId, depth) => {
+      if (depth <= 0) return;
+      links.forEach(link => {
+        const sourceId = getId(link.source);
+        if (sourceId !== nodeId) return;
+        const targetId = getId(link.target);
+        sliceLinks.add(link);
+        if (!sliceNodes.has(targetId)) {
+          sliceNodes.add(targetId);
+          visitForward(targetId, depth - 1);
+        }
+      });
+    };
+    visitForward(focusedNode.id, controls.sliceDepth);
   }
   if (controls.enableBackwardSlice) {
-    visit(focusedNode.id, controls.sliceDepth, 'backward');
+    const visitBackward = (nodeId, depth) => {
+      if (depth <= 0) return;
+      links.forEach(link => {
+        const targetId = getId(link.target);
+        if (targetId !== nodeId) return;
+        const sourceId = getId(link.source);
+        sliceLinks.add(link);
+        if (!sliceNodes.has(sourceId)) {
+          sliceNodes.add(sourceId);
+          visitBackward(sourceId, depth - 1);
+        }
+      });
+    };
+    visitBackward(focusedNode.id, controls.sliceDepth);
   }
 
   return { sliceNodes, sliceLinks };
@@ -73,11 +80,35 @@ function matchesSearchQuery(node, query) {
     const hasOr = q.includes(' or ');
     const parts = q.split(/\s+and\s+|\s+or\s+/).map(s => s.trim());
 
-    const results = parts.map(subQ => {
-      if (subQ.startsWith('not ')) {
-        return !evaluateFieldQuery(node, subQ.substring(4));
+    const results = parts.map(raw => {
+      let subQ = raw;
+      const isNot = subQ.startsWith('not ');
+      if (isNot) subQ = subQ.substring(4);
+
+      const match = subQ.match(/^(\w+):(.+)$/);
+      if (!match) return isNot ? true : false;
+
+      const [, field, rawValue] = match;
+      const isRegex = rawValue.startsWith('/') && rawValue.endsWith('/');
+      const searchValue = isRegex ? rawValue.slice(1, -1) : rawValue;
+
+      let nodeValue = '';
+      if (field === 'name') nodeValue = node.name || '';
+      else if (field === 'type') nodeValue = node.type || '';
+      else if (field === 'path') nodeValue = node.filePath || '';
+
+      let ok = false;
+      if (isRegex) {
+        try {
+          ok = new RegExp(searchValue, 'i').test(nodeValue);
+        } catch (e) {
+          ok = false;
+        }
+      } else {
+        ok = nodeValue.toLowerCase().includes(searchValue.toLowerCase());
       }
-      return evaluateFieldQuery(node, subQ);
+
+      return isNot ? !ok : ok;
     });
 
     if (hasAnd && !hasOr) return results.every(Boolean);
@@ -88,28 +119,4 @@ function matchesSearchQuery(node, query) {
 
   return (node.name && node.name.toLowerCase().includes(q)) ||
          (node.id && node.id.toLowerCase().includes(q));
-}
-
-function evaluateFieldQuery(node, query) {
-  const match = query.match(/^(\w+):(.+)$/);
-  if (!match) return false;
-
-  const [, field, rawValue] = match;
-  const isRegex = rawValue.startsWith('/') && rawValue.endsWith('/');
-  const searchValue = isRegex ? rawValue.slice(1, -1) : rawValue;
-
-  let nodeValue = '';
-  if (field === 'name') nodeValue = node.name || '';
-  else if (field === 'type') nodeValue = node.type || '';
-  else if (field === 'path') nodeValue = node.filePath || '';
-
-  if (isRegex) {
-    try {
-      return new RegExp(searchValue, 'i').test(nodeValue);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  return nodeValue.toLowerCase().includes(searchValue.toLowerCase());
 }

@@ -6,16 +6,12 @@ const REGISTERED_ANALYZERS = [JavaAnalyzer, JavaScriptAnalyzer];
 class AnalyzerManager {
     constructor(context, configManager) {
         this._configManager = configManager;
-        this._analyzers = this._createAnalyzers(context, REGISTERED_ANALYZERS);
-    }
-
-    _createAnalyzers(context, list) {
         const map = {};
-        list.forEach((Analyzer) => {
+        REGISTERED_ANALYZERS.forEach((Analyzer) => {
             const analyzer = new Analyzer(context);
             map[Analyzer.analyzerId] = analyzer;
         });
-        return map;
+        this._analyzers = map;
     }
 
     static getAnalyzerClassById(analyzerId) {

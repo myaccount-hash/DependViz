@@ -25,9 +25,14 @@ function activate(context) {
 
     const configManager = ConfigurationManager.getInstance();
     let lastCallStackSelectionValue;
-    const analyzerWatcher = createAnalyzerConfigWatcher(configManager);
-    if (analyzerWatcher) {
-        context.subscriptions.push(analyzerWatcher);
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        const pattern = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], '.vscode/dependviz/analyzer.json');
+        const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+        const handler = () => configManager.handleAnalyzerConfigExternalChange();
+        watcher.onDidChange(handler);
+        watcher.onDidCreate(handler);
+        watcher.onDidDelete(handler);
+        context.subscriptions.push(watcher);
     }
     const broadcastSettings = (controlsOverride) => {
         const controls = controlsOverride || configManager.loadControls();
@@ -62,7 +67,12 @@ function activate(context) {
             const nextSelection = Array.isArray(nextControls.callStackSelection)
                 ? [...nextControls.callStackSelection]
                 : [];
-            const selectionChanged = !areCallStackSelectionsEqual(nextSelection, lastCallStackSelectionValue);
+            let selectionChanged = true;
+            if (nextSelection.length === lastCallStackSelectionValue.length) {
+                const sortedNext = [...nextSelection].sort();
+                const sortedCurrent = [...lastCallStackSelectionValue].sort();
+                selectionChanged = !sortedNext.every((value, index) => value === sortedCurrent[index]);
+            }
             lastCallStackSelectionValue = nextSelection;
             if (nextControls.showCallStack && !selectionChanged) {
                 await callStackProvider.update(graphViewProvider);
@@ -113,24 +123,3 @@ module.exports = {
     activate,
     deactivate
 };
-
-function createAnalyzerConfigWatcher(configManager) {
-    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-        return null;
-    }
-    const pattern = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], '.vscode/dependviz/analyzer.json');
-    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    const handler = () => configManager.handleAnalyzerConfigExternalChange();
-    watcher.onDidChange(handler);
-    watcher.onDidCreate(handler);
-    watcher.onDidDelete(handler);
-    return watcher;
-}
-
-function areCallStackSelectionsEqual(current = [], next = []) {
-    if (!Array.isArray(current) || !Array.isArray(next)) return false;
-    if (current.length !== next.length) return false;
-    const sortedCurrent = [...current].sort();
-    const sortedNext = [...next].sort();
-    return sortedCurrent.every((value, index) => value === sortedNext[index]);
-}

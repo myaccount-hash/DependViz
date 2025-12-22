@@ -15,17 +15,13 @@ class ExtensionBridge {
     if (!this.vscode) return null;
     
     window.addEventListener('message', event => {
-      this.handle(event.data);
+      if (this.onMessage) {
+        this.onMessage(event.data);
+      }
     });
     
     this.send('ready');
     return this.vscode;
-  }
-
-  // メッセージを処理
-  handle(message) {
-    if (!this.onMessage) return;
-    this.onMessage(message);
   }
 
   // メッセージを送信

@@ -9,15 +9,12 @@ class GraphRenderer2D extends GraphRenderer {
   createLabelRenderer() {
     return {
       apply: (graph, getNodeProps) => {
-        const getFontSize = () => this.state.controls.textSize || 12;
-        const getLabel = (node, props) => props?.label || node.name || node.id;
-
         graph
           .nodeCanvasObject((node, ctx) => {
             const props = getNodeProps(node);
             if (!props) return;
-            const label = getLabel(node, props);
-            const fontSize = getFontSize();
+            const label = props?.label || node.name || node.id;
+            const fontSize = this.state.controls.textSize || 12;
             ctx.font = `${fontSize}px Sans-Serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';

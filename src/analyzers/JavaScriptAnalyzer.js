@@ -77,7 +77,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
     }
 
     async _processFile(filePath, workspaceFolder, nodeMap, links) {
-        if (!this._isSupportedFile(filePath)) return;
+        if (!this._supportedExtensions.includes(path.extname(filePath))) return;
         const content = await this._readFile(filePath);
         if (content === null) return;
         const nodeId = this._toRelative(filePath, workspaceFolder);
@@ -94,7 +94,8 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
                 if (depContent === null) continue;
                 nodeMap.set(targetId, this._createNode(resolved, depContent, workspaceFolder));
             }
-            if (!this._hasLink(links, nodeId, targetId, dep.kind)) {
+            const exists = links.some(link => link.source === nodeId && link.target === targetId && link.type === dep.kind);
+            if (!exists) {
                 links.push({ source: nodeId, target: targetId, type: dep.kind });
             }
         }
@@ -107,7 +108,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
             name: relativePath,
             type: 'File',
             filePath,
-            linesOfCode: this._countLines(content)
+            linesOfCode: content ? content.split(/\r?\n/).length : 0
         };
     }
 
@@ -165,30 +166,29 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         const basePath = specifier.startsWith('.')
             ? path.resolve(path.dirname(fromPath), specifier)
             : path.resolve(workspaceFolder.uri.fsPath, specifier.slice(1));
-        return this._resolveWithExtensions(basePath);
-    }
-
-    _resolveWithExtensions(basePath) {
         const candidates = [basePath, ...this._supportedExtensions.map(ext => `${basePath}${ext}`)];
         for (const candidate of candidates) {
-            const resolved = this._tryFile(candidate);
-            if (resolved) return resolved;
+            try {
+                const stat = fs.statSync(candidate);
+                if (stat.isFile()) {
+                    return candidate;
+                }
+            } catch (error) {
+                // ignore
+            }
         }
         for (const ext of this._supportedExtensions) {
             const candidate = path.join(basePath, `index${ext}`);
-            const resolved = this._tryFile(candidate);
-            if (resolved) return resolved;
+            try {
+                const stat = fs.statSync(candidate);
+                if (stat.isFile()) {
+                    return candidate;
+                }
+            } catch (error) {
+                // ignore
+            }
         }
         return null;
-    }
-
-    _tryFile(filePath) {
-        try {
-            const stat = fs.statSync(filePath);
-            return stat.isFile() ? filePath : null;
-        } catch (error) {
-            return null;
-        }
     }
 
     async _readFile(filePath) {
@@ -200,20 +200,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         }
     }
 
-    _countLines(content) {
-        if (!content) return 0;
-        return content.split(/\r?\n/).length;
-    }
-
-    _hasLink(links, source, target, type) {
-        return links.some(link => link.source === source && link.target === target && link.type === type);
-    }
-
     isFileSupported(filePath) {
-        return this._isSupportedFile(filePath);
-    }
-
-    _isSupportedFile(filePath) {
         return this._supportedExtensions.includes(path.extname(filePath));
     }
 

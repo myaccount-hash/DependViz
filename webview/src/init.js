@@ -1,17 +1,13 @@
 import state from './GraphViewModel';
 
-function initializeApp() {
-  window.addEventListener('resize', state.handleResize.bind(state));
+window.addEventListener('resize', state.handleResize.bind(state));
 
-  state.initializeBridge();
+state.initializeBridge();
 
-  setTimeout(() => {
-    if (state.initializeGraph()) {
-      state.updateGraph();
-    } else {
-      console.error('[DependViz] Failed to initialize graph on startup');
-    }
-  }, 100);
-}
-
-initializeApp();
+setTimeout(() => {
+  if (state.getRenderer().initializeGraph()) {
+    state.updateGraph();
+  } else {
+    console.error('[DependViz] Failed to initialize graph on startup');
+  }
+}, 100);

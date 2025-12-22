@@ -90,17 +90,17 @@ class CallStackProvider {
 
     getChildren() {
         if (this._sessions.length === 0) {
-            return [this._createInfoItem('コールスタックなし', '保存された履歴がありません')];
+            const item = new vscode.TreeItem('コールスタックなし', vscode.TreeItemCollapsibleState.None);
+            const description = '保存された履歴がありません';
+            const maxLength = 120;
+            item.description = description.length <= maxLength
+                ? description
+                : `${description.slice(0, maxLength - 1)}…`;
+            item.tooltip = description;
+            return [item];
         }
         const selectionSet = this._getSelectedSessionIds();
         return this._sessions.map((session) => this._createSessionItem(session, selectionSet));
-    }
-
-    _createInfoItem(label, description) {
-        const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
-        item.description = truncate(description, 120);
-        item.tooltip = description;
-        return item;
     }
 
     _createSessionItem(session, selectionSet) {
@@ -306,13 +306,6 @@ class CallStackProvider {
 
         return sessionInfos;
     }
-}
-
-function truncate(text, maxLength) {
-    if (!text) {
-        return '';
-    }
-    return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
 }
 
 module.exports = CallStackProvider;

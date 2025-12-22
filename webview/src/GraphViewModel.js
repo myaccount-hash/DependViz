@@ -5,29 +5,6 @@ import ExtensionBridge from './ExtensionBridge';
 /**
  * アプリケーションのグラフ状態を管理するクラス
  */
-function isValidMessage(message) {
-  return message && message.jsonrpc === '2.0' && typeof message.method === 'string';
-}
-
-function createMessageHandlers(state) {
-  return {
-    'graph:update': params => state.handleGraphUpdate(params || {}),
-    'view:update': params => state.handleViewUpdate(params || {}),
-    'node:focus': params => state.focusNodeById(params || {}),
-    'focus:clear': () => state.clearFocus()
-  };
-}
-
-function dispatchMessage(handlers, message) {
-  if (!isValidMessage(message)) return;
-  const handler = handlers[message.method];
-  if (handler) {
-    handler(message.params);
-  } else if (message.method) {
-    console.warn('[DependViz] Unknown message method:', message.method);
-  }
-}
-
 class GraphViewModel {
   constructor() {
     this.data = { nodes: [], links: [] };
@@ -58,10 +35,21 @@ class GraphViewModel {
   initializeBridge() {
     if (!this._extensionBridge) {
       if (!this._messageHandlers) {
-        this._messageHandlers = createMessageHandlers(this);
+        this._messageHandlers = {
+          'graph:update': params => this.handleGraphUpdate(params || {}),
+          'view:update': params => this.handleViewUpdate(params || {}),
+          'node:focus': params => this.focusNodeById(params || {}),
+          'focus:clear': () => this.clearFocus()
+        };
       }
       this._extensionBridge = new ExtensionBridge(message => {
-        dispatchMessage(this._messageHandlers, message);
+        if (!message || message.jsonrpc !== '2.0' || typeof message.method !== 'string') return;
+        const handler = this._messageHandlers[message.method];
+        if (handler) {
+          handler(message.params);
+        } else if (message.method) {
+          console.warn('[DependViz] Unknown message method:', message.method);
+        }
       });
     }
     return this._extensionBridge.initializeBridge();
@@ -122,11 +110,6 @@ class GraphViewModel {
     this.controls = { ...this.controls, ...controls };
   }
 
-  // ノードのファイルパスを取得
-  getNodeFilePath(node) {
-    return node.filePath;
-  }
-
   // スライスハイライトを更新
   updateSliceHighlight() {
     if (!this.ui.focusedNode || (!this.controls.enableForwardSlice && !this.controls.enableBackwardSlice)) {
@@ -175,7 +158,7 @@ class GraphViewModel {
   // ノードクリック時の通知を送信
   notifyNodeFocus(node) {
     if (!node) return;
-    const filePath = this.getNodeFilePath(node);
+    const filePath = node.filePath;
     if (!filePath) return;
     this._extensionBridge?.send('focusNode', {
       node: {
@@ -194,30 +177,19 @@ class GraphViewModel {
     this.updateGraph({ reheatSimulation: true });
   }
 
-  // グラフインスタンスを初期化
-  initializeGraph() {
-    const renderer = this.getRenderer();
-    return renderer.initializeGraph();
-  }
-
   // グラフを更新
   updateGraph(options = {}) {
     const { reheatSimulation = false } = options;
 
     if (!this._graph) {
-      if (!this.initializeGraph()) {
+      const renderer = this.getRenderer();
+      if (!renderer.initializeGraph()) {
         console.error('[DependViz] Failed to initialize graph');
         return;
       }
     }
 
     this.getRenderer().updateGraph({ reheatSimulation });
-  }
-
-  // 視覚属性のみを更新
-  updateVisuals() {
-    if (!this._graph) return;
-    this.getRenderer().updateVisuals();
   }
 
   // グラフ更新メッセージを処理
@@ -231,7 +203,8 @@ class GraphViewModel {
     if (payload.data || payload.controls) {
       this.updateGraph({ reheatSimulation });
     } else if (payload.callStackPaths) {
-      this.updateVisuals();
+      if (!this._graph) return;
+      this.getRenderer().updateVisuals();
     }
   }
 
@@ -244,7 +217,8 @@ class GraphViewModel {
     } else if (payload.controls) {
       this.updateGraph();
     } else if (payload.callStackPaths) {
-      this.updateVisuals();
+      if (!this._graph) return;
+      this.getRenderer().updateVisuals();
     }
   }
 

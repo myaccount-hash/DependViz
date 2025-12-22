@@ -29,15 +29,12 @@ class FilterProvider extends BaseProvider {
     }
 
     getRootItems() {
-        const items = [this._createAnalyzerSection()];
+        const analyzerId = this.controls.analyzerId || AnalyzerManager.getDefaultAnalyzerId();
+        const analyzerOptions = AnalyzerManager.getAnalyzerOptions();
+        const analyzerItems = analyzerOptions.map((option) => new AnalyzerChoiceItem(option, option.id === analyzerId));
+        const items = [new SectionItem('Analyzer', analyzerItems)];
         items.push(...this._createFilterItems());
         return items;
-    }
-
-    _createAnalyzerSection() {
-        const analyzerId = this.controls.analyzerId || AnalyzerManager.getDefaultAnalyzerId();
-        const children = AnalyzerManager.getAnalyzerOptions().map((option) => new AnalyzerChoiceItem(option, option.id === analyzerId));
-        return new SectionItem('Analyzer', children);
     }
 
     _createFilterItems() {
@@ -46,19 +43,15 @@ class FilterProvider extends BaseProvider {
         const typeInfo = analyzerClass.getTypeInfo();
         const nodes = typeInfo.filter(info => info.category === 'node');
         const edges = typeInfo.filter(info => info.category === 'edge');
+        const makeControlItem = (label, key) => {
+            const value = this.controls[key];
+            return new CheckboxControlItem(label, value, key);
+        };
         const makeItem = (info) => {
             const prefix = info.category === 'node' ? 'Node' : 'Link';
-            return this.createControlItem('checkbox', `${prefix}: ${info.type}`, info.filterKey);
+            return makeControlItem(`${prefix}: ${info.type}`, info.filterKey);
         };
         return [...nodes.map(makeItem), ...edges.map(makeItem)];
-    }
-
-    createControlItem(type, label, key) {
-        const value = this.controls[key];
-        if (type === 'checkbox') {
-            return new CheckboxControlItem(label, value, key);
-        }
-        throw new Error(`Unknown control type: ${type}`);
     }
 
     handleSettingsChanged(controls) {

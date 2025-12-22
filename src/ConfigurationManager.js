@@ -39,42 +39,6 @@ const CONTROL_DEFAULTS = {
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
 const STACK_TRACE_CACHE_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'stacktrace.json');
 
-function getValueAtPath(target, pathParts) {
-    return pathParts.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), target);
-}
-
-function setValueAtPath(target, pathParts, value) {
-    let cursor = target;
-    for (let i = 0; i < pathParts.length - 1; i++) {
-        const key = pathParts[i];
-        if (!cursor[key] || typeof cursor[key] !== 'object') {
-            cursor[key] = {};
-        }
-        cursor = cursor[key];
-    }
-    cursor[pathParts[pathParts.length - 1]] = value;
-}
-
-function deepMerge(target, source) {
-    if (!source || typeof source !== 'object') return target;
-    for (const [key, value] of Object.entries(source)) {
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
-            if (!target[key] || typeof target[key] !== 'object') {
-                target[key] = {};
-            }
-            deepMerge(target[key], value);
-        } else {
-            target[key] = value;
-        }
-    }
-    return target;
-}
-
-function mergeWithDefaults(analyzerClass, overrides) {
-    const base = analyzerClass ? analyzerClass.getTypeDefaults() : { filters: { node: {}, edge: {} }, colors: { node: {}, edge: {} } };
-    return deepMerge(base, overrides || {});
-}
-
 function buildAnalyzerKeyMap(typeInfo) {
     const map = {};
     typeInfo.forEach(info => {
@@ -146,13 +110,18 @@ class ConfigurationManager {
         const configUpdates = {};
         const analyzerUpdates = {};
         for (const [key, value] of Object.entries(updates)) {
-            if (this._isAnalyzerControlKey(key)) {
+            if (Object.prototype.hasOwnProperty.call(this._analyzerKeyMap, key)) {
                 analyzerUpdates[key] = value;
             } else {
                 configUpdates[key] = value;
             }
         }
-        await this._updateConfigControls(configUpdates, target);
+        if (Object.keys(configUpdates).length > 0) {
+            const config = vscode.workspace.getConfiguration('forceGraphViewer');
+            for (const [key, value] of Object.entries(configUpdates)) {
+                await config.update(key, value, target);
+            }
+        }
         if (Object.keys(analyzerUpdates).length > 0) {
             await this._updateAnalyzerControls(analyzerUpdates);
         }
@@ -161,21 +130,9 @@ class ConfigurationManager {
 
     _emitChange() {
         const controls = this.loadControls();
-        this._notifyObservers(controls);
-    }
-
-    _notifyObservers(controls) {
         this._observers.forEach((observer) => {
             observer(controls);
         });
-    }
-
-    async _updateConfigControls(updates, target) {
-        if (Object.keys(updates).length === 0) return;
-        const config = vscode.workspace.getConfiguration('forceGraphViewer');
-        for (const [key, value] of Object.entries(updates)) {
-            await config.update(key, value, target);
-        }
     }
 
     _setActiveAnalyzer(analyzerId) {
@@ -191,11 +148,41 @@ class ConfigurationManager {
     }
 
     _loadAnalyzerControls() {
-        const stored = this._getStoredAnalyzerConfig();
-        const merged = mergeWithDefaults(this._activeAnalyzerClass, stored);
+        const data = this._getAnalyzerConfigData();
+        const stored = this._ensureAnalyzerEntry(data);
+        const base = this._activeAnalyzerClass
+            ? this._activeAnalyzerClass.getTypeDefaults()
+            : { filters: { node: {}, edge: {} }, colors: { node: {}, edge: {} } };
+        const merged = (() => {
+            const target = { ...base };
+            const source = stored || {};
+            const merge = (currentTarget, currentSource) => {
+                if (!currentSource || typeof currentSource !== 'object') return;
+                for (const [key, value] of Object.entries(currentSource)) {
+                    if (value && typeof value === 'object' && !Array.isArray(value)) {
+                        if (!currentTarget[key] || typeof currentTarget[key] !== 'object') {
+                            currentTarget[key] = {};
+                        }
+                        merge(currentTarget[key], value);
+                    } else {
+                        currentTarget[key] = value;
+                    }
+                }
+            };
+            merge(target, source);
+            return target;
+        })();
         const controls = {};
         for (const [key, pathParts] of Object.entries(this._analyzerKeyMap)) {
-            controls[key] = getValueAtPath(merged, pathParts);
+            let cursor = merged;
+            for (const part of pathParts) {
+                if (!cursor || cursor[part] === undefined) {
+                    cursor = undefined;
+                    break;
+                }
+                cursor = cursor[part];
+            }
+            controls[key] = cursor;
         }
         controls.typeFilters = {
             node: { ...(merged.filters?.node || {}) },
@@ -206,10 +193,6 @@ class ConfigurationManager {
             edge: { ...(merged.colors?.edge || {}) }
         };
         return controls;
-    }
-
-    _isAnalyzerControlKey(key) {
-        return Object.prototype.hasOwnProperty.call(this._analyzerKeyMap, key);
     }
 
     _getAnalyzerConfigPath() {
@@ -226,15 +209,6 @@ class ConfigurationManager {
         if (!fs.existsSync(filePath)) {
             return { analyzers: {} };
         }
-        return this._loadAnalyzerConfigFromDisk(filePath);
-    }
-
-    _getStoredAnalyzerConfig() {
-        const data = this._getAnalyzerConfigData();
-        return this._ensureAnalyzerEntry(data);
-    }
-
-    _loadAnalyzerConfigFromDisk(filePath) {
         try {
             const raw = fs.readFileSync(filePath, 'utf8');
             const parsed = JSON.parse(raw);
@@ -256,7 +230,11 @@ class ConfigurationManager {
     }
 
     async _updateAnalyzerControls(updates) {
-        const filePath = this._ensureAnalyzerConfigFile();
+        const filePath = (() => {
+            const configPath = this._getAnalyzerConfigPath();
+            if (!configPath) return null;
+            return this._ensureJsonFile(configPath, { analyzers: {} });
+        })();
         if (!filePath) return;
 
         const data = this._getAnalyzerConfigData();
@@ -264,7 +242,15 @@ class ConfigurationManager {
         for (const [key, value] of Object.entries(updates)) {
             const pathParts = this._analyzerKeyMap[key];
             if (!pathParts) continue;
-            setValueAtPath(target, pathParts, value);
+            let cursor = target;
+            for (let i = 0; i < pathParts.length - 1; i++) {
+                const part = pathParts[i];
+                if (!cursor[part] || typeof cursor[part] !== 'object') {
+                    cursor[part] = {};
+                }
+                cursor = cursor[part];
+            }
+            cursor[pathParts[pathParts.length - 1]] = value;
         }
 
         await fs.promises.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8');
@@ -278,25 +264,20 @@ class ConfigurationManager {
         return filePath;
     }
 
-    _ensureAnalyzerConfigFile() {
-        const filePath = this._getAnalyzerConfigPath();
-        if (!filePath) return null;
-        return this._ensureJsonFile(filePath, { analyzers: {} });
-    }
-
     _getCallStackCachePath() {
         const folder = vscode.workspace.workspaceFolders?.[0];
         if (!folder) return null;
         return path.join(folder.uri.fsPath, STACK_TRACE_CACHE_RELATIVE_PATH);
     }
 
-    _ensureCallStackCacheFile() {
+    getCallStackCache() {
         const filePath = this._getCallStackCachePath();
-        if (!filePath) return null;
-        return this._ensureJsonFile(filePath, { traces: [] });
-    }
-
-    _loadCallStackCacheFromDisk(filePath) {
+        if (!filePath) {
+            return [];
+        }
+        if (!fs.existsSync(filePath)) {
+            return [];
+        }
         try {
             const raw = fs.readFileSync(filePath, 'utf8');
             const parsed = JSON.parse(raw);
@@ -316,19 +297,12 @@ class ConfigurationManager {
         return [];
     }
 
-    getCallStackCache() {
-        const filePath = this._getCallStackCachePath();
-        if (!filePath) {
-            return [];
-        }
-        if (!fs.existsSync(filePath)) {
-            return [];
-        }
-        return this._loadCallStackCacheFromDisk(filePath);
-    }
-
     async updateCallStackCache(entries) {
-        const filePath = this._ensureCallStackCacheFile();
+        const filePath = (() => {
+            const cachePath = this._getCallStackCachePath();
+            if (!cachePath) return null;
+            return this._ensureJsonFile(cachePath, { traces: [] });
+        })();
         if (!filePath) return;
 
         const data = { traces: Array.isArray(entries) ? entries : [] };
