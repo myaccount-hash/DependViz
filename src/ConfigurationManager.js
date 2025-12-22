@@ -84,16 +84,6 @@ function buildAnalyzerKeyMap(typeInfo) {
     return map;
 }
 
-function buildTypeControlMap(typeInfo) {
-    return typeInfo.reduce((acc, info) => {
-        if (!acc[info.category]) {
-            acc[info.category] = {};
-        }
-        acc[info.category][info.type] = info.filterKey;
-        return acc;
-    }, { node: {}, edge: {} });
-}
-
 /**
  * VS Code設定を一元管理するシングルトンクラス
  * 設定の読み書きを統一
@@ -119,7 +109,6 @@ class ConfigurationManager {
         this._activeAnalyzerClass = AnalyzerManager.getAnalyzerClassById(this._activeAnalyzerId);
         const typeInfo = this._activeAnalyzerClass.getTypeInfo();
         this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
-        this._typeControlMap = buildTypeControlMap(typeInfo);
         this._analyzerDefaults = this._activeAnalyzerClass.getTypeDefaults();
     }
 
@@ -230,13 +219,6 @@ class ConfigurationManager {
         });
     }
 
-    /**
-     * テスト用：キャッシュをクリア
-     */
-    clearCache() {
-        this._invalidateCache();
-    }
-
     _setActiveAnalyzer(analyzerId) {
         const analyzerClass = AnalyzerManager.getAnalyzerClassById(analyzerId);
         if (!analyzerClass) return;
@@ -247,28 +229,7 @@ class ConfigurationManager {
         this._activeAnalyzerId = analyzerClass.analyzerId;
         const typeInfo = analyzerClass.getTypeInfo();
         this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
-        this._typeControlMap = buildTypeControlMap(typeInfo);
         this._analyzerDefaults = analyzerClass.getTypeDefaults();
-    }
-
-    /**
-     * ノード/エッジタイプに対応する設定キーを取得
-     */
-    getTypeControlKey(type, category) {
-        return this._typeControlMap[category]?.[type];
-    }
-
-    getTypeControlMap() {
-        return this._typeControlMap;
-    }
-
-    /**
-     * タイプが設定で有効かチェック
-     */
-    isTypeEnabled(type, category) {
-        const controls = this.loadControls();
-        const controlKey = this.getTypeControlKey(type, category);
-        return controlKey ? controls[controlKey] : true;
     }
 
     _loadAnalyzerControls() {
@@ -441,31 +402,8 @@ class ConfigurationManager {
     }
 }
 
-// ヘルパー関数（後方互換性のため）
-function loadControls() {
-    return ConfigurationManager.getInstance().loadControls();
-}
-
-async function updateControl(key, value) {
-    return ConfigurationManager.getInstance().updateControl(key, value);
-}
-
-function getTypeControlMap() {
-    return ConfigurationManager.getInstance().getTypeControlMap();
-}
-
-function typeMatches(type, controls, category) {
-    const map = getTypeControlMap();
-    const controlKey = map[category]?.[type];
-    return controlKey ? controls[controlKey] : true;
-}
-
 module.exports = {
     ConfigurationManager,
-    loadControls,
-    updateControl,
-    getTypeControlMap,
-    typeMatches,
     COLORS,
     AUTO_ROTATE_DELAY
 };

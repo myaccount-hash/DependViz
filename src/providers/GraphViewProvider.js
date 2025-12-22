@@ -5,6 +5,84 @@ const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, getNodeFilePath, mergeGraphData } = require('../utils/utils');
 const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../ConfigurationManager');
 
+function isValidMessage(message) {
+    return message && message.jsonrpc === '2.0' && typeof message.method === 'string';
+}
+
+function createMessageHandlers(provider, bridge) {
+    return {
+        ready: () => {
+            bridge.markReady();
+            provider.syncToWebview();
+        },
+        focusNode: async (params) => {
+            if (params.node?.filePath) {
+                await vscode.window.showTextDocument(vscode.Uri.file(params.node.filePath));
+            }
+        }
+    };
+}
+
+function dispatchMessage(handlers, message) {
+    if (!isValidMessage(message)) return;
+    const handler = handlers?.[message.method];
+    if (handler) {
+        return handler(message.params || {});
+    }
+    if (message.method) {
+        console.warn('[GraphViewProvider] Unknown message method:', message.method);
+    }
+}
+
+function createOutboundParams(type, params) {
+    switch (type) {
+        case 'graph:update': {
+            if (!params || typeof params !== 'object') {
+                throw new Error('graph:update: params must be an object');
+            }
+            const { controls, data, callStackPaths = [], dataVersion } = params;
+            if (!controls || typeof controls !== 'object') {
+                throw new Error('graph:update: controls must be provided');
+            }
+            validateGraphData(data);
+            const message = {
+                controls,
+                data,
+                callStackPaths: Array.isArray(callStackPaths) ? callStackPaths : []
+            };
+            if (typeof dataVersion === 'number') {
+                message.dataVersion = dataVersion;
+            }
+            return message;
+        }
+        case 'view:update': {
+            const validParams = params && typeof params === 'object' ? params : null;
+            if (!validParams) {
+                throw new Error('view:update: params must be an object');
+            }
+            const message = {};
+
+            if (validParams.controls && typeof validParams.controls === 'object') {
+                message.controls = validParams.controls;
+            }
+            if (Array.isArray(validParams.callStackPaths)) {
+                message.callStackPaths = validParams.callStackPaths;
+            }
+            return message;
+        }
+        case 'node:focus': {
+            if (params === undefined || params === null) {
+                throw new Error('node:focus: nodeId is required');
+            }
+            return { nodeId: params };
+        }
+        case 'mode:toggle':
+        case 'focus:clear':
+            return undefined;
+        default:
+            throw new Error(`Unknown message type: ${type}`);
+    }
+}
 
 
 /**
@@ -21,7 +99,10 @@ class GraphViewProvider extends BaseProvider {
         this._updateInProgress = false;
         this._pendingUpdate = null;
         this._callStackPaths = [];
-        this._webviewBridge = new WebviewBridge();
+        this._webviewBridge = new WebviewBridge(message => {
+            return dispatchMessage(this._messageHandlers, message);
+        });
+        this._messageHandlers = createMessageHandlers(this, this._webviewBridge);
     }
 
     _getHtmlForWebview() {
@@ -34,16 +115,7 @@ class GraphViewProvider extends BaseProvider {
 
     async resolveWebviewView(webviewView) {
         this._view = webviewView;
-        this._webviewBridge.attach(webviewView.webview, {
-            ready: () => {
-                this.syncToWebview();
-            },
-            focusNode: async (params) => {
-                if (params.node?.filePath) {
-                    await vscode.window.showTextDocument(vscode.Uri.file(params.node.filePath));
-                }
-            }
-        });
+        this._webviewBridge.attach(webviewView.webview);
         webviewView.webview.options = { enableScripts: true, localResourceRoots: [this._extensionUri] };
         webviewView.webview.html = this._getHtmlForWebview();
         this.syncToWebview();
@@ -133,11 +205,11 @@ class GraphViewProvider extends BaseProvider {
         };
 
         if (options.viewOnly) {
-            this._webviewBridge.send('view:update', payload);
+            this._sendToWebview('view:update', payload);
             return;
         }
 
-        this._webviewBridge.send('graph:update', {
+        this._sendToWebview('graph:update', {
             ...payload,
             data: this._currentData,
             dataVersion: this._dataVersion
@@ -150,7 +222,7 @@ class GraphViewProvider extends BaseProvider {
         }
         const node = this._findNodeByFilePath(filePath);
         if (node) {
-            this._webviewBridge.send('node:focus', node.id);
+            this._sendToWebview('node:focus', node.id);
         }
     }
 
@@ -167,7 +239,7 @@ class GraphViewProvider extends BaseProvider {
         await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
 
         // Webviewに通知してグラフをリセット
-        this._webviewBridge.send('mode:toggle');
+        this._sendToWebview('mode:toggle');
 
         // 更新された設定を送信
         this.syncToWebview();
@@ -180,63 +252,16 @@ class GraphViewProvider extends BaseProvider {
 
     async clearFocus() {
         if (!this._view) return;
-        this._webviewBridge.send('focus:clear');
+        this._sendToWebview('focus:clear');
+    }
+
+    _sendToWebview(type, payload) {
+        const params = createOutboundParams(type, payload);
+        this._webviewBridge.send(type, params);
     }
 }
 
 module.exports = GraphViewProvider;
-const messageParams = {
-    'graph:update': params => {
-        if (!params || typeof params !== 'object') {
-            throw new Error('graph:update: params must be an object');
-        }
-        const { controls, data, callStackPaths = [], dataVersion } = params;
-        if (!controls || typeof controls !== 'object') {
-            throw new Error('graph:update: controls must be provided');
-        }
-        validateGraphData(data);
-        const message = {
-            controls,
-            data,
-            callStackPaths: Array.isArray(callStackPaths) ? callStackPaths : []
-        };
-        if (typeof dataVersion === 'number') {
-            message.dataVersion = dataVersion;
-        }
-        return message;
-    },
-
-    'view:update': params => {
-        const validParams = params && typeof params === 'object' ? params : null;
-        if (!validParams) {
-            throw new Error('view:update: params must be an object');
-        }
-        const message = {};
-
-        if (validParams.controls && typeof validParams.controls === 'object') {
-            message.controls = validParams.controls;
-        }
-        if (Array.isArray(validParams.callStackPaths)) {
-            message.callStackPaths = validParams.callStackPaths;
-        }
-        return message;
-    },
-
-    'node:focus': nodeId => {
-        if (nodeId === undefined || nodeId === null) {
-            throw new Error('node:focus: nodeId is required');
-        }
-        return { nodeId };
-    },
-
-    'mode:toggle': () => {
-        return undefined;
-    },
-
-    'focus:clear': () => {
-        return undefined;
-    }
-};
 
 /**
  * Webviewとのメッセージングを管理するクラス
@@ -245,17 +270,17 @@ const messageParams = {
  * GraphViewProviderからのみ使用される
  */
 class WebviewBridge {
-    constructor() {
+    constructor(onMessage) {
         this._webview = null;
         this._ready = false;
         this._queue = [];
+        this._onMessage = onMessage;
     }
 
-    attach(webview, handlers = {}) {
+    attach(webview) {
         this._webview = webview;
         this._ready = false;
         this._queue = [];
-        this._handlers = handlers;
         if (this._webview?.onDidReceiveMessage) {
             this._webview.onDidReceiveMessage(async message => {
                 await this._handleReceive(message);
@@ -267,7 +292,7 @@ class WebviewBridge {
         this._webview = null;
         this._ready = false;
         this._queue = [];
-        this._handlers = null;
+        this._onMessage = null;
     }
 
     markReady() {
@@ -275,13 +300,8 @@ class WebviewBridge {
         this._flush();
     }
 
-    send(type, payload) {
-        const creator = messageParams[type];
-        if (!creator) {
-            throw new Error(`Unknown message type: ${type}`);
-        }
-        const params = creator(payload);
-        const message = { jsonrpc: '2.0', method: type };
+    send(method, params) {
+        const message = { jsonrpc: '2.0', method };
         if (params !== undefined) {
             message.params = params;
         }
@@ -312,15 +332,7 @@ class WebviewBridge {
     }
 
     async _handleReceive(message) {
-        if (!message || message.jsonrpc !== '2.0' || typeof message.method !== 'string') {
-            return;
-        }
-        if (message.method === 'ready') {
-            this.markReady();
-        }
-        const handler = this._handlers?.[message.method];
-        if (handler) {
-            await handler(message.params || {});
-        }
+        if (!this._onMessage) return;
+        return this._onMessage(message);
     }
 }

@@ -1,9 +1,34 @@
 // GraphViewModel.js
 import { computeSlice } from './utils';
+import ExtensionBridge from './ExtensionBridge';
 
 /**
  * アプリケーションのグラフ状態を管理するクラス
  */
+function isValidMessage(message) {
+  return message && message.jsonrpc === '2.0' && typeof message.method === 'string';
+}
+
+function createMessageHandlers(state) {
+  return {
+    'graph:update': params => state.handleGraphUpdate(params || {}),
+    'view:update': params => state.handleViewUpdate(params || {}),
+    'node:focus': params => state.focusNodeById(params || {}),
+    'mode:toggle': () => state.toggleMode(),
+    'focus:clear': () => state.clearFocus()
+  };
+}
+
+function dispatchMessage(handlers, message) {
+  if (!isValidMessage(message)) return;
+  const handler = handlers[message.method];
+  if (handler) {
+    handler(message.params);
+  } else if (message.method) {
+    console.warn('[DependViz] Unknown message method:', message.method);
+  }
+}
+
 class GraphViewModel {
   constructor() {
     this.data = { nodes: [], links: [] };
@@ -27,6 +52,7 @@ class GraphViewModel {
     this._labelRenderer = null;
     this._currentRenderer = null;
     this._extensionBridge = null;
+    this._messageHandlers = null;
   }
 
   get graph() { return this._graph; }
@@ -34,7 +60,18 @@ class GraphViewModel {
 
   setGraph(graph) { this._graph = graph; }
   setLabelRenderer(renderer) { this._labelRenderer = renderer; }
-  setExtensionBridge(bridge) { this._extensionBridge = bridge; }
+
+  initializeBridge() {
+    if (!this._extensionBridge) {
+      if (!this._messageHandlers) {
+        this._messageHandlers = createMessageHandlers(this);
+      }
+      this._extensionBridge = new ExtensionBridge(message => {
+        dispatchMessage(this._messageHandlers, message);
+      });
+    }
+    return this._extensionBridge.initialize();
+  }
 
   // VSCode背景色を取得
   getBackgroundColor() {
@@ -210,13 +247,38 @@ class GraphViewModel {
   getRenderer() {
     const GraphRenderer2D = require('./GraphRenderer2D').default;
     const GraphRenderer3D = require('./GraphRenderer3D').default;
+    const callbacks = {
+      onNodeClick: node => this.notifyNodeFocus(node)
+    };
     
     if (!this._currentRenderer || this._currentRenderer.is3DMode !== this.controls.is3DMode) {
       this._currentRenderer = this.controls.is3DMode
-        ? new GraphRenderer3D(this, this._extensionBridge)
-        : new GraphRenderer2D(this, this._extensionBridge);
+        ? new GraphRenderer3D(this, callbacks)
+        : new GraphRenderer2D(this, callbacks);
     }
     return this._currentRenderer;
+  }
+
+  // ノードクリック時の通知を送信
+  notifyNodeFocus(node) {
+    if (!node) return;
+    const filePath = this.getNodeFilePath(node);
+    if (!filePath) return;
+    this._extensionBridge?.send('focusNode', {
+      node: {
+        id: node.id,
+        filePath: filePath,
+        name: node.name
+      }
+    });
+  }
+
+  // モード切り替えを処理
+  toggleMode() {
+    const newMode = !this.controls.is3DMode;
+    this.updateControls({ is3DMode: newMode });
+    this.clearRenderer();
+    this.updateGraph({ reheatSimulation: true });
   }
 
   // グラフインスタンスを初期化

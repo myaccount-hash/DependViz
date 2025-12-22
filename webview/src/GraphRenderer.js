@@ -4,10 +4,10 @@ import { applyFilter } from './utils';
  * グラフのレンダリングと視覚属性計算を管理する基底クラス
  */
 class GraphRenderer {
-  constructor(state, extensionBridge) {
+  constructor(state, callbacks = {}) {
     this.state = state;
     this.is3DMode = state.controls.is3DMode ?? false;
-    this.extensionBridge = extensionBridge;
+    this.callbacks = callbacks;
     
     this.nodeRules = [
       (node, ctx) => {
@@ -307,16 +307,7 @@ class GraphRenderer {
         .linkDirectionalArrowRelPos(1)
         .onNodeClick(node => {
           if (!node) return;
-          const filePath = this.state.getNodeFilePath(node);
-          if (filePath) {
-            this.extensionBridge?.send('focusNode', {
-              node: {
-                id: node.id,
-                filePath: filePath,
-                name: node.name
-              }
-            });
-          }
+          this.callbacks.onNodeClick?.(node);
         });
 
       this.state.setGraph(graph);
