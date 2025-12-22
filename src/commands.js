@@ -6,7 +6,7 @@ function registerCommands(context, providers) {
     const configManager = ConfigurationManager.getInstance();
     const getAnalyzerName = () => analyzerManager.getActiveAnalyzerName();
     const getAnalyzerId = () => analyzerManager.getActiveAnalyzerId();
-    const getControls = () => configManager.loadControls({ ignoreCache: true });
+    const getControls = () => configManager.loadControls();
 
     const createSliceCommand = (direction) => async () => {
         const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';

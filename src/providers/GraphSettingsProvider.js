@@ -17,7 +17,7 @@ class GraphSettingsProvider extends BaseProvider {
         if (this._controls && Object.keys(this._controls).length > 0) {
             return this._controls;
         }
-        return ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
+        return ConfigurationManager.getInstance().loadControls();
     }
 
     refresh() {

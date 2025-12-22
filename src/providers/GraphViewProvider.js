@@ -194,7 +194,7 @@ class GraphViewProvider extends BaseProvider {
 
         const controls = this.controls && Object.keys(this.controls).length > 0
             ? this.controls
-            : ConfigurationManager.getInstance().loadControls({ ignoreCache: true });
+            : ConfigurationManager.getInstance().loadControls();
         const themeKind = vscode.window.activeColorTheme.kind;
         const darkMode = themeKind === vscode.ColorThemeKind.Dark ||
             themeKind === vscode.ColorThemeKind.HighContrast;
@@ -235,7 +235,7 @@ class GraphViewProvider extends BaseProvider {
         // 現在の設定を取得して反転
         const currentMode = (this.controls && this.controls.is3DMode !== undefined)
             ? this.controls.is3DMode
-            : ConfigurationManager.getInstance().loadControls({ ignoreCache: true }).is3DMode;
+            : ConfigurationManager.getInstance().loadControls().is3DMode;
         await ConfigurationManager.getInstance().updateControl('is3DMode', !currentMode);
 
         // Webviewに通知してグラフをリセット

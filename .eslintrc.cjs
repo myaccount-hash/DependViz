@@ -7,5 +7,8 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'script'
+  },
+  rules: {
+    "no-unused-vars": "error"
   }
 };

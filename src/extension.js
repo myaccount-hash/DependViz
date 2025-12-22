@@ -30,7 +30,7 @@ function activate(context) {
         context.subscriptions.push(analyzerWatcher);
     }
     const broadcastSettings = (controlsOverride) => {
-        const controls = controlsOverride || configManager.loadControls({ ignoreCache: true });
+        const controls = controlsOverride || configManager.loadControls();
         settingsProvider.handleSettingsChanged(controls);
         filterProvider.handleSettingsChanged(controls);
         graphViewProvider.handleSettingsChanged(controls);

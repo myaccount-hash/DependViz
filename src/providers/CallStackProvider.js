@@ -156,7 +156,7 @@ class CallStackProvider {
     }
 
     _getSelectedSessionIds() {
-        const controls = this._configManager.loadControls({ ignoreCache: true });
+        const controls = this._configManager.loadControls();
         const selection = controls.callStackSelection;
         if (!Array.isArray(selection)) {
             return new Set();

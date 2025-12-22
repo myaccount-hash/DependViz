@@ -99,12 +99,7 @@ class ConfigurationManager {
     }
 
     constructor() {
-        this._cache = null;
-        this._cacheTime = 0;
-        this._cacheDuration = 100; // ms
         this._observers = new Set();
-        this._analyzerConfigCache = null;
-        this._analyzerConfigMtime = 0;
         this._activeAnalyzerId = CONTROL_DEFAULTS.analyzerId;
         this._activeAnalyzerClass = AnalyzerManager.getAnalyzerClassById(this._activeAnalyzerId);
         const typeInfo = this._activeAnalyzerClass.getTypeInfo();
@@ -127,15 +122,9 @@ class ConfigurationManager {
     }
 
     /**
-     * 全設定を取得（キャッシュ付き）
+     * 全設定を取得
      */
-    loadControls(options = {}) {
-        const { ignoreCache = false } = options;
-        const now = Date.now();
-        if (!ignoreCache && this._cache && (now - this._cacheTime) < this._cacheDuration) {
-            return { ...this._cache }; // コピーを返す
-        }
-
+    loadControls() {
         const config = vscode.workspace.getConfiguration('forceGraphViewer');
         const controls = {};
         for (const [key, defaultValue] of Object.entries(CONTROL_DEFAULTS)) {
@@ -145,8 +134,6 @@ class ConfigurationManager {
         Object.assign(controls, this._loadAnalyzerControls());
         controls.COLORS = COLORS;
 
-        this._cache = controls;
-        this._cacheTime = now;
         return { ...controls };
     }
 
@@ -160,7 +147,6 @@ class ConfigurationManager {
             const config = vscode.workspace.getConfiguration('forceGraphViewer');
             await config.update(key, value, target);
         }
-        this._invalidateCache();
         this._emitChange();
     }
 
@@ -186,7 +172,6 @@ class ConfigurationManager {
         if (Object.keys(analyzerUpdates).length > 0) {
             await this._updateAnalyzerControls(analyzerUpdates);
         }
-        this._invalidateCache();
         this._emitChange();
     }
 
@@ -198,18 +183,8 @@ class ConfigurationManager {
         return controls[key];
     }
 
-    /**
-     * キャッシュを無効化
-     */
-    _invalidateCache() {
-        this._cache = null;
-        this._cacheTime = 0;
-        this._analyzerConfigCache = null;
-        this._analyzerConfigMtime = 0;
-    }
-
     _emitChange() {
-        const controls = this.loadControls({ ignoreCache: true });
+        const controls = this.loadControls();
         this._notifyObservers(controls);
     }
 
@@ -263,25 +238,16 @@ class ConfigurationManager {
     _getAnalyzerConfigData() {
         const filePath = this._getAnalyzerConfigPath();
         if (!filePath) {
-            this._analyzerConfigCache = { analyzers: {} };
-            this._analyzerConfigMtime = 0;
-            return this._analyzerConfigCache;
+            return { analyzers: {} };
         }
 
-        let mtime = 0;
         try {
-            mtime = fs.statSync(filePath).mtimeMs;
+            fs.statSync(filePath);
         } catch (e) {
-            this._analyzerConfigCache = { analyzers: {} };
-            this._analyzerConfigMtime = 0;
-            return this._analyzerConfigCache;
+            return { analyzers: {} };
         }
 
-        if (!this._analyzerConfigCache || this._analyzerConfigMtime !== mtime) {
-            this._analyzerConfigCache = this._loadAnalyzerConfigFromDisk(filePath);
-            this._analyzerConfigMtime = mtime;
-        }
-        return this._analyzerConfigCache;
+        return this._loadAnalyzerConfigFromDisk(filePath);
     }
 
     _getStoredAnalyzerConfig() {
@@ -322,13 +288,6 @@ class ConfigurationManager {
         }
 
         await fs.promises.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8');
-        try {
-            const stat = fs.statSync(filePath);
-            this._analyzerConfigMtime = stat.mtimeMs;
-        } catch (e) {
-            this._analyzerConfigMtime = Date.now();
-        }
-        this._analyzerConfigCache = data;
     }
 
     _ensureAnalyzerConfigFile() {
@@ -397,7 +356,6 @@ class ConfigurationManager {
     }
 
     handleAnalyzerConfigExternalChange() {
-        this._invalidateCache();
         this._emitChange();
     }
 }
