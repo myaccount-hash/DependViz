@@ -1,16 +1,12 @@
 const vscode = require('vscode');
 const { ConfigurationManager } = require('./ConfigurationManager');
 
-/**
- * @param {*} context 
- * @param {*} providers 
- * @returns 
- */
 function registerCommands(context, providers) {
     const { settingsProvider, filterProvider, graphViewProvider, callStackProvider, analyzerManager } = providers;
     const configManager = ConfigurationManager.getInstance();
     const getAnalyzerName = () => analyzerManager.getActiveAnalyzerName();
     const getAnalyzerId = () => analyzerManager.getActiveAnalyzerId();
+    const getControls = () => configManager.loadControls({ ignoreCache: true });
 
     const createSliceCommand = (direction) => async () => {
         const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
@@ -24,7 +20,7 @@ function registerCommands(context, providers) {
             await graphViewProvider.refresh();
         }),
         vscode.commands.registerCommand('forceGraphViewer.showSearchInput', async () => {
-            const controls = configManager.loadControls({ ignoreCache: true });
+            const controls = getControls();
             const search = await vscode.window.showInputBox({
                 prompt: '検索クエリ (例: Test, name:/Test.*/, type:Class AND name:Util, path:/.*Service/ OR NOT type:Unknown)',
                 value: controls.search,
@@ -35,12 +31,12 @@ function registerCommands(context, providers) {
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.toggleCheckbox', async (key) => {
-            const controls = configManager.loadControls({ ignoreCache: true });
+            const controls = getControls();
             await configManager.updateControl(key, !controls[key]);
         }),
         vscode.commands.registerCommand('forceGraphViewer.toggleCallStackEntry', async (sessionId) => {
             if (!sessionId) return;
-            const controls = configManager.loadControls({ ignoreCache: true });
+            const controls = getControls();
             const selection = Array.isArray(controls.callStackSelection) ? [...controls.callStackSelection] : [];
             const index = selection.indexOf(sessionId);
             if (index === -1) {
@@ -57,7 +53,16 @@ function registerCommands(context, providers) {
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, step, currentValue) => {
-            const value = await vscode.window.showInputBox({ prompt: `${key} (${min} - ${max})`, value: currentValue.toString(), validateInput: (v) => { const num = parseFloat(v); return isNaN(num) || num < min || num > max ? `値は ${min} から ${max} の間で入力してください` : null; } });
+            const value = await vscode.window.showInputBox({
+                prompt: `${key} (${min} - ${max})`,
+                value: currentValue.toString(),
+                validateInput: (input) => {
+                    const num = parseFloat(input);
+                    return isNaN(num) || num < min || num > max
+                        ? `値は ${min} から ${max} の間で入力してください`
+                        : null;
+                }
+            });
             if (value !== undefined) {
                 await configManager.updateControl(key, parseFloat(value));
             }
@@ -133,7 +138,7 @@ function registerCommands(context, providers) {
         }),
         vscode.commands.registerCommand('forceGraphViewer.clearFocus', async () => {
             await graphViewProvider.clearFocus();
-        }),
+        })
     ];
 
     return commands;
