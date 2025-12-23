@@ -39,274 +39,187 @@ const CONTROL_DEFAULTS = {
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
 const STACK_TRACE_CACHE_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'stacktrace.json');
 
-function buildAnalyzerKeyMap(typeInfo) {
-    const map = {};
-    typeInfo.forEach(info => {
-        map[info.filterKey] = ['filters', info.category, info.type];
-        map[info.colorKey] = ['colors', info.category, info.type];
-    });
-    return map;
-}
+/* utility */
 
-/**
- * VS Code設定を一元管理するシングルトンクラス
- * 設定の読み書きを統一
- */
+const getByPath = (obj, parts) =>
+    parts.reduce((c, p) => (c && c[p] !== undefined ? c[p] : undefined), obj);
+
+const setByPath = (obj, parts, value) => {
+    let c = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+        c = c[parts[i]] ??= {};
+    }
+    c[parts.at(-1)] = value;
+};
+
+const merge = (a, b) => {
+    if (!b || typeof b !== 'object') return a;
+    for (const [k, v] of Object.entries(b)) {
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+            a[k] = merge(a[k] ?? {}, v);
+        } else {
+            a[k] = v;
+        }
+    }
+    return a;
+};
+
+const buildAnalyzerKeyMap = (typeInfo) =>
+    Object.fromEntries(
+        typeInfo.flatMap(i => [
+            [i.filterKey, ['filters', i.category, i.type]],
+            [i.colorKey, ['colors', i.category, i.type]]
+        ])
+    );
+
+/* manager */
+
 class ConfigurationManager {
-    static instance = null;
+    static instance;
 
     static getInstance() {
-        if (!ConfigurationManager.instance) {
-            ConfigurationManager.instance = new ConfigurationManager();
-        }
-        return ConfigurationManager.instance;
+        return this.instance ??= new ConfigurationManager();
     }
 
     constructor() {
         this._observers = new Set();
-        this._activeAnalyzerId = CONTROL_DEFAULTS.analyzerId;
-        this._activeAnalyzerClass = AnalyzerManager.getAnalyzerClassById(this._activeAnalyzerId);
-        const typeInfo = this._activeAnalyzerClass.getTypeInfo();
-        this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
+        this._setActiveAnalyzer(CONTROL_DEFAULTS.analyzerId);
     }
 
-    addObserver(observer) {
-        if (typeof observer !== 'function') {
-            return { dispose: () => { } };
-        }
-        this._observers.add(observer);
-        return {
-            dispose: () => this._observers.delete(observer)
-        };
+    addObserver(fn) {
+        if (typeof fn !== 'function') return { dispose() {} };
+        this._observers.add(fn);
+        return { dispose: () => this._observers.delete(fn) };
     }
 
-    /**
-     * 全設定を取得
-     */
     loadControls() {
-        const config = vscode.workspace.getConfiguration('forceGraphViewer');
-        const controls = {};
-        for (const [key, defaultValue] of Object.entries(CONTROL_DEFAULTS)) {
-            controls[key] = config.get(key, defaultValue);
-        }
-        this._setActiveAnalyzer(controls.analyzerId || CONTROL_DEFAULTS.analyzerId);
+        const cfg = vscode.workspace.getConfiguration('forceGraphViewer');
+        const controls = Object.fromEntries(
+            Object.entries(CONTROL_DEFAULTS).map(
+                ([k, d]) => [k, cfg.get(k, d)]
+            )
+        );
+
+        this._setActiveAnalyzer(controls.analyzerId);
         Object.assign(controls, this._loadAnalyzerControls());
         controls.COLORS = COLORS;
 
-        return { ...controls };
+        return controls;
     }
 
-    /**
-     * 単一の設定を更新
-     */
-    async updateControl(key, value, target = vscode.ConfigurationTarget.Workspace) {
-        await this.updateControls({ [key]: value }, target);
-    }
-
-    /**
-     * 複数の設定を一括更新
-     */
     async updateControls(updates, target = vscode.ConfigurationTarget.Workspace) {
-        const configUpdates = {};
+        const cfg = vscode.workspace.getConfiguration('forceGraphViewer');
         const analyzerUpdates = {};
-        for (const [key, value] of Object.entries(updates)) {
-            if (Object.prototype.hasOwnProperty.call(this._analyzerKeyMap, key)) {
-                analyzerUpdates[key] = value;
+
+        for (const [k, v] of Object.entries(updates)) {
+            if (this._analyzerKeyMap[k]) {
+                analyzerUpdates[k] = v;
             } else {
-                configUpdates[key] = value;
+                await cfg.update(k, v, target);
             }
         }
-        if (Object.keys(configUpdates).length > 0) {
-            const config = vscode.workspace.getConfiguration('forceGraphViewer');
-            for (const [key, value] of Object.entries(configUpdates)) {
-                await config.update(key, value, target);
-            }
-        }
-        if (Object.keys(analyzerUpdates).length > 0) {
+
+        if (Object.keys(analyzerUpdates).length) {
             await this._updateAnalyzerControls(analyzerUpdates);
         }
+
         this._emitChange();
     }
 
     _emitChange() {
-        const controls = this.loadControls();
-        this._observers.forEach((observer) => {
-            observer(controls);
-        });
+        const c = this.loadControls();
+        this._observers.forEach(o => o(c));
     }
 
-    _setActiveAnalyzer(analyzerId) {
-        const analyzerClass = AnalyzerManager.getAnalyzerClassById(analyzerId);
-        if (!analyzerClass) return;
-        if (this._activeAnalyzerClass && this._activeAnalyzerClass.analyzerId === analyzerClass.analyzerId) {
-            return;
-        }
-        this._activeAnalyzerClass = analyzerClass;
-        this._activeAnalyzerId = analyzerClass.analyzerId;
-        const typeInfo = analyzerClass.getTypeInfo();
-        this._analyzerKeyMap = buildAnalyzerKeyMap(typeInfo);
+    _setActiveAnalyzer(id) {
+        const cls = AnalyzerManager.getAnalyzerClassById(id);
+        if (!cls || cls === this._activeAnalyzerClass) return;
+
+        this._activeAnalyzerClass = cls;
+        this._activeAnalyzerId = cls.analyzerId;
+        this._analyzerKeyMap = buildAnalyzerKeyMap(cls.getTypeInfo());
     }
 
     _loadAnalyzerControls() {
-        const data = this._getAnalyzerConfigData();
-        const stored = this._ensureAnalyzerEntry(data);
-        const base = this._activeAnalyzerClass
-            ? this._activeAnalyzerClass.getTypeDefaults()
-            : { filters: { node: {}, edge: {} }, colors: { node: {}, edge: {} } };
-        const merged = (() => {
-            const target = { ...base };
-            const source = stored || {};
-            const merge = (currentTarget, currentSource) => {
-                if (!currentSource || typeof currentSource !== 'object') return;
-                for (const [key, value] of Object.entries(currentSource)) {
-                    if (value && typeof value === 'object' && !Array.isArray(value)) {
-                        if (!currentTarget[key] || typeof currentTarget[key] !== 'object') {
-                            currentTarget[key] = {};
-                        }
-                        merge(currentTarget[key], value);
-                    } else {
-                        currentTarget[key] = value;
-                    }
-                }
-            };
-            merge(target, source);
-            return target;
-        })();
+        const base = this._activeAnalyzerClass.getTypeDefaults();
+        const stored = this._ensureAnalyzerEntry(this._getAnalyzerConfigData());
+        const merged = merge(structuredClone(base), stored);
+
         const controls = {};
-        for (const [key, pathParts] of Object.entries(this._analyzerKeyMap)) {
-            let cursor = merged;
-            for (const part of pathParts) {
-                if (!cursor || cursor[part] === undefined) {
-                    cursor = undefined;
-                    break;
-                }
-                cursor = cursor[part];
-            }
-            controls[key] = cursor;
+        for (const [k, p] of Object.entries(this._analyzerKeyMap)) {
+            controls[k] = getByPath(merged, p);
         }
+
         controls.typeFilters = {
-            node: { ...(merged.filters?.node || {}) },
-            edge: { ...(merged.filters?.edge || {}) }
+            node: { ...merged.filters?.node },
+            edge: { ...merged.filters?.edge }
         };
         controls.typeColors = {
-            node: { ...(merged.colors?.node || {}) },
-            edge: { ...(merged.colors?.edge || {}) }
+            node: { ...merged.colors?.node },
+            edge: { ...merged.colors?.edge }
         };
+
         return controls;
     }
 
-    _getAnalyzerConfigPath() {
-        const folder = vscode.workspace.workspaceFolders?.[0];
-        if (!folder) return null;
-        return path.join(folder.uri.fsPath, ANALYZER_CONFIG_RELATIVE_PATH);
+    _getWorkspacePath(rel) {
+        const f = vscode.workspace.workspaceFolders?.[0];
+        return f ? path.join(f.uri.fsPath, rel) : null;
     }
 
     _getAnalyzerConfigData() {
-        const filePath = this._getAnalyzerConfigPath();
-        if (!filePath) {
-            return { analyzers: {} };
-        }
-        if (!fs.existsSync(filePath)) {
-            return { analyzers: {} };
-        }
+        const p = this._getWorkspacePath(ANALYZER_CONFIG_RELATIVE_PATH);
+        if (!p || !fs.existsSync(p)) return { analyzers: {} };
         try {
-            const raw = fs.readFileSync(filePath, 'utf8');
-            const parsed = JSON.parse(raw);
-            if (parsed.analyzers && typeof parsed.analyzers === 'object') {
-                return { analyzers: parsed.analyzers };
-            }
-            // backward compatibility: old format without analyzers map
-            return { analyzers: { [CONTROL_DEFAULTS.analyzerId]: parsed } };
-        } catch (error) {
+            const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+            return j.analyzers ? j : { analyzers: { [CONTROL_DEFAULTS.analyzerId]: j } };
+        } catch {
             return { analyzers: {} };
         }
     }
 
     _ensureAnalyzerEntry(data) {
-        if (!data.analyzers[this._activeAnalyzerId]) {
-            data.analyzers[this._activeAnalyzerId] = {};
-        }
-        return data.analyzers[this._activeAnalyzerId];
+        return data.analyzers[this._activeAnalyzerId] ??= {};
     }
 
     async _updateAnalyzerControls(updates) {
-        const filePath = (() => {
-            const configPath = this._getAnalyzerConfigPath();
-            if (!configPath) return null;
-            return this._ensureJsonFile(configPath, { analyzers: {} });
-        })();
-        if (!filePath) return;
+        const p = this._getWorkspacePath(ANALYZER_CONFIG_RELATIVE_PATH);
+        if (!p) return;
+
+        if (!fs.existsSync(p)) {
+            fs.mkdirSync(path.dirname(p), { recursive: true });
+            fs.writeFileSync(p, JSON.stringify({ analyzers: {} }, null, 4));
+        }
 
         const data = this._getAnalyzerConfigData();
         const target = this._ensureAnalyzerEntry(data);
-        for (const [key, value] of Object.entries(updates)) {
-            const pathParts = this._analyzerKeyMap[key];
-            if (!pathParts) continue;
-            let cursor = target;
-            for (let i = 0; i < pathParts.length - 1; i++) {
-                const part = pathParts[i];
-                if (!cursor[part] || typeof cursor[part] !== 'object') {
-                    cursor[part] = {};
-                }
-                cursor = cursor[part];
-            }
-            cursor[pathParts[pathParts.length - 1]] = value;
+
+        for (const [k, v] of Object.entries(updates)) {
+            setByPath(target, this._analyzerKeyMap[k], v);
         }
 
-        await fs.promises.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8');
-    }
-
-    _ensureJsonFile(filePath, data) {
-        if (!fs.existsSync(filePath)) {
-            fs.mkdirSync(path.dirname(filePath), { recursive: true });
-            fs.writeFileSync(filePath, JSON.stringify(data, null, 4), 'utf8');
-        }
-        return filePath;
-    }
-
-    _getCallStackCachePath() {
-        const folder = vscode.workspace.workspaceFolders?.[0];
-        if (!folder) return null;
-        return path.join(folder.uri.fsPath, STACK_TRACE_CACHE_RELATIVE_PATH);
+        await fs.promises.writeFile(p, JSON.stringify(data, null, 4));
     }
 
     getCallStackCache() {
-        const filePath = this._getCallStackCachePath();
-        if (!filePath) {
-            return [];
-        }
-        if (!fs.existsSync(filePath)) {
-            return [];
-        }
+        const p = this._getWorkspacePath(STACK_TRACE_CACHE_RELATIVE_PATH);
+        if (!p || !fs.existsSync(p)) return [];
         try {
-            const raw = fs.readFileSync(filePath, 'utf8');
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed.traces)) {
-                return parsed.traces.map(entry => ({
-                    id: entry.id,
-                    sessionName: entry.sessionName,
-                    sessionType: entry.sessionType,
-                    capturedAt: entry.capturedAt,
-                    classes: Array.isArray(entry.classes) ? [...entry.classes] : [],
-                    paths: Array.isArray(entry.paths) ? [...entry.paths] : []
-                }));
-            }
-        } catch (error) {
-            // ignore
+            return JSON.parse(fs.readFileSync(p, 'utf8')).traces ?? [];
+        } catch {
+            return [];
         }
-        return [];
     }
 
-    async updateCallStackCache(entries) {
-        const filePath = (() => {
-            const cachePath = this._getCallStackCachePath();
-            if (!cachePath) return null;
-            return this._ensureJsonFile(cachePath, { traces: [] });
-        })();
-        if (!filePath) return;
+    async updateCallStackCache(traces) {
+        const p = this._getWorkspacePath(STACK_TRACE_CACHE_RELATIVE_PATH);
+        if (!p) return;
 
-        const data = { traces: Array.isArray(entries) ? entries : [] };
-        await fs.promises.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8');
+        fs.mkdirSync(path.dirname(p), { recursive: true });
+        await fs.promises.writeFile(
+            p,
+            JSON.stringify({ traces: traces ?? [] }, null, 4)
+        );
     }
 
     handleAnalyzerConfigExternalChange() {

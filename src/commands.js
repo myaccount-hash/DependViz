@@ -10,7 +10,7 @@ function registerCommands(providers) {
 
     const createSliceCommand = (direction) => async () => {
         const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
-        await configManager.updateControl(key, true);
+        await configManager.updateControls({ [key]: true });
     };
 
     const commands = [
@@ -27,12 +27,12 @@ function registerCommands(providers) {
                 placeHolder: '検索... (name:, type:, path: フィールド指定可, /正規表現/, AND/OR/NOT 演算可)'
             });
             if (search !== undefined) {
-                await configManager.updateControl('search', search);
+                await configManager.updateControls({ search });
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.toggleCheckbox', async (key) => {
             const controls = getControls();
-            await configManager.updateControl(key, !controls[key]);
+            await configManager.updateControls({ [key]: !controls[key] });
         }),
         vscode.commands.registerCommand('forceGraphViewer.toggleCallStackEntry', async (sessionId) => {
             if (!sessionId) return;
@@ -44,12 +44,12 @@ function registerCommands(providers) {
             } else {
                 selection.splice(index, 1);
             }
-            await configManager.updateControl('callStackSelection', selection);
+            await configManager.updateControls({ callStackSelection: selection });
             await callStackProvider.notifySelectionChanged(graphViewProvider);
         }),
         vscode.commands.registerCommand('forceGraphViewer.selectAnalyzer', async (analyzerId) => {
             if (typeof analyzerId === 'string' && analyzerId.length > 0) {
-                await configManager.updateControl('analyzerId', analyzerId);
+                await configManager.updateControls({ analyzerId });
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, currentValue) => {
@@ -64,7 +64,7 @@ function registerCommands(providers) {
                 }
             });
             if (value !== undefined) {
-                await configManager.updateControl(key, parseFloat(value));
+                await configManager.updateControls({ [key]: parseFloat(value) });
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeProject', async () => {
