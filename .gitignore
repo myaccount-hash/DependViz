@@ -37,3 +37,4 @@ Thumbs.db
 # Generated files
 graph.json
 data/
+webview/dist/
