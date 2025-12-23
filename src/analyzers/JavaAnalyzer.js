@@ -114,7 +114,12 @@ class JavaAnalyzer extends BaseAnalyzer {
             });
 
             this.client.onNotification('window/logMessage', (params) => {
-                this.outputChannel.appendLine(`[Server Log] ${params.message}`);
+                const type = typeof params.type === 'number' ? params.type : 4;
+                const label = type === 1 ? 'Error' : type === 2 ? 'Warn' : 'Log';
+                this.outputChannel.appendLine(`[Server ${label}] ${params.message}`);
+                if (type === 1) {
+                    this.outputChannel.show(true);
+                }
             });
 
             // クライアントを起動して初期化を待つ
@@ -170,7 +175,14 @@ class JavaAnalyzer extends BaseAnalyzer {
             validateGraphData(data);
             return { nodes: data.nodes, links: data.links };
         } catch (error) {
-            console.error('Failed to get file dependency graph:', error);
+            const message = `Failed to get file dependency graph: ${error.message}`;
+            console.error(message, error);
+            if (this.outputChannel) {
+                this.outputChannel.appendLine(message);
+                if (error.stack) {
+                    this.outputChannel.appendLine(error.stack);
+                }
+            }
             throw error;
         }
     }
@@ -222,7 +234,14 @@ class JavaAnalyzer extends BaseAnalyzer {
                         mergeGraphData(mergedGraph, graphData);
                         successCount++;
                     } catch (error) {
-                        console.error(`Failed to analyze file: ${file.fsPath}`, error);
+                        const message = `Failed to analyze file: ${file.fsPath}: ${error.message}`;
+                        console.error(message, error);
+                        if (this.outputChannel) {
+                            this.outputChannel.appendLine(message);
+                            if (error.stack) {
+                                this.outputChannel.appendLine(error.stack);
+                            }
+                        }
                         errorCount++;
                     } finally {
                         progress.report({

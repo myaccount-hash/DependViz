@@ -31,6 +31,7 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
     constructor() {
         super();
         this._supportedExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
+        this._outputChannel = null;
         this._parserOptions = {
             sourceType: 'unambiguous',
             plugins: [
@@ -154,7 +155,12 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
             });
             return deps;
         } catch (error) {
-            console.warn(`[DependViz][JS Analyzer] Failed to parse ${filePath}: ${error.message}`);
+            const message = `[DependViz][JS Analyzer] Failed to parse ${filePath}: ${error.message}`;
+            console.warn(message);
+            this._getOutputChannel().appendLine(message);
+            if (error.stack) {
+                this._getOutputChannel().appendLine(error.stack);
+            }
             return [];
         }
     }
@@ -195,7 +201,12 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         try {
             return await fs.promises.readFile(filePath, 'utf8');
         } catch (error) {
-            console.warn(`[DependViz][JS Analyzer] Failed to read ${filePath}: ${error.message}`);
+            const message = `[DependViz][JS Analyzer] Failed to read ${filePath}: ${error.message}`;
+            console.warn(message);
+            this._getOutputChannel().appendLine(message);
+            if (error.stack) {
+                this._getOutputChannel().appendLine(error.stack);
+            }
             return null;
         }
     }
@@ -213,6 +224,13 @@ class JavaScriptAnalyzer extends BaseAnalyzer {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) throw new Error('ワークスペースが開かれていません');
         return workspaceFolder;
+    }
+
+    _getOutputChannel() {
+        if (!this._outputChannel) {
+            this._outputChannel = vscode.window.createOutputChannel('DependViz JavaScript Analyzer');
+        }
+        return this._outputChannel;
     }
 }
 

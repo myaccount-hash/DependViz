@@ -106,9 +106,45 @@ class GraphRenderer3D extends GraphRenderer {
     return '3D';
   }
 
+  patchControls(controls) {
+    if (!controls || controls._dvTouchPatch) return;
+    controls._dvTouchPatch = true;
+
+    const ensureTouches = event => {
+      if (!event || (event.touches && event.touches.length > 0)) return;
+      if (event.changedTouches && event.changedTouches.length > 0) {
+        event.touches = event.changedTouches;
+        return;
+      }
+      if (event.clientX !== undefined || event.pageX !== undefined) {
+        const pageX = event.pageX ?? event.clientX;
+        const pageY = event.pageY ?? event.clientY;
+        event.touches = [{
+          pageX,
+          pageY,
+          clientX: event.clientX ?? pageX,
+          clientY: event.clientY ?? pageY
+        }];
+      }
+    };
+
+    const wrapTouchHandler = name => {
+      const original = typeof controls[name] === 'function' ? controls[name].bind(controls) : null;
+      if (!original) return;
+      controls[name] = event => {
+        ensureTouches(event);
+        return original(event);
+      };
+    };
+
+    wrapTouchHandler('onPointerUp');
+    wrapTouchHandler('onTouchEnd');
+  }
+
   setupEventListeners(graph) {
     const controls = graph.controls();
     if (controls) {
+      this.patchControls(controls);
       const delay = this.state.controls.autoRotateDelay || 1000;
       controls.addEventListener('start', () => {
         this.state.ui.isUserInteracting = true;

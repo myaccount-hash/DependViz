@@ -208,6 +208,11 @@ class GraphViewModel {
     }
   }
 
+  updateVisuals() {
+    if (!this._graph) return;
+    this.getRenderer().updateVisuals();
+  }
+
   // ビュー更新メッセージを処理
   handleViewUpdate(payload = {}) {
     const result = this._applyPayload(payload);
