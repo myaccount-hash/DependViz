@@ -16,7 +16,6 @@ package-lock.json
 *.jar
 
 # Build artifacts
-# Build artifacts
 java/target/
 java/dependency-reduced-pom.xml
 
