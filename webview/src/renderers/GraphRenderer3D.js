@@ -80,34 +80,36 @@ focusNode(ctx, node) {
     return;
   }
 
+  const controls = ctx.graph.controls ? ctx.graph.controls() : null;
   const target = {
     x: node.x || 0,
     y: node.y || 0,
     z: node.z || 0
   };
 
-  const currentPos = ctx.graph.cameraPosition();
-  const controls = ctx.graph.controls();
-  const currentTarget = controls?.target || { x: 0, y: 0, z: 0 };
-
-  const dx = currentPos.x - currentTarget.x;
-  const dy = currentPos.y - currentTarget.y;
-  const dz = currentPos.z - currentTarget.z;
-  const distance = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-  const focusDistance = ctx.controls.focusDistance || distance;
-  const scale = focusDistance / distance;
-
-  const cameraPos = {
-    x: target.x + dx * scale,
-    y: target.y + dy * scale,
-    z: target.z + dz * scale
+  const currentCameraPos = ctx.graph.cameraPosition();
+  const currentTarget = controls ? controls.target : { x: 0, y: 0, z: 0 };
+  const offset = {
+    x: currentCameraPos.x - currentTarget.x,
+    y: currentCameraPos.y - currentTarget.y,
+    z: currentCameraPos.z - currentTarget.z
   };
-
-  ctx.graph.cameraPosition(cameraPos, target, 0);
+  const offsetLen = Math.sqrt(offset.x ** 2 + offset.y ** 2 + offset.z ** 2) || 1;
+  const focusDistance = ctx.controls.focusDistance || offsetLen;
+  const scale = focusDistance / offsetLen;
+  const cameraPos = {
+    x: target.x + offset.x * scale,
+    y: target.y + offset.y * scale,
+    z: target.z + offset.z * scale
+  };
 
   if (controls) {
     controls.target.set(target.x, target.y, target.z);
   }
+
+  const delay = ctx.controls.autoRotateDelay || 1000;
+  ctx.graph.cameraPosition(cameraPos, target, delay);
+
   ctx._isFocusing = false;
   this.updateFocus(ctx);
 }
