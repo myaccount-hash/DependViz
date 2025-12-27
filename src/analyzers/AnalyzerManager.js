@@ -1,5 +1,5 @@
-const JavaAnalyzer = require('./analyzers/JavaAnalyzer');
-const JavaScriptAnalyzer = require('./analyzers/JavaScriptAnalyzer');
+const JavaAnalyzer = require('./JavaAnalyzer');
+const JavaScriptAnalyzer = require('./JavaScriptAnalyzer');
 
 const REGISTERED_ANALYZERS = [JavaAnalyzer, JavaScriptAnalyzer];
 

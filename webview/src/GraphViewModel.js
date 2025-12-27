@@ -1,14 +1,12 @@
 // GraphViewModel.js
 import { GraphState } from './GraphState';
-import { RenderContext } from './RenderContext';
+import { RendererManager } from './renderers/RendererManager';
 import { computeSlice } from './utils';
 
 class GraphViewModel {
   constructor(options = {}) {
     this._state = new GraphState();
-    this._render = new RenderContext(
-      options.renderer2d,
-      options.renderer3d,
+    this._render = new RendererManager(
       node => this._onNodeClick(node)
     );
     

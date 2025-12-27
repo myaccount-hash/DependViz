@@ -1,5 +1,5 @@
-// GraphRenderer.js
-import { applyFilter } from './utils';
+// @webview/src/renderers/GraphRenderer.js
+import { applyFilter } from '../utils';
 /**
  * グラフのレンダリングと視覚属性計算を管理する基底クラス
  */

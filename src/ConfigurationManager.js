@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const AnalyzerManager = require('./AnalyzerManager');
+const AnalyzerManager = require('./analyzers/AnalyzerManager');
 
 const COLORS = {
     BACKGROUND_DARK: '#1a1a1a',

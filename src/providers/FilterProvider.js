@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem, SectionItem } = require('./BaseProvider');
-const AnalyzerManager = require('../AnalyzerManager');
+const AnalyzerManager = require('../analyzers/AnalyzerManager');
 
 /**
  * フィルタ設定UIを提供するTreeDataProvider実装

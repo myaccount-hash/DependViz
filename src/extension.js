@@ -4,7 +4,7 @@ const FilterProvider = require('./providers/FilterProvider');
 const GraphSettingsProvider = require('./providers/GraphSettingsProvider');
 const { ConfigurationManager } = require('./ConfigurationManager');
 const { registerCommands } = require('./commands');
-const AnalyzerManager = require('./AnalyzerManager');
+const AnalyzerManager = require('./analyzers/AnalyzerManager');
 
 process.env.VSCODE_DISABLE_TELEMETRY = '1';
 
