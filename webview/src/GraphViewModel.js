@@ -174,6 +174,29 @@ class GraphViewModel {
   }
 
   /**
+   * フォーカスノードを設定（状態変化ハンドラ）
+   * フォーカス状態が変更されると自動的にカメラ移動とビジュアル更新を実行
+   * @param {Object|null} node - フォーカスするノード、またはクリア時null
+   * @private
+   */
+  _setFocusedNode(node) {
+    // 変更がない場合は何もしない
+    if (this._view.focusedNode === node) return;
+
+    this._view.focusedNode = node;
+    this._updateSliceHighlight();
+
+    // フォーカス状態に応じてカメラを移動
+    if (node) {
+      this._render.focusNode(this._getContext(), node);
+    } else {
+      this._render.clearFocus(this._getContext());
+    }
+
+    this._render.refresh(this._getContext());
+  }
+
+  /**
    * ノードIDでノードをフォーカス
    * @param {Object} msg - フォーカスメッセージ（nodeIdまたはnode.id）
    * @private
@@ -182,16 +205,14 @@ class GraphViewModel {
     const nodeId = msg.nodeId || (msg.node && msg.node.id);
     const node = this._state.findNode(nodeId);
     if (!node) return;
-    
+
     if (node.x === undefined || node.y === undefined) {
       setTimeout(() => this._focusNodeById(msg), 100);
       return;
     }
-    
-    this._view.focusedNode = node;
-    this._render.focusNode(this._getContext(), node);
-    this._updateSliceHighlight();
-    this._render.refresh(this._getContext());
+
+    // 状態変更ハンドラを使用
+    this._setFocusedNode(node);
   }
 
   /**
@@ -199,10 +220,8 @@ class GraphViewModel {
    * @private
    */
   _clearFocus() {
-    this._view.focusedNode = null;
-    this._render.clearFocus(this._getContext());
-    this._updateSliceHighlight();
-    this._render.refresh(this._getContext());
+    // 状態変更ハンドラを使用
+    this._setFocusedNode(null);
   }
 
   /**

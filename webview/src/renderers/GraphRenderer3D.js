@@ -69,8 +69,11 @@ class GraphRenderer3D extends GraphRenderer {
    * @param {Object} ctx - レンダリングコンテキスト
    * @param {Object} node - フォーカス対象のノード
    */
-  focusNode(ctx, node) {
+focusNode(ctx, node) {
   if (!ctx.graph || !node) return;
+
+  this.cancelFocusUpdate(ctx);
+  ctx._isFocusing = true;
 
   if (node.x === undefined || node.y === undefined || node.z === undefined) {
     setTimeout(() => this.focusNode(ctx, node), 100);
@@ -100,16 +103,39 @@ class GraphRenderer3D extends GraphRenderer {
     z: target.z + dz * scale
   };
 
-  const duration = 1000;
-  ctx.graph.cameraPosition(cameraPos, target, duration);
+  ctx.graph.cameraPosition(cameraPos, target, 0);
 
-  setTimeout(() => {
-    if (controls) {
-      controls.target.set(target.x, target.y, target.z);
-    }
-    this.updateFocus(ctx);
-  }, duration);
+  if (controls) {
+    controls.target.set(target.x, target.y, target.z);
   }
+  ctx._isFocusing = false;
+  this.updateFocus(ctx);
+}
+
+updateFocus(ctx) {
+  this.cancelFocusUpdate(ctx);
+  if (!ctx.graph || ctx.ui.isUserInteracting || ctx._isFocusing) return;
+
+  if (ctx.ui.focusedNode) {
+    const keepFocus = () => {
+      if (!ctx.ui.focusedNode || ctx.ui.isUserInteracting || ctx._isFocusing) {
+        ctx._focusFrame = null;
+        return;
+      }
+
+      const controlsLocal = ctx.graph.controls();
+      if (controlsLocal && ctx.ui.focusedNode) {
+        controlsLocal.target.set(
+          ctx.ui.focusedNode.x || 0,
+          ctx.ui.focusedNode.y || 0,
+          ctx.ui.focusedNode.z || 0
+        );
+      }
+      ctx._focusFrame = requestAnimationFrame(keepFocus);
+    };
+    keepFocus();
+  }
+}
 
   /**
    * ForceGraph3Dライブラリが利用可能かチェック
@@ -237,6 +263,12 @@ class GraphRenderer3D extends GraphRenderer {
 
     if (ctx.ui.focusedNode) {
       const keepFocus = () => {
+        // ループ終了条件をチェック
+        if (!ctx.ui.focusedNode || ctx.ui.isUserInteracting) {
+          ctx._focusFrame = null;
+          return;
+        }
+
         const controlsLocal = ctx.graph.controls();
         if (controlsLocal && ctx.ui.focusedNode) {
           controlsLocal.target.set(
