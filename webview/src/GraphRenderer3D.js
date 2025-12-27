@@ -7,11 +7,11 @@ import GraphRenderer from './GraphRenderer';
  */
 
 class GraphRenderer3D extends GraphRenderer {
-  createLabelRenderer() {
+  createLabelRenderer(ctx) {
     return {
-      apply: (graph, getNodeProps) => {
+      apply: graph => {
         graph.nodeThreeObject(node => {
-          const props = getNodeProps(node);
+          const props = this.getNodeVisualProps(node, ctx);
           const div = document.createElement('div');
           div.textContent = props?.label || node.name || node.id;
 
@@ -19,7 +19,7 @@ class GraphRenderer3D extends GraphRenderer {
           const opacity = props.opacity !== undefined ? props.opacity : 1;
 
           Object.assign(div.style, {
-            fontSize: `${this.state.controls.textSize || 12}px`,
+            fontSize: `${ctx.controls.textSize || 12}px`,
             fontFamily: 'sans-serif',
             padding: '2px 4px',
             borderRadius: '2px',
@@ -32,7 +32,7 @@ class GraphRenderer3D extends GraphRenderer {
           return label;
         }).nodeThreeObjectExtend(true);
       },
-      clear: (graph) => {
+      clear: graph => {
         graph.nodeThreeObject(null).nodeThreeObjectExtend(false);
       }
     };
@@ -54,22 +54,22 @@ class GraphRenderer3D extends GraphRenderer {
     return ForceGraph3D({ extraRenderers })(container);
   }
 
-  focusNode(node) {
-    if (!this.state.graph || !node) return;
+  focusNode(ctx, node) {
+    if (!ctx.graph || !node) return;
 
     if (node.x === undefined || node.y === undefined || node.z === undefined) {
-      setTimeout(() => this.focusNode(node), 100);
+      setTimeout(() => this.focusNode(ctx, node), 100);
       return;
     }
 
-    const controls = this.state.graph.controls ? this.state.graph.controls() : null;
+    const controls = ctx.graph.controls ? ctx.graph.controls() : null;
     const target = {
       x: node.x || 0,
       y: node.y || 0,
       z: node.z || 0
     };
 
-    const currentCameraPos = this.state.graph.cameraPosition();
+    const currentCameraPos = ctx.graph.cameraPosition();
     const currentTarget = controls ? controls.target : { x: 0, y: 0, z: 0 };
     const offset = {
       x: currentCameraPos.x - currentTarget.x,
@@ -77,7 +77,7 @@ class GraphRenderer3D extends GraphRenderer {
       z: currentCameraPos.z - currentTarget.z
     };
     const offsetLen = Math.sqrt(offset.x ** 2 + offset.y ** 2 + offset.z ** 2) || 1;
-    const focusDistance = this.state.controls.focusDistance || offsetLen;
+    const focusDistance = ctx.controls.focusDistance || offsetLen;
     const scale = focusDistance / offsetLen;
     const cameraPos = {
       x: target.x + offset.x * scale,
@@ -89,9 +89,9 @@ class GraphRenderer3D extends GraphRenderer {
       controls.target.set(target.x, target.y, target.z);
     }
 
-    const delay = this.state.controls.autoRotateDelay || 1000;
-    this.state.graph.cameraPosition(cameraPos, target, delay);
-    setTimeout(() => this.updateAutoRotation(), delay);
+    const delay = ctx.controls.autoRotateDelay || 1000;
+    ctx.graph.cameraPosition(cameraPos, target, delay);
+    setTimeout(() => this.updateAutoRotation(ctx), delay);
   }
 
   checkLibraryAvailability() {
@@ -141,85 +141,85 @@ class GraphRenderer3D extends GraphRenderer {
     wrapTouchHandler('onTouchEnd');
   }
 
-  setupEventListeners(graph) {
+  setupEventListeners(graph, ctx) {
     const controls = graph.controls();
     if (controls) {
       this.patchControls(controls);
-      const delay = this.state.controls.autoRotateDelay || 1000;
+      const delay = ctx.controls.autoRotateDelay || 1000;
       controls.addEventListener('start', () => {
-        this.state.ui.isUserInteracting = true;
-        this.cancelRotation();
-        this.updateAutoRotation();
+        ctx.ui.isUserInteracting = true;
+        this.cancelRotation(ctx);
+        this.updateAutoRotation(ctx);
       });
       controls.addEventListener('end', () => {
-        this.cancelRotation();
-        this.state.rotation.timeout = setTimeout(() => {
-          this.state.ui.isUserInteracting = false;
-          this.updateAutoRotation();
+        this.cancelRotation(ctx);
+        ctx.rotation.timeout = setTimeout(() => {
+          ctx.ui.isUserInteracting = false;
+          this.updateAutoRotation(ctx);
         }, delay);
       });
     }
   }
 
-  onGraphUpdated() {
-    this.updateAutoRotation();
+  onGraphUpdated(ctx) {
+    this.updateAutoRotation(ctx);
   }
 
-  cancelRotation() {
-    if (this.state.rotation.frame) {
-      cancelAnimationFrame(this.state.rotation.frame);
-      this.state.rotation.frame = null;
+  cancelRotation(ctx) {
+    if (ctx.rotation.frame) {
+      cancelAnimationFrame(ctx.rotation.frame);
+      ctx.rotation.frame = null;
     }
-    clearTimeout(this.state.rotation.timeout);
+    clearTimeout(ctx.rotation.timeout);
   }
 
-  updateAutoRotation() {
-    this.cancelRotation();
-    if (!this.state.graph) return;
+  updateAutoRotation(ctx) {
+    this.cancelRotation(ctx);
+    if (!ctx.graph) return;
 
-    if (this.state.controls.autoRotate && !this.state.ui.isUserInteracting) {
-      const pos = this.state.graph.cameraPosition();
-      const controls = this.state.graph.controls();
+    if (ctx.controls.autoRotate && !ctx.ui.isUserInteracting) {
+      const pos = ctx.graph.cameraPosition();
+      const controls = ctx.graph.controls();
       const target = controls ? controls.target : { x: 0, y: 0, z: 0 };
 
-      this.state.rotation.startAngle = Math.atan2(pos.x - target.x, pos.z - target.z);
-      this.state.rotation.startTime = Date.now();
+      ctx.rotation.startAngle = Math.atan2(pos.x - target.x, pos.z - target.z);
+      ctx.rotation.startTime = Date.now();
 
       const rotate = () => {
-        const camera = this.state.graph.camera();
-        const controls = this.state.graph.controls();
-        if (camera && controls) {
-          if (this.state.ui.focusedNode) {
-            controls.target.set(
-              this.state.ui.focusedNode.x || 0,
-              this.state.ui.focusedNode.y || 0,
-              this.state.ui.focusedNode.z || 0
+        const camera = ctx.graph.camera();
+        const controlsLocal = ctx.graph.controls();
+        if (camera && controlsLocal) {
+          if (ctx.ui.focusedNode) {
+            controlsLocal.target.set(
+              ctx.ui.focusedNode.x || 0,
+              ctx.ui.focusedNode.y || 0,
+              ctx.ui.focusedNode.z || 0
             );
           }
-          const elapsed = (Date.now() - this.state.rotation.startTime) * 0.001;
-          const angle = this.state.rotation.startAngle + elapsed * this.state.controls.rotateSpeed;
+          const elapsed = (Date.now() - ctx.rotation.startTime) * 0.001;
+          const angle = ctx.rotation.startAngle + elapsed * ctx.controls.rotateSpeed;
           const distance = Math.sqrt(
-            (camera.position.x - controls.target.x) ** 2 +
-            (camera.position.z - controls.target.z) ** 2
+            (camera.position.x - controlsLocal.target.x) ** 2 +
+            (camera.position.z - controlsLocal.target.z) ** 2
           );
-          camera.position.x = controls.target.x + distance * Math.sin(angle);
-          camera.position.z = controls.target.z + distance * Math.cos(angle);
-          camera.lookAt(controls.target);
+          camera.position.x = controlsLocal.target.x + distance * Math.sin(angle);
+          camera.position.z = controlsLocal.target.z + distance * Math.cos(angle);
+          camera.lookAt(controlsLocal.target);
         }
-        this.state.rotation.frame = requestAnimationFrame(rotate);
+        ctx.rotation.frame = requestAnimationFrame(rotate);
       };
       rotate();
-    } else if (this.state.ui.focusedNode) {
+    } else if (ctx.ui.focusedNode) {
       const keepFocus = () => {
-        const controls = this.state.graph.controls();
-        if (controls && this.state.ui.focusedNode) {
-          controls.target.set(
-            this.state.ui.focusedNode.x || 0,
-            this.state.ui.focusedNode.y || 0,
-            this.state.ui.focusedNode.z || 0
+        const controlsLocal = ctx.graph.controls();
+        if (controlsLocal && ctx.ui.focusedNode) {
+          controlsLocal.target.set(
+            ctx.ui.focusedNode.x || 0,
+            ctx.ui.focusedNode.y || 0,
+            ctx.ui.focusedNode.z || 0
           );
         }
-        this.state.rotation.frame = requestAnimationFrame(keepFocus);
+        ctx.rotation.frame = requestAnimationFrame(keepFocus);
       };
       keepFocus();
     }

@@ -4,60 +4,58 @@ import { applyFilter } from './utils';
  * グラフのレンダリングと視覚属性計算を管理する基底クラス
  */
 class GraphRenderer {
-  constructor(state, callbacks = {}) {
-    this.state = state;
-    this.is3DMode = state.controls.is3DMode ?? false;
+  constructor(callbacks = {}) {
     this.callbacks = callbacks;
-    
+
     this.nodeRules = [
       (node, ctx) => {
-        const color = ctx._getTypeColor('node', node.type);
+        const color = this._getTypeColor(ctx, 'node', node.type);
         return color ? { color } : null;
       },
-      (node, ctx) => ctx.state.controls.nodeSizeByLoc && node.linesOfCode > 0 && {
+      (node, ctx) => ctx.controls.nodeSizeByLoc && node.linesOfCode > 0 && {
         sizeMultiplier: Math.max(1, Math.pow(node.linesOfCode, 0.7))
       }
     ];
-    
+
     this.linkRules = [
       (link, ctx) => {
-        const COLORS = ctx.state.controls.COLORS || {};
-        return ctx.state.ui.callStackLinks.has(link) && {
+        const COLORS = ctx.controls.COLORS || {};
+        return ctx.ui.callStackLinks.has(link) && {
           color: COLORS.STACK_TRACE_LINK || '#51cf66',
           widthMultiplier: 2.5
         };
       },
       (link, ctx) => {
-        const color = ctx._getTypeColor('edge', link.type);
+        const color = this._getTypeColor(ctx, 'edge', link.type);
         return color ? { color } : null;
       }
     ];
   }
 
   // タイプに対応する色を取得
-  _getTypeColor(category, type) {
+  _getTypeColor(ctx, category, type) {
     if (!type) return null;
-    const map = this.state.controls.typeColors?.[category];
+    const map = ctx.controls.typeColors?.[category];
     if (!map) return null;
     const color = map[type];
     return typeof color === 'string' && color.length > 0 ? color : null;
   }
 
   // ルール配列を適用してプロパティを計算
-  _applyRules(item, rules, defaults) {
+  _applyRules(item, rules, defaults, ctx) {
     const result = { ...defaults };
     for (const rule of rules) {
-      const ruleResult = rule(item, this);
+      const ruleResult = rule(item, ctx);
       if (ruleResult) Object.assign(result, ruleResult);
     }
     return result;
   }
 
   // ノードの視覚属性を計算
-  getNodeVisualProps(node) {
-    const COLORS = this.state.controls.COLORS || {};
+  getNodeVisualProps(node, ctx) {
+    const COLORS = ctx.controls.COLORS || {};
     let label = node.name || node.id || '';
-    if (node.name && this.state.controls.shortNames) {
+    if (node.name && ctx.controls.shortNames) {
       const lastDot = node.name.lastIndexOf('.');
       label = lastDot !== -1 ? node.name.substring(lastDot + 1) : node.name;
     }
@@ -65,87 +63,87 @@ class GraphRenderer {
       color: COLORS.NODE_DEFAULT || '#93c5fd',
       sizeMultiplier: 1,
       label,
-      opacity: this.state.controls.nodeOpacity
-    });
+      opacity: ctx.controls.nodeOpacity
+    }, ctx);
 
-    const hasSlice = this.state.ui.sliceNodes && this.state.ui.sliceNodes.size > 0;
+    const hasSlice = ctx.ui.sliceNodes && ctx.ui.sliceNodes.size > 0;
 
     if (hasSlice) {
-      if (!this.state.ui.sliceNodes.has(node.id)) {
+      if (!ctx.ui.sliceNodes.has(node.id)) {
         props.opacity = (props.opacity || 1) * 0.1;
       }
-    } else if (this.state.ui.focusedNode && 
-               (this.state.controls.enableForwardSlice || this.state.controls.enableBackwardSlice)) {
-      const isFocused = node.id === this.state.ui.focusedNode.id;
-      const isNeighbor = this.state.ui.focusedNode.neighbors &&
-                         this.state.ui.focusedNode.neighbors.some(n => n.id === node.id);
+    } else if (ctx.ui.focusedNode &&
+               (ctx.controls.enableForwardSlice || ctx.controls.enableBackwardSlice)) {
+      const isFocused = node.id === ctx.ui.focusedNode.id;
+      const isNeighbor = ctx.ui.focusedNode.neighbors &&
+                         ctx.ui.focusedNode.neighbors.some(n => n.id === node.id);
 
       if (!isFocused && !isNeighbor) {
-        const dim = this.state.controls.dimOpacity ?? 0.2;
+        const dim = ctx.controls.dimOpacity ?? 0.2;
         props.opacity = (props.opacity || 1) * dim;
       }
     }
 
-    return { 
-      ...props, 
-      size: (props.sizeMultiplier || 1) * this.state.controls.nodeSize 
+    return {
+      ...props,
+      size: (props.sizeMultiplier || 1) * ctx.controls.nodeSize
     };
   }
 
   // リンクの視覚属性を計算
-  getLinkVisualProps(link) {
-    const COLORS = this.state.controls.COLORS || {};
+  getLinkVisualProps(link, ctx) {
+    const COLORS = ctx.controls.COLORS || {};
     const props = this._applyRules(link, this.linkRules, {
       color: COLORS.EDGE_DEFAULT || '#4b5563',
       widthMultiplier: 1,
-      opacity: this.state.controls.edgeOpacity
-    });
+      opacity: ctx.controls.edgeOpacity
+    }, ctx);
 
-    const hasSlice = this.state.ui.sliceNodes && this.state.ui.sliceNodes.size > 0;
+    const hasSlice = ctx.ui.sliceNodes && ctx.ui.sliceNodes.size > 0;
 
     if (hasSlice) {
-      const inSlice = this.state.ui.sliceLinks ? this.state.ui.sliceLinks.has(link) : false;
+      const inSlice = ctx.ui.sliceLinks ? ctx.ui.sliceLinks.has(link) : false;
       if (inSlice) {
         props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
       } else {
         props.opacity = (props.opacity || 1) * 0.1;
       }
-    } else if (this.state.ui.focusedNode && 
-               (this.state.controls.enableForwardSlice || this.state.controls.enableBackwardSlice)) {
+    } else if (ctx.ui.focusedNode &&
+               (ctx.controls.enableForwardSlice || ctx.controls.enableBackwardSlice)) {
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
       const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-      const focusedId = this.state.ui.focusedNode.id;
+      const focusedId = ctx.ui.focusedNode.id;
 
       const isConnectedToFocus = sourceId === focusedId || targetId === focusedId;
 
       if (isConnectedToFocus) {
         props.widthMultiplier = (props.widthMultiplier || 1) * 1.5;
       } else {
-        const dim = this.state.controls.dimOpacity ?? 0.2;
+        const dim = ctx.controls.dimOpacity ?? 0.2;
         props.opacity = (props.opacity || 1) * dim;
       }
     }
 
-    return { 
-      ...props, 
-      width: (props.widthMultiplier || 1) * this.state.controls.linkWidth 
+    return {
+      ...props,
+      width: (props.widthMultiplier || 1) * ctx.controls.linkWidth
     };
   }
 
   // ラベルを適用
-  _applyLabels(getNodeProps) {
-    const labelRenderer = this.createLabelRenderer();
-    if (this.state.controls.showNames) {
-      labelRenderer.apply(this.state.graph, getNodeProps);
+  _applyLabels(ctx, getNodeProps) {
+    const labelRenderer = this.createLabelRenderer(ctx);
+    if (ctx.controls.showNames) {
+      labelRenderer.apply(ctx.graph, getNodeProps, ctx);
     } else {
-      labelRenderer.clear(this.state.graph);
+      labelRenderer.clear(ctx.graph, ctx);
     }
   }
 
   // ノードとリンクの色を適用
-  _applyColors(getNodeProps, getLinkProps) {
-    const COLORS = this.state.controls.COLORS || {};
-    this.state.graph
+  _applyColors(ctx, getNodeProps, getLinkProps) {
+    const COLORS = ctx.controls.COLORS || {};
+    ctx.graph
       .nodeColor(node => {
         const props = getNodeProps(node);
         const color = props ? props.color : (COLORS.NODE_DEFAULT || '#93c5fd');
@@ -159,83 +157,82 @@ class GraphRenderer {
   }
 
   // グラフを更新
-  updateGraph(options = {}) {
+  updateGraph(ctx, options = {}) {
     const { reheatSimulation = false } = options;
 
-    if (!this.state.graph) {
+    if (!ctx.graph) {
       console.error('[DependViz] Graph not initialized');
       return;
     }
 
-    this.state.graph.backgroundColor(this.state.getBackgroundColor());
+    ctx.graph.backgroundColor(ctx.getBackgroundColor());
 
-    const nodes = this.state.data.nodes || [];
-    const links = this.state.data.links || [];
-    const getNodeProps = node => this.getNodeVisualProps(node);
-    const getLinkProps = link => this.getLinkVisualProps(link);
+    const nodes = ctx.data.nodes || [];
+    const links = ctx.data.links || [];
+    const getNodeProps = node => this.getNodeVisualProps(node, ctx);
+    const getLinkProps = link => this.getLinkVisualProps(link, ctx);
 
-    const filteredData = applyFilter(nodes, links, this.state);
-    this.state.graph.graphData(filteredData);
+    const filteredData = applyFilter(nodes, links, ctx);
+    ctx.graph.graphData(filteredData);
 
-    this._applyLabels(getNodeProps);
+    this._applyLabels(ctx, getNodeProps);
 
-    this.state.graph
+    ctx.graph
       .nodeLabel(node => {
         const props = getNodeProps(node);
         return props ? props.label : node.name || node.id;
       })
       .nodeVal(node => {
         const props = getNodeProps(node);
-        return props ? props.size : this.state.controls.nodeSize;
+        return props ? props.size : ctx.controls.nodeSize;
       })
       .linkWidth(link => {
         const props = getLinkProps(link);
-        return props ? props.width : this.state.controls.linkWidth;
+        return props ? props.width : ctx.controls.linkWidth;
       })
-      .linkDirectionalArrowLength(this.state.controls.arrowSize);
+      .linkDirectionalArrowLength(ctx.controls.arrowSize);
 
-    this._applyColors(getNodeProps, getLinkProps);
+    this._applyColors(ctx, getNodeProps, getLinkProps);
 
-    const linkForce = this.state.graph.d3Force('link');
-    if (linkForce) linkForce.distance(this.state.controls.linkDistance);
+    const linkForce = ctx.graph.d3Force('link');
+    if (linkForce) linkForce.distance(ctx.controls.linkDistance);
 
-    if (reheatSimulation && this.state.graph?.d3ReheatSimulation) {
-      setTimeout(() => this.state.graph.d3ReheatSimulation(), 100);
+    if (reheatSimulation && ctx.graph?.d3ReheatSimulation) {
+      setTimeout(() => ctx.graph.d3ReheatSimulation(), 100);
     }
 
-    this.onGraphUpdated();
+    this.onGraphUpdated(ctx);
   }
 
   // 視覚属性のみを更新
-  updateVisuals() {
-    if (!this.state.graph) return;
+  updateVisuals(ctx) {
+    if (!ctx.graph) return;
 
-    const getNodeProps = node => this.getNodeVisualProps(node);
-    const getLinkProps = link => this.getLinkVisualProps(link);
+    const getNodeProps = node => this.getNodeVisualProps(node, ctx);
+    const getLinkProps = link => this.getLinkVisualProps(link, ctx);
 
-    this._applyLabels(getNodeProps);
-    this._applyColors(getNodeProps, getLinkProps);
+    this._applyLabels(ctx, getNodeProps);
+    this._applyColors(ctx, getNodeProps, getLinkProps);
   }
 
   // グラフを初期化
-  initializeGraph() {
-    const container = document.getElementById('graph-container');
+  initializeGraph(container, ctx) {
     if (!container) {
       console.error('[DependViz] Container not found!');
-      return false;
+      return null;
     }
 
     if (!this.checkLibraryAvailability()) {
       console.error(`[DependViz] ${this.getLibraryName()} is undefined!`);
-      return false;
+      return null;
     }
 
     try {
-      this.setupRenderer(container);
-      const graph = this.createGraph(container);
+      this.setupRenderer(container, ctx);
+      const graph = this.createGraph(container, ctx);
 
       graph
-        .backgroundColor(this.state.getBackgroundColor())
+        .backgroundColor(ctx.getBackgroundColor())
         .linkDirectionalArrowLength(5)
         .linkDirectionalArrowRelPos(1)
         .onNodeClick(node => {
@@ -243,13 +240,12 @@ class GraphRenderer {
           this.callbacks.onNodeClick?.(node);
         });
 
-      this.state.setGraph(graph);
-      this.setupEventListeners(graph);
+      this.setupEventListeners(graph, ctx);
 
-      return true;
+      return graph;
     } catch (error) {
       console.error(`[DependViz] Error initializing ${this.getModeName()} graph:`, error);
-      return false;
+      return null;
     }
   }
 

@@ -64,22 +64,11 @@ class GraphViewModel {
   }
 
   // グラフデータとバージョンを更新
-  updateData(data, version) {
+  refreshGraph(data, version) {
     this.data = { 
       nodes: [...(data.nodes || [])], 
       links: [...(data.links || [])] 
     };
-    this._buildNeighborRelations();
-    
-    if (typeof version === 'number') {
-      this.dataVersion = version;
-    } else {
-      this.dataVersion = (this.dataVersion ?? 0) + 1;
-    }
-  }
-
-  // 隣接関係を構築
-  _buildNeighborRelations() {
     const nodeById = new Map();
     
     this.data.nodes.forEach(node => {
@@ -103,11 +92,25 @@ class GraphViewModel {
       a.links.push(link);
       b.links.push(link);
     });
+    
+    if (typeof version === 'number') {
+      this.dataVersion = version;
+    } else {
+      this.dataVersion = (this.dataVersion ?? 0) + 1;
+    }
   }
 
   // コントロール設定を更新
-  updateControls(controls) {
+  setControls(controls) {
+    const oldMode = this.controls.is3DMode ?? false;
+    const hasMode = Object.prototype.hasOwnProperty.call(controls, 'is3DMode');
+    const newMode = hasMode ? controls.is3DMode : oldMode;
+    const modeChanged = hasMode && newMode !== oldMode;
+    if (modeChanged) {
+      return this.toggleMode(newMode, { controls, updateGraph: true });
+    }
     this.controls = { ...this.controls, ...controls };
+    return { modeChanged: false };
   }
 
   // スライスハイライトを更新
@@ -128,31 +131,22 @@ class GraphViewModel {
   }
 
 
-  // レンダリングモードをクリア
-  clearRenderer() {
-    if (this.rotation.frame) {
-      cancelAnimationFrame(this.rotation.frame);
-      this.rotation.frame = null;
-    }
-    clearTimeout(this.rotation.timeout);
-    this._graph = null;
-    this._currentRenderer = null;
-  }
-
   // 現在のレンダラーを取得
   getRenderer() {
+    return this._currentRenderer;
+  }
+
+  // レンダラーを生成
+  _createRenderer() {
     const GraphRenderer2D = require('./GraphRenderer2D').default;
     const GraphRenderer3D = require('./GraphRenderer3D').default;
     const callbacks = {
       onNodeClick: node => this.notifyNodeFocus(node)
     };
     
-    if (!this._currentRenderer || this._currentRenderer.is3DMode !== this.controls.is3DMode) {
-      this._currentRenderer = this.controls.is3DMode
-        ? new GraphRenderer3D(this, callbacks)
-        : new GraphRenderer2D(this, callbacks);
-    }
-    return this._currentRenderer;
+    return this.controls.is3DMode
+      ? new GraphRenderer3D(callbacks)
+      : new GraphRenderer2D(callbacks);
   }
 
   // ノードクリック時の通知を送信
@@ -170,11 +164,33 @@ class GraphViewModel {
   }
 
   // モード切り替えを処理
-  toggle3DMode() {
-    const newMode = !this.controls.is3DMode;
-    this.updateControls({ is3DMode: newMode });
-    this.clearRenderer();
-    this.updateGraph({ reheatSimulation: true });
+  toggleMode(nextMode, options = {}) {
+    const oldMode = this.controls.is3DMode ?? false;
+    const mode = typeof nextMode === 'boolean' ? nextMode : !oldMode;
+    const modeChanged = mode !== oldMode;
+    const controls = options.controls || null;
+
+    if (controls) {
+      this.controls = { ...this.controls, ...controls, is3DMode: mode };
+    } else {
+      this.controls = { ...this.controls, is3DMode: mode };
+    }
+
+    if (modeChanged) {
+      if (this.rotation.frame) {
+        cancelAnimationFrame(this.rotation.frame);
+        this.rotation.frame = null;
+      }
+      clearTimeout(this.rotation.timeout);
+      this._graph = null;
+      this._currentRenderer = null;
+      this._currentRenderer = this._createRenderer();
+      if (options.updateGraph !== false) {
+        this.updateGraph({ reheatSimulation: true });
+      }
+    }
+
+    return { modeChanged };
   }
 
   // グラフを更新
@@ -182,14 +198,12 @@ class GraphViewModel {
     const { reheatSimulation = false } = options;
 
     if (!this._graph) {
-      const renderer = this.getRenderer();
-      if (!renderer.initializeGraph()) {
-        console.error('[DependViz] Failed to initialize graph');
-        return;
-      }
+      if (!this.initializeGraph()) return;
     }
 
-    this.getRenderer().updateGraph({ reheatSimulation });
+    const renderer = this.getRenderer();
+    if (!renderer) return;
+    renderer.updateGraph(this._getRenderContext(), { reheatSimulation });
   }
 
   // グラフ更新メッセージを処理
@@ -199,61 +213,60 @@ class GraphViewModel {
       allowData: true,
       dataVersion: incomingVersion
     });
-    const reheatSimulation = result.dataChange || result.modeChanged;
     if (payload.data || payload.controls) {
-      this.updateGraph({ reheatSimulation });
+      if (!result.modeChanged) {
+        this.updateGraph({ reheatSimulation: result.dataChange });
+      }
     } else if (payload.callStackPaths) {
       if (!this._graph) return;
-      this.getRenderer().updateVisuals();
+      const renderer = this.getRenderer();
+      if (!renderer) return;
+      renderer.updateVisuals(this._getRenderContext());
     }
   }
 
-  updateVisuals() {
+  refreshView() {
     if (!this._graph) return;
-    this.getRenderer().updateVisuals();
+    const renderer = this.getRenderer();
+    if (!renderer) return;
+    renderer.updateVisuals(this._getRenderContext());
   }
 
   // ビュー更新メッセージを処理
   handleViewUpdate(payload = {}) {
     const result = this._applyPayload(payload);
-    if (result.modeChanged) {
-      this.clearRenderer();
-      this.updateGraph({ reheatSimulation: true });
-    } else if (payload.controls) {
+    if (payload.controls && !result.modeChanged) {
       this.updateGraph();
     } else if (payload.callStackPaths) {
       if (!this._graph) return;
-      this.getRenderer().updateVisuals();
+      const renderer = this.getRenderer();
+      if (!renderer) return;
+      renderer.updateVisuals(this._getRenderContext());
     }
   }
 
   _applyPayload(payload, options = {}) {
     const allowData = options.allowData === true;
     const dataVersion = options.dataVersion ?? null;
-    const oldMode = this.controls.is3DMode ?? false;
     let dataChange = false;
+    let modeChanged = false;
 
     if (allowData && payload.data) {
       const ok = dataVersion === null || dataVersion !== this.dataVersion;
       if (ok) {
-        this.updateData(payload.data, dataVersion);
+        this.refreshGraph(payload.data, dataVersion);
       }
       dataChange = ok;
     }
     if (payload.controls) {
-      this.updateControls(payload.controls);
+      const result = this.setControls(payload.controls);
+      modeChanged = result.modeChanged;
     }
     if (payload.callStackPaths) {
       this.ui.callStackLinks = new Set(payload.callStackPaths.map(p => p.link));
     }
     if (payload.data || payload.controls) {
       this.updateSliceHighlight();
-    }
-
-    const newMode = this.controls.is3DMode ?? false;
-    const modeChanged = payload.controls && (newMode !== oldMode);
-    if (modeChanged) {
-      this.clearRenderer();
     }
 
     return { dataChange, modeChanged };
@@ -284,19 +297,46 @@ class GraphViewModel {
     }
 
     this.ui.focusedNode = node;
-    this.getRenderer().focusNode(node);
+    const renderer = this.getRenderer();
+    if (!renderer) return;
+    renderer.focusNode(this._getRenderContext(), node);
     this.updateSliceHighlight();
-    this.updateVisuals();
+    this.refreshView();
   }
 
   // フォーカスをクリア
   clearFocus() {
     this.ui.focusedNode = null;
     const renderer = this.getRenderer();
-    if (renderer?.cancelRotation) renderer.cancelRotation();
-    if (renderer?.updateAutoRotation) renderer.updateAutoRotation();
+    if (renderer?.cancelRotation) renderer.cancelRotation(this._getRenderContext());
+    if (renderer?.updateAutoRotation) renderer.updateAutoRotation(this._getRenderContext());
     this.updateSliceHighlight();
-    this.updateVisuals();
+    this.refreshView();
+  }
+
+  _getRenderContext() {
+    return {
+      data: this.data,
+      controls: this.controls,
+      ui: this.ui,
+      rotation: this.rotation,
+      graph: this._graph,
+      getBackgroundColor: () => this.getBackgroundColor()
+    };
+  }
+
+  initializeGraph() {
+    const renderer = this._currentRenderer || this._createRenderer();
+    this._currentRenderer = renderer;
+    if (!renderer) return false;
+    const container = document.getElementById('graph-container');
+    const graph = renderer.initializeGraph(container, this._getRenderContext());
+    if (!graph) {
+      console.error('[DependViz] Failed to initialize graph');
+      return false;
+    }
+    this.setGraph(graph);
+    return true;
   }
 }
 

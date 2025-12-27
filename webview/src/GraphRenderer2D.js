@@ -6,24 +6,24 @@ import GraphRenderer, { applyOpacityToColor } from './GraphRenderer';
  */
 
 class GraphRenderer2D extends GraphRenderer {
-  createLabelRenderer() {
+  createLabelRenderer(ctx) {
     return {
       apply: (graph, getNodeProps) => {
         graph
-          .nodeCanvasObject((node, ctx) => {
+          .nodeCanvasObject((node, localCtx) => {
             const props = getNodeProps(node);
             if (!props) return;
             const label = props?.label || node.name || node.id;
-            const fontSize = this.state.controls.textSize || 12;
-            ctx.font = `${fontSize}px Sans-Serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
-            ctx.fillText(label, node.x, node.y);
+            const fontSize = ctx.controls.textSize || 12;
+            localCtx.font = `${fontSize}px Sans-Serif`;
+            localCtx.textAlign = 'center';
+            localCtx.textBaseline = 'middle';
+            localCtx.fillStyle = applyOpacityToColor('#ffffff', props.opacity);
+            localCtx.fillText(label, node.x, node.y);
           })
           .nodeCanvasObjectMode(() => 'after');
       },
-      clear: (graph) => {
+      clear: graph => {
         graph.nodeCanvasObjectMode(() => null);
       }
     };
@@ -33,9 +33,9 @@ class GraphRenderer2D extends GraphRenderer {
     return ForceGraph()(container);
   }
 
-  focusNode(node) {
-    if (this.state.graph && node.x !== undefined && node.y !== undefined) {
-      this.state.graph.centerAt(node.x, node.y, 1000);
+  focusNode(ctx, node) {
+    if (ctx.graph && node.x !== undefined && node.y !== undefined) {
+      ctx.graph.centerAt(node.x, node.y, 1000);
     }
   }
 
