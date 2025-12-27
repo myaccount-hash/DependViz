@@ -167,7 +167,7 @@ class GraphViewModel {
       const COLORS = this._view.controls.COLORS || {};
       return bg || COLORS.BACKGROUND_DARK || '#1a1a1a';
     })();
-    
+
     return {
       data: {
         nodes: this._state.nodes,
@@ -180,7 +180,6 @@ class GraphViewModel {
         sliceLinks: this._view.sliceLinks,
         isUserInteracting: this._view.isUserInteracting
       },
-      rotation: this._render.rotation,
       graph: this._render.graph,
       getBackgroundColor: () => bgColor
     };

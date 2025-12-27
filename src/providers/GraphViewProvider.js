@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, mergeGraphData } = require('../utils/graph');
-const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../ConfigurationManager');
+const { ConfigurationManager, COLORS } = require('../ConfigurationManager');
 
 const outbound = {
     'graph:update': ({ controls, data, dataVersion }) => {
@@ -138,8 +138,7 @@ class GraphViewProvider extends BaseProvider {
             controls: {
                 ...this.controls,
                 darkMode,
-                COLORS,
-                autoRotateDelay: AUTO_ROTATE_DELAY
+                COLORS
             }
         };
 

@@ -9,8 +9,6 @@ const COLORS = {
     EDGE_DEFAULT: '#4b5563'
 };
 
-const AUTO_ROTATE_DELAY = 1000;
-
 const CONTROL_DEFAULTS = {
     search: '',
     is3DMode: false,
@@ -205,6 +203,5 @@ class ConfigurationManager {
 
 module.exports = {
     ConfigurationManager,
-    COLORS,
-    AUTO_ROTATE_DELAY
+    COLORS
 };
