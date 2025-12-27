@@ -1,9 +1,13 @@
-// GraphRenderer.js
 import { applyFilter } from '../utils';
 /**
  * グラフのレンダリングと視覚属性計算を管理する基底クラス
+ * 2D/3Dレンダラーの共通機能を提供
  */
 class GraphRenderer {
+  /**
+   * GraphRendererを初期化
+   * @param {Object} callbacks - コールバック関数（onNodeClickなど）
+   */
   constructor(callbacks = {}) {
     this.callbacks = callbacks;
 
@@ -25,7 +29,14 @@ class GraphRenderer {
     ];
   }
 
-  // タイプに対応する色を取得
+  /**
+   * ノード/エッジタイプに対応する色を取得
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @param {string} category - カテゴリ（'node'または'edge'）
+   * @param {string} type - タイプ名
+   * @returns {string|null} 色コード、または設定がない場合null
+   * @private
+   */
   _getTypeColor(ctx, category, type) {
     if (!type) return null;
     const map = ctx.controls.typeColors?.[category];
@@ -34,7 +45,15 @@ class GraphRenderer {
     return typeof color === 'string' && color.length > 0 ? color : null;
   }
 
-  // ルール配列を適用してプロパティを計算
+  /**
+   * ルール配列を適用してプロパティを計算
+   * @param {Object} item - 適用対象のアイテム（ノードまたはリンク）
+   * @param {Array<Function>} rules - ルール関数の配列
+   * @param {Object} defaults - デフォルトプロパティ
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @returns {Object} 計算されたプロパティ
+   * @private
+   */
   _applyRules(item, rules, defaults, ctx) {
     const result = { ...defaults };
     for (const rule of rules) {
@@ -44,7 +63,13 @@ class GraphRenderer {
     return result;
   }
 
-  // ノードの視覚属性を計算
+  /**
+   * ノードの視覚属性を計算
+   * タイプ別の色、サイズ、透明度などを決定
+   * @param {Object} node - ノードデータ
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @returns {Object} 視覚属性（color、size、opacity、labelなど）
+   */
   getNodeVisualProps(node, ctx) {
     const COLORS = ctx.controls.COLORS || {};
     let label = node.name || node.id || '';
@@ -83,7 +108,13 @@ class GraphRenderer {
     };
   }
 
-  // リンクの視覚属性を計算
+  /**
+   * リンクの視覚属性を計算
+   * タイプ別の色、幅、透明度などを決定
+   * @param {Object} link - リンクデータ
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @returns {Object} 視覚属性（color、width、opacityなど）
+   */
   getLinkVisualProps(link, ctx) {
     const COLORS = ctx.controls.COLORS || {};
     const props = this._applyRules(link, this.linkRules, {
@@ -123,7 +154,12 @@ class GraphRenderer {
     };
   }
 
-  // ラベルを適用
+  /**
+   * ノードラベルを適用または削除
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @param {Function} getNodeProps - ノードプロパティ取得関数
+   * @private
+   */
   _applyLabels(ctx, getNodeProps) {
     const labelRenderer = this.createLabelRenderer(ctx);
     if (ctx.controls.showNames) {
@@ -133,7 +169,13 @@ class GraphRenderer {
     }
   }
 
-  // ノードとリンクの色を適用
+  /**
+   * ノードとリンクの色を適用
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @param {Function} getNodeProps - ノードプロパティ取得関数
+   * @param {Function} getLinkProps - リンクプロパティ取得関数
+   * @private
+   */
   _applyColors(ctx, getNodeProps, getLinkProps) {
     const COLORS = ctx.controls.COLORS || {};
     ctx.graph
@@ -149,7 +191,12 @@ class GraphRenderer {
       });
   }
 
-  // グラフを更新
+  /**
+   * グラフ全体を更新（データと視覚属性）
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @param {Object} options - 更新オプション
+   * @param {boolean} options.reheatSimulation - シミュレーションを再加熱するか
+   */
   updateGraph(ctx, options = {}) {
     const { reheatSimulation = false } = options;
 
@@ -197,7 +244,10 @@ class GraphRenderer {
     this.onGraphUpdated(ctx);
   }
 
-  // 視覚属性のみを更新
+  /**
+   * 視覚属性のみを更新（データ構造は変更しない）
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   updateVisuals(ctx) {
     if (!ctx.graph) return;
 
@@ -208,7 +258,13 @@ class GraphRenderer {
     this._applyColors(ctx, getNodeProps, getLinkProps);
   }
 
-  // グラフを初期化
+  /**
+   * グラフを初期化
+   * コンテナにグラフインスタンスを作成し、基本設定を適用
+   * @param {HTMLElement} container - グラフを表示するコンテナ要素
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @returns {Object|null} グラフインスタンス、またはエラー時null
+   */
   initializeGraph(container, ctx) {
     if (!container) {
       console.error('[DependViz] Container not found!');
@@ -242,36 +298,91 @@ class GraphRenderer {
     }
   }
 
-  // サブクラスで実装すべきメソッド
+  /**
+   * ラベルレンダラーを作成（サブクラスで実装必須）
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @returns {Object} ラベルレンダラー
+   * @abstract
+   */
   createLabelRenderer() {
     throw new Error('createLabelRenderer() must be implemented by subclass');
   }
 
+  /**
+   * グラフインスタンスを作成（サブクラスで実装必須）
+   * @param {HTMLElement} container - グラフを表示するコンテナ要素
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @returns {Object} グラフインスタンス
+   * @abstract
+   */
   createGraph() {
     throw new Error('createGraph() must be implemented by subclass');
   }
 
+  /**
+   * ノードにフォーカス（サブクラスで実装必須）
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @param {Object} node - フォーカス対象のノード
+   * @abstract
+   */
   focusNode() {
     throw new Error('focusNode() must be implemented by subclass');
   }
 
+  /**
+   * ライブラリが利用可能かチェック（サブクラスで実装必須）
+   * @returns {boolean} ライブラリが利用可能な場合true
+   * @abstract
+   */
   checkLibraryAvailability() {
     throw new Error('checkLibraryAvailability() must be implemented by subclass');
   }
 
+  /**
+   * ライブラリ名を取得（サブクラスで実装必須）
+   * @returns {string} ライブラリ名
+   * @abstract
+   */
   getLibraryName() {
     throw new Error('getLibraryName() must be implemented by subclass');
   }
 
+  /**
+   * モード名を取得（サブクラスで実装必須）
+   * @returns {string} モード名
+   * @abstract
+   */
   getModeName() {
     throw new Error('getModeName() must be implemented by subclass');
   }
 
+  /**
+   * レンダラーのセットアップ（サブクラスでオーバーライド可能）
+   * @param {HTMLElement} container - グラフを表示するコンテナ要素
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   setupRenderer() {}
+
+  /**
+   * イベントリスナーのセットアップ（サブクラスでオーバーライド可能）
+   * @param {Object} graph - グラフインスタンス
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   setupEventListeners() {}
+
+  /**
+   * グラフ更新時のコールバック（サブクラスでオーバーライド可能）
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   onGraphUpdated() {}
 }
 
+/**
+ * 色コードに透明度を適用
+ * @param {string} color - 色コード（hex、rgb、rgbaなど）
+ * @param {number} opacity - 透明度（0-1）
+ * @returns {string} 透明度が適用された色コード
+ */
 function applyOpacityToColor(color, opacity) {
   if (opacity === undefined || opacity === 1) return color;
 

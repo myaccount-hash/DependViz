@@ -1,9 +1,18 @@
-// GraphViewModel.js
+/**
+ * グラフの状態管理とレンダリングを統括するViewModelクラス
+ * ExtensionとWebView間のメッセージング、状態管理、レンダリング制御を担当
+ */
 import { GraphState } from './GraphState';
 import { RendererManager } from './renderers/RendererManager';
 import { computeSlice } from './utils';
 
 class GraphViewModel {
+  /**
+   * GraphViewModelを初期化
+   * @param {Object} options - 初期化オプション
+   * @param {Object} options.extensionBridge - ExtensionBridgeインスタンス
+   * @param {HTMLElement} options.container - グラフコンテナ要素
+   */
   constructor(options = {}) {
     this._state = new GraphState();
     this._render = new RendererManager(
@@ -28,13 +37,21 @@ class GraphViewModel {
       this._render.initialize(options.container, this._getContext());
     }
   }
-  
+
+  /**
+   * ウィンドウリサイズイベントを処理
+   */
   handleResize() {
     const container = document.getElementById('graph-container');
     if (!container) return;
     this._render.resize(container.clientWidth, container.clientHeight);
   }
-  
+
+  /**
+   * ExtensionからのJSONRPCメッセージを処理
+   * @param {Object} message - JSONRPCメッセージ
+   * @private
+   */
   _handleMessage(message) {
     if (!message || message.jsonrpc !== '2.0' || !message.method) return;
     
@@ -52,7 +69,12 @@ class GraphViewModel {
     }
     handler(message.params);
   }
-  
+
+  /**
+   * グラフデータ更新メッセージを処理
+   * @param {Object} payload - 更新データ（data、controls、dataVersion）
+   * @private
+   */
   _handleGraphUpdate(payload) {
     const version = typeof payload.dataVersion === 'number' ? payload.dataVersion : null;
     const { dataChange, modeChanged } = this._applyPayload(payload, {
@@ -63,14 +85,28 @@ class GraphViewModel {
       this._render.update(this._getContext(), { reheatSimulation: dataChange });
     }
   }
-  
+
+  /**
+   * ビュー更新メッセージを処理（データは更新せず、表示設定のみ更新）
+   * @param {Object} payload - 更新データ（controls）
+   * @private
+   */
   _handleViewUpdate(payload) {
     const { modeChanged } = this._applyPayload(payload);
     if (payload.controls && !modeChanged) {
       this._render.update(this._getContext());
     }
   }
-  
+
+  /**
+   * ペイロードを適用して状態を更新
+   * @param {Object} payload - 適用するペイロード
+   * @param {Object} options - オプション
+   * @param {boolean} options.allowData - データ更新を許可するか
+   * @param {number} options.dataVersion - データバージョン
+   * @returns {Object} 更新結果（dataChange、modeChanged）
+   * @private
+   */
   _applyPayload(payload, options = {}) {
     let dataChange = false;
     let modeChanged = false;
@@ -91,7 +127,13 @@ class GraphViewModel {
     
     return { dataChange, modeChanged };
   }
-  
+
+  /**
+   * コントロール設定を更新
+   * @param {Object} controls - 新しいコントロール設定
+   * @returns {boolean} モードが変更された場合true
+   * @private
+   */
   _setControls(controls) {
     const oldMode = this._view.controls.is3DMode ?? false;
     const hasMode = Object.prototype.hasOwnProperty.call(controls, 'is3DMode');
@@ -108,7 +150,12 @@ class GraphViewModel {
     }
     return false;
   }
-  
+
+  /**
+   * スライスハイライトを更新
+   * フォーカスノードと関連ノード/リンクを計算
+   * @private
+   */
   _updateSliceHighlight() {
     if (!this._view.focusedNode ||
         (!this._view.controls.enableForwardSlice && !this._view.controls.enableBackwardSlice)) {
@@ -125,7 +172,12 @@ class GraphViewModel {
     this._view.sliceNodes = sliceNodes;
     this._view.sliceLinks = sliceLinks;
   }
-  
+
+  /**
+   * ノードIDでノードをフォーカス
+   * @param {Object} msg - フォーカスメッセージ（nodeIdまたはnode.id）
+   * @private
+   */
   _focusNodeById(msg) {
     const nodeId = msg.nodeId || (msg.node && msg.node.id);
     const node = this._state.findNode(nodeId);
@@ -141,14 +193,24 @@ class GraphViewModel {
     this._updateSliceHighlight();
     this._render.refresh(this._getContext());
   }
-  
+
+  /**
+   * フォーカスをクリア
+   * @private
+   */
   _clearFocus() {
     this._view.focusedNode = null;
     this._render.clearFocus(this._getContext());
     this._updateSliceHighlight();
     this._render.refresh(this._getContext());
   }
-  
+
+  /**
+   * ノードクリックイベントを処理
+   * Extensionにメッセージを送信してファイルを開く
+   * @param {Object} node - クリックされたノード
+   * @private
+   */
   _onNodeClick(node) {
     if (!node?.filePath) return;
     this._bridge?.send('focusNode', {
@@ -159,7 +221,12 @@ class GraphViewModel {
       }
     });
   }
-  
+
+  /**
+   * レンダリングコンテキストを生成
+   * @returns {Object} レンダリングに必要な全ての情報を含むコンテキスト
+   * @private
+   */
   _getContext() {
     const bgColor = (() => {
       const style = getComputedStyle(document.body);

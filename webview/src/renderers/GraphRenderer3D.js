@@ -2,7 +2,16 @@ import ForceGraph3D from '3d-force-graph';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import GraphRenderer from './GraphRenderer';
 
+/**
+ * 3Dグラフレンダリングを管理するクラス
+ */
 class GraphRenderer3D extends GraphRenderer {
+  /**
+   * 3Dノードラベルのレンダラーを作成
+   * CSS2DObjectを使用してThree.jsシーンにHTML要素を配置
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @returns {Object} apply/clearメソッドを持つレンダラーオブジェクト
+   */
   createLabelRenderer(ctx) {
     return {
       apply: graph => {
@@ -32,6 +41,12 @@ class GraphRenderer3D extends GraphRenderer {
     };
   }
 
+  /**
+   * 3Dグラフインスタンスを作成
+   * CSS2DRendererをextraRenderersとして設定し、ラベル表示を可能にする
+   * @param {HTMLElement} container - グラフを表示するコンテナ要素
+   * @returns {Object} ForceGraph3Dインスタンス
+   */
   createGraph(container) {
     let extraRenderers = [];
     if (CSS2DRenderer) {
@@ -47,7 +62,14 @@ class GraphRenderer3D extends GraphRenderer {
     return ForceGraph3D({ extraRenderers })(container);
   }
 
-focusNode(ctx, node) {
+  /**
+   * 指定ノードにカメラをフォーカス
+   * 現在のカメラ方向を維持しながら、指定した距離でノードを中心に配置
+   * アニメーション完了後、controls.targetを設定してフォーカスを維持
+   * @param {Object} ctx - レンダリングコンテキスト
+   * @param {Object} node - フォーカス対象のノード
+   */
+  focusNode(ctx, node) {
   if (!ctx.graph || !node) return;
 
   if (node.x === undefined || node.y === undefined || node.z === undefined) {
@@ -87,24 +109,45 @@ focusNode(ctx, node) {
     }
     this.updateFocus(ctx);
   }, duration);
-}
+  }
 
+  /**
+   * ForceGraph3Dライブラリが利用可能かチェック
+   * @returns {boolean} ライブラリが利用可能な場合true
+   */
   checkLibraryAvailability() {
     return typeof ForceGraph3D !== 'undefined';
   }
 
+  /**
+   * 使用するライブラリ名を取得
+   * @returns {string} ライブラリ名
+   */
   getLibraryName() {
     return 'ForceGraph3D';
   }
 
+  /**
+   * レンダリングモード名を取得
+   * @returns {string} モード名
+   */
   getModeName() {
     return '3D';
   }
 
+  /**
+   * タッチイベント処理の互換性パッチを適用
+   * VSCode WebViewでのタッチイベント不具合を修正
+   * @param {Object} controls - Three.jsのOrbitControls
+   */
   patchControls(controls) {
     if (!controls || controls._dvTouchPatch) return;
     controls._dvTouchPatch = true;
 
+    /**
+     * イベントオブジェクトにtouchesプロパティがあることを保証
+     * @param {Event} event - パッチ対象のイベント
+     */
     const ensureTouches = event => {
       if (!event || (event.touches && event.touches.length > 0)) return;
       if (event.changedTouches && event.changedTouches.length > 0) {
@@ -123,6 +166,10 @@ focusNode(ctx, node) {
       }
     };
 
+    /**
+     * タッチイベントハンドラをラップしてensureTouchesを適用
+     * @param {string} name - ラップするハンドラの名前
+     */
     const wrapTouchHandler = name => {
       const original = typeof controls[name] === 'function' ? controls[name].bind(controls) : null;
       if (!original) return;
@@ -136,6 +183,12 @@ focusNode(ctx, node) {
     wrapTouchHandler('onTouchEnd');
   }
 
+  /**
+   * グラフのイベントリスナーを設定
+   * ユーザーインタラクション開始/終了時の処理を登録
+   * @param {Object} graph - グラフインスタンス
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   setupEventListeners(graph, ctx) {
     const controls = graph.controls();
     if (controls) {
@@ -151,10 +204,20 @@ focusNode(ctx, node) {
     }
   }
 
+  /**
+   * グラフ更新時のコールバック
+   * フォーカス状態を更新
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   onGraphUpdated(ctx) {
     this.updateFocus(ctx);
   }
 
+  /**
+   * フォーカス更新ループをキャンセル
+   * requestAnimationFrameで実行中のkeepFocusループを停止
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   cancelFocusUpdate(ctx) {
     if (ctx._focusFrame) {
       cancelAnimationFrame(ctx._focusFrame);
@@ -162,6 +225,12 @@ focusNode(ctx, node) {
     }
   }
 
+  /**
+   * フォーカスノードへのカメラターゲット追従を更新
+   * ユーザー操作中でなく、フォーカスノードがある場合、
+   * requestAnimationFrameでカメラターゲットをノード位置に追従させる
+   * @param {Object} ctx - レンダリングコンテキスト
+   */
   updateFocus(ctx) {
     this.cancelFocusUpdate(ctx);
     if (!ctx.graph || ctx.ui.isUserInteracting) return;
