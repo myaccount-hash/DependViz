@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const { ConfigurationManager } = require('./ConfigurationManager');
 
 function registerCommands(providers) {
-    const { settingsProvider, filterProvider, graphViewProvider, callStackProvider, analyzerManager } = providers;
+    const { settingsProvider, filterProvider, graphViewProvider, analyzerManager } = providers;
     const configManager = ConfigurationManager.getInstance();
     const getAnalyzerName = () => analyzerManager.getActiveAnalyzerName();
     const getAnalyzerId = () => analyzerManager.getActiveAnalyzerId();
@@ -33,19 +33,6 @@ function registerCommands(providers) {
         vscode.commands.registerCommand('forceGraphViewer.toggleCheckbox', async (key) => {
             const controls = getControls();
             await configManager.updateControls({ [key]: !controls[key] });
-        }),
-        vscode.commands.registerCommand('forceGraphViewer.toggleCallStackEntry', async (sessionId) => {
-            if (!sessionId) return;
-            const controls = getControls();
-            const selection = Array.isArray(controls.callStackSelection) ? [...controls.callStackSelection] : [];
-            const index = selection.indexOf(sessionId);
-            if (index === -1) {
-                selection.push(sessionId);
-            } else {
-                selection.splice(index, 1);
-            }
-            await configManager.updateControls({ callStackSelection: selection });
-            await callStackProvider.notifySelectionChanged(graphViewProvider);
         }),
         vscode.commands.registerCommand('forceGraphViewer.selectAnalyzer', async (analyzerId) => {
             if (typeof analyzerId === 'string' && analyzerId.length > 0) {
@@ -103,24 +90,6 @@ function registerCommands(providers) {
                 }
             } catch (error) {
                 vscode.window.showErrorMessage(`解析失敗: ${error.message}`);
-            }
-        }),
-        vscode.commands.registerCommand('forceGraphViewer.updateCallStack', async () => {
-            try {
-                await callStackProvider.update(graphViewProvider);
-                vscode.window.showInformationMessage('コールスタックを更新しました');
-            } catch (error) {
-                vscode.window.showErrorMessage(`取得失敗: ${error.message}`);
-            }
-        }),
-        vscode.commands.registerCommand('forceGraphViewer.removeCallStackEntry', async (item) => {
-            if (!item?.id) {
-                return;
-            }
-            try {
-                await callStackProvider.removeSession(item.id, graphViewProvider);
-            } catch (error) {
-                vscode.window.showErrorMessage(`削除失敗: ${error.message}`);
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.forwardSlice', createSliceCommand('forward')),

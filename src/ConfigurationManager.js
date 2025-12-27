@@ -4,7 +4,6 @@ const path = require('path');
 const AnalyzerManager = require('./AnalyzerManager');
 
 const COLORS = {
-    STACK_TRACE_LINK: '#51cf66',
     BACKGROUND_DARK: '#1a1a1a',
     NODE_DEFAULT: '#187bebff',
     EDGE_DEFAULT: '#4b5563'
@@ -17,8 +16,6 @@ const CONTROL_DEFAULTS = {
     is3DMode: false,
     nodeSizeByLoc: false,
     hideIsolatedNodes: false,
-    showCallStack: true,
-    callStackSelection: [],
     showNames: true,
     shortNames: true,
     nodeSize: 3.0,
@@ -37,7 +34,6 @@ const CONTROL_DEFAULTS = {
 };
 
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
-const STACK_TRACE_CACHE_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'stacktrace.json');
 
 /* utility */
 
@@ -201,26 +197,6 @@ class ConfigurationManager {
         await fs.promises.writeFile(p, JSON.stringify(data, null, 4));
     }
 
-    getCallStackCache() {
-        const p = this._getWorkspacePath(STACK_TRACE_CACHE_RELATIVE_PATH);
-        if (!p || !fs.existsSync(p)) return [];
-        try {
-            return JSON.parse(fs.readFileSync(p, 'utf8')).traces ?? [];
-        } catch {
-            return [];
-        }
-    }
-
-    async updateCallStackCache(traces) {
-        const p = this._getWorkspacePath(STACK_TRACE_CACHE_RELATIVE_PATH);
-        if (!p) return;
-
-        fs.mkdirSync(path.dirname(p), { recursive: true });
-        await fs.promises.writeFile(
-            p,
-            JSON.stringify({ traces: traces ?? [] }, null, 4)
-        );
-    }
 
     handleAnalyzerConfigExternalChange() {
         this._emitChange();

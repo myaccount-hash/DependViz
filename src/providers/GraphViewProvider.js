@@ -6,18 +6,16 @@ const { validateGraphData, mergeGraphData } = require('../utils/graph');
 const { ConfigurationManager, COLORS, AUTO_ROTATE_DELAY } = require('../ConfigurationManager');
 
 const outbound = {
-    'graph:update': ({ controls, data, callStackPaths = [], dataVersion }) => {
+    'graph:update': ({ controls, data, dataVersion }) => {
         validateGraphData(data);
         return {
             controls,
             data,
-            callStackPaths,
             ...(typeof dataVersion === 'number' && { dataVersion })
         };
     },
-    'view:update': ({ controls, callStackPaths }) => ({
-        ...(controls && { controls }),
-        ...(Array.isArray(callStackPaths) && { callStackPaths })
+    'view:update': ({ controls }) => ({
+        ...(controls && { controls })
     }),
     'node:focus': nodeId => ({ nodeId }),
     'focus:clear': () => undefined
@@ -45,7 +43,6 @@ class GraphViewProvider extends BaseProvider {
 
         this._updateQueue = [];
         this._updating = false;
-        this._callStackPaths = [];
 
         this._webviewBridge = new WebviewBridge(m => this._handleMessage(m));
     }
@@ -117,11 +114,6 @@ class GraphViewProvider extends BaseProvider {
     }
 
     async _applyUpdate(data) {
-        if (data?.type === 'callStack') {
-            this._callStackPaths = [...(data.paths ?? [])];
-            this.syncToWebview({ viewOnly: true });
-        }
-
         if (data?.type === 'focusNode' && data.filePath) {
             this.focusNode(data.filePath);
         }
@@ -148,8 +140,7 @@ class GraphViewProvider extends BaseProvider {
                 darkMode,
                 COLORS,
                 autoRotateDelay: AUTO_ROTATE_DELAY
-            },
-            callStackPaths: this._callStackPaths
+            }
         };
 
         if (options.viewOnly) {

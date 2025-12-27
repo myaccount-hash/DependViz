@@ -41,11 +41,6 @@
           "icon": "$(filter)"
         },
         {
-          "id": "forceGraphViewer.callStack",
-          "name": "コールスタック(未実装)",
-          "icon": "$(list-selection)"
-        },
-        {
           "id": "forceGraphViewer.sidebar",
           "name": "グラフビュー",
           "type": "webview",
@@ -68,11 +63,6 @@
       {
         "command": "forceGraphViewer.toggleCheckbox",
         "title": "Toggle",
-        "category": "DependViz"
-      },
-      {
-        "command": "forceGraphViewer.toggleCallStackEntry",
-        "title": "Toggle Call Stack Entry",
         "category": "DependViz"
       },
       {
@@ -101,17 +91,6 @@
         "command": "forceGraphViewer.analyzeCurrentFile",
         "title": "Analyze Current Java File",
         "category": "DependViz"
-      },
-      {
-        "command": "forceGraphViewer.updateCallStack",
-        "title": "Update Stack Trace",
-        "category": "DependViz"
-      },
-      {
-        "command": "forceGraphViewer.removeCallStackEntry",
-        "title": "コールスタック履歴を削除",
-        "category": "DependViz",
-        "icon": "$(trash)"
       },
       {
         "command": "forceGraphViewer.forwardSlice",
@@ -146,13 +125,6 @@
           "when": "view == forceGraphViewer.sidebar",
           "group": "navigation@3"
         }
-      ],
-      "view/item/context": [
-        {
-          "command": "forceGraphViewer.removeCallStackEntry",
-          "when": "view == forceGraphViewer.callStack && viewItem == callStackEntry",
-          "group": "inline"
-        }
       ]
     },
     "configuration": {
@@ -182,19 +154,6 @@
           "type": "boolean",
           "default": false,
           "description": "孤立ノードを非表示"
-        },
-        "forceGraphViewer.showCallStack": {
-          "type": "boolean",
-          "default": true,
-          "description": "コールスタック表示"
-        },
-        "forceGraphViewer.callStackSelection": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "ハイライト対象のコールスタックセッションID"
         },
         "forceGraphViewer.showNames": {
           "type": "boolean",

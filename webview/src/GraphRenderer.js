@@ -19,13 +19,6 @@ class GraphRenderer {
 
     this.linkRules = [
       (link, ctx) => {
-        const COLORS = ctx.controls.COLORS || {};
-        return ctx.ui.callStackLinks.has(link) && {
-          color: COLORS.STACK_TRACE_LINK || '#51cf66',
-          widthMultiplier: 2.5
-        };
-      },
-      (link, ctx) => {
         const color = this._getTypeColor(ctx, 'edge', link.type);
         return color ? { color } : null;
       }
