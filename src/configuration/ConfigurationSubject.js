@@ -62,10 +62,8 @@ class ConfigurationSubject {
     /**
      * 全オブザーバーに設定変更を通知
      * Observer Pattern: notify
-     *
-     * @private
      */
-    _notify() {
+    notifyAll() {
         const controls = this.loadControls();
         this._observers.forEach(observer => {
             try {
@@ -96,7 +94,7 @@ class ConfigurationSubject {
      */
     async updateControls(updates, target = vscode.ConfigurationTarget.Workspace) {
         await this._repository.saveConfiguration(updates, target);
-        this._notify();
+        this.notifyAll();
     }
 
     /**
@@ -104,7 +102,7 @@ class ConfigurationSubject {
      * ファイル監視などから呼び出される
      */
     handleAnalyzerConfigExternalChange() {
-        this._notify();
+        this.notifyAll();
     }
 
     // ===== 後方互換性のためのメソッド =====

@@ -4,8 +4,6 @@ const ConfigurationSubject = require('./configuration/ConfigurationSubject');
 function registerCommands(providers) {
     const { settingsProvider, filterProvider, graphViewProvider, analyzerManager } = providers;
     const configSubject = ConfigurationSubject.getInstance();
-    const getAnalyzerName = () => analyzerManager.getActiveAnalyzerName();
-    const getAnalyzerId = () => analyzerManager.getActiveAnalyzerId();
     const getControls = () => configSubject.loadControls();
 
     const createSliceCommand = (direction) => async () => {

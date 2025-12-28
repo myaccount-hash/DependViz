@@ -82,6 +82,10 @@ class AnalyzerContext {
             }
         }
     }
+
+    dispose() {
+        return this.stopAll();
+    }
 }
 
 module.exports = AnalyzerContext;
