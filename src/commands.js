@@ -1,16 +1,16 @@
 const vscode = require('vscode');
-const { ConfigurationManager } = require('./ConfigurationManager');
+const ConfigurationSubject = require('./configuration/ConfigurationSubject');
 
 function registerCommands(providers) {
     const { settingsProvider, filterProvider, graphViewProvider, analyzerManager } = providers;
-    const configManager = ConfigurationManager.getInstance();
+    const configSubject = ConfigurationSubject.getInstance();
     const getAnalyzerName = () => analyzerManager.getActiveAnalyzerName();
     const getAnalyzerId = () => analyzerManager.getActiveAnalyzerId();
-    const getControls = () => configManager.loadControls();
+    const getControls = () => configSubject.loadControls();
 
     const createSliceCommand = (direction) => async () => {
         const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
-        await configManager.updateControls({ [key]: true });
+        await configSubject.updateControls({ [key]: true });
     };
 
     const commands = [
@@ -27,16 +27,16 @@ function registerCommands(providers) {
                 placeHolder: '検索... (name:, type:, path: フィールド指定可, /正規表現/, AND/OR/NOT 演算可)'
             });
             if (search !== undefined) {
-                await configManager.updateControls({ search });
+                await configSubject.updateControls({ search });
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.toggleCheckbox', async (key) => {
             const controls = getControls();
-            await configManager.updateControls({ [key]: !controls[key] });
+            await configSubject.updateControls({ [key]: !controls[key] });
         }),
         vscode.commands.registerCommand('forceGraphViewer.selectAnalyzer', async (analyzerId) => {
             if (typeof analyzerId === 'string' && analyzerId.length > 0) {
-                await configManager.updateControls({ analyzerId });
+                await configSubject.updateControls({ analyzerId });
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, currentValue) => {
@@ -51,7 +51,7 @@ function registerCommands(providers) {
                 }
             });
             if (value !== undefined) {
-                await configManager.updateControls({ [key]: parseFloat(value) });
+                await configSubject.updateControls({ [key]: parseFloat(value) });
             }
         }),
         vscode.commands.registerCommand('forceGraphViewer.analyzeProject', async () => {
@@ -95,7 +95,7 @@ function registerCommands(providers) {
         vscode.commands.registerCommand('forceGraphViewer.forwardSlice', createSliceCommand('forward')),
         vscode.commands.registerCommand('forceGraphViewer.backwardSlice', createSliceCommand('backward')),
         vscode.commands.registerCommand('forceGraphViewer.clearSlice', async () => {
-            await configManager.updateControls({ enableForwardSlice: false, enableBackwardSlice: false });
+            await configSubject.updateControls({ enableForwardSlice: false, enableBackwardSlice: false });
         }),
         vscode.commands.registerCommand('forceGraphViewer.toggle3DMode', async () => {
             await graphViewProvider.toggle3DMode();

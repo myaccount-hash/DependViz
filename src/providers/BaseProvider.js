@@ -1,23 +1,49 @@
 const vscode = require('vscode');
-const { ConfigurationManager } = require('../ConfigurationManager');
+const ConfigurationObserver = require('../configuration/ConfigurationObserver');
+const ConfigurationSubject = require('../configuration/ConfigurationSubject');
 
 /**
  * Providerの設定更新を統一する基底クラス
+ * Observer Pattern: Observer（観察者）の実装
+ *
+ * ConfigurationSubjectから設定変更通知を受け取り、
+ * サブクラスで利用可能な設定を管理する
  */
-class BaseProvider {
+class BaseProvider extends ConfigurationObserver {
     constructor() {
+        super();
         this._controls = null;
     }
 
+    /**
+     * 設定変更通知を受け取る（Observer Pattern: update）
+     *
+     * @param {Object} controls - 更新された設定オブジェクト
+     */
+    update(controls) {
+        this.handleSettingsChanged(controls);
+    }
+
+    /**
+     * 設定変更を処理
+     * サブクラスでオーバーライドして独自の処理を追加可能
+     *
+     * @param {Object} controls - 更新された設定オブジェクト
+     */
     handleSettingsChanged(controls) {
         this._controls = controls ? { ...controls } : null;
     }
 
+    /**
+     * 現在の設定を取得
+     *
+     * @returns {Object} 設定オブジェクト
+     */
     get controls() {
         if (this._controls && Object.keys(this._controls).length > 0) {
             return this._controls;
         }
-        return ConfigurationManager.getInstance().loadControls();
+        return ConfigurationSubject.getInstance().loadControls();
     }
 }
 

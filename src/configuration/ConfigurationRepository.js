@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const AnalyzerContext = require('./analyzers/AnalyzerContext');
+const AnalyzerContext = require('../analyzers/AnalyzerContext');
 
 const COLORS = {
     BACKGROUND_DARK: '#1a1a1a',
@@ -66,27 +66,28 @@ const buildAnalyzerKeyMap = (typeInfo) =>
         ])
     );
 
-/* manager */
-
-class ConfigurationManager {
-    static instance;
-
-    static getInstance() {
-        return this.instance ??= new ConfigurationManager();
-    }
-
+/**
+ * 設定データへのアクセスを提供するリポジトリクラス
+ * Repository Pattern: データアクセス層の抽象化
+ *
+ * 責務:
+ * 1. VSCode設定の読み書き
+ * 2. ファイルベースのアナライザー設定の読み書き
+ * 3. 設定のマージロジック
+ * 4. アナライザー固有の設定管理
+ */
+class ConfigurationRepository {
     constructor() {
-        this._observers = new Set();
         this._setActiveAnalyzer(CONTROL_DEFAULTS.analyzerId);
     }
 
-    addObserver(fn) {
-        if (typeof fn !== 'function') return { dispose() {} };
-        this._observers.add(fn);
-        return { dispose: () => this._observers.delete(fn) };
-    }
-
-    loadControls() {
+    /**
+     * 設定をロード
+     * VSCode設定とアナライザー設定をマージして返す
+     *
+     * @returns {Object} マージされた設定オブジェクト
+     */
+    loadConfiguration() {
         const cfg = vscode.workspace.getConfiguration('forceGraphViewer');
         const controls = Object.fromEntries(
             Object.entries(CONTROL_DEFAULTS).map(
@@ -101,7 +102,15 @@ class ConfigurationManager {
         return controls;
     }
 
-    async updateControls(updates, target = vscode.ConfigurationTarget.Workspace) {
+    /**
+     * 設定を更新
+     * VSCode設定またはアナライザー設定に適切に保存
+     *
+     * @param {Object} updates - 更新する設定のキーと値のペア
+     * @param {vscode.ConfigurationTarget} target - 設定のスコープ
+     * @returns {Promise<void>}
+     */
+    async saveConfiguration(updates, target = vscode.ConfigurationTarget.Workspace) {
         const cfg = vscode.workspace.getConfiguration('forceGraphViewer');
         const analyzerUpdates = {};
 
@@ -116,15 +125,14 @@ class ConfigurationManager {
         if (Object.keys(analyzerUpdates).length) {
             await this._updateAnalyzerControls(analyzerUpdates);
         }
-
-        this._emitChange();
     }
 
-    _emitChange() {
-        const c = this.loadControls();
-        this._observers.forEach(o => o(c));
-    }
-
+    /**
+     * アクティブなアナライザーを設定
+     *
+     * @param {string} id - アナライザーID
+     * @private
+     */
     _setActiveAnalyzer(id) {
         const cls = AnalyzerContext.getAnalyzerClassById(id);
         if (!cls || cls === this._activeAnalyzerClass) return;
@@ -134,6 +142,12 @@ class ConfigurationManager {
         this._analyzerKeyMap = buildAnalyzerKeyMap(cls.getTypeInfo());
     }
 
+    /**
+     * アナライザー固有の設定をロード
+     *
+     * @returns {Object} アナライザー設定
+     * @private
+     */
     _loadAnalyzerControls() {
         const base = this._activeAnalyzerClass.getTypeDefaults();
         const stored = this._ensureAnalyzerEntry(this._getAnalyzerConfigData());
@@ -156,11 +170,24 @@ class ConfigurationManager {
         return controls;
     }
 
+    /**
+     * ワークスペースパスを取得
+     *
+     * @param {string} rel - 相対パス
+     * @returns {string|null} 絶対パス
+     * @private
+     */
     _getWorkspacePath(rel) {
         const f = vscode.workspace.workspaceFolders?.[0];
         return f ? path.join(f.uri.fsPath, rel) : null;
     }
 
+    /**
+     * アナライザー設定ファイルからデータを読み込む
+     *
+     * @returns {Object} アナライザー設定データ
+     * @private
+     */
     _getAnalyzerConfigData() {
         const p = this._getWorkspacePath(ANALYZER_CONFIG_RELATIVE_PATH);
         if (!p || !fs.existsSync(p)) return { analyzers: {} };
@@ -172,10 +199,24 @@ class ConfigurationManager {
         }
     }
 
+    /**
+     * アナライザーエントリを確保
+     *
+     * @param {Object} data - アナライザー設定データ
+     * @returns {Object} アナライザーエントリ
+     * @private
+     */
     _ensureAnalyzerEntry(data) {
         return data.analyzers[this._activeAnalyzerId] ??= {};
     }
 
+    /**
+     * アナライザー設定を更新
+     *
+     * @param {Object} updates - 更新内容
+     * @returns {Promise<void>}
+     * @private
+     */
     async _updateAnalyzerControls(updates) {
         const p = this._getWorkspacePath(ANALYZER_CONFIG_RELATIVE_PATH);
         if (!p) return;
@@ -194,14 +235,9 @@ class ConfigurationManager {
 
         await fs.promises.writeFile(p, JSON.stringify(data, null, 4));
     }
-
-
-    handleAnalyzerConfigExternalChange() {
-        this._emitChange();
-    }
 }
 
 module.exports = {
-    ConfigurationManager,
+    ConfigurationRepository,
     COLORS
 };

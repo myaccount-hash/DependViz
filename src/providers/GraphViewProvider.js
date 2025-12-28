@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, mergeGraphData } = require('../utils/graph');
-const { ConfigurationManager, COLORS } = require('../ConfigurationManager');
+const ConfigurationSubject = require('../configuration/ConfigurationSubject');
+const { COLORS } = require('../configuration/ConfigurationRepository');
 
 const outbound = {
     'graph:update': ({ controls, data, dataVersion }) => {
@@ -99,21 +100,27 @@ class GraphViewProvider extends BaseProvider {
         this.syncToWebview();
     }
 
-    async update(data) {
+    /**
+     * データ更新を処理（ノードフォーカスなど）
+     * ConfigurationObserverのupdate(controls)とは異なる
+     *
+     * @param {Object} data - 更新データ
+     */
+    async handleDataUpdate(data) {
         this._updateQueue.push(data);
         if (this._updating) return;
 
         this._updating = true;
         try {
             while (this._updateQueue.length) {
-                await this._applyUpdate(this._updateQueue.shift());
+                await this._applyDataUpdate(this._updateQueue.shift());
             }
         } finally {
             this._updating = false;
         }
     }
 
-    async _applyUpdate(data) {
+    async _applyDataUpdate(data) {
         if (data?.type === 'focusNode' && data.filePath) {
             this.focusNode(data.filePath);
         }
@@ -163,8 +170,8 @@ class GraphViewProvider extends BaseProvider {
     }
 
     async toggle3DMode() {
-        const cfg = ConfigurationManager.getInstance();
-        await cfg.updateControl('is3DMode', !this.controls.is3DMode);
+        const configSubject = ConfigurationSubject.getInstance();
+        await configSubject.updateControls({ is3DMode: !this.controls.is3DMode });
     }
 
     handleSettingsChanged(controls) {
