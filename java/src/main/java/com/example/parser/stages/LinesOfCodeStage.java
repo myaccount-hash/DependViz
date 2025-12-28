@@ -1,8 +1,8 @@
-package com.example.parser.stage;
+package com.example.parser.stages;
 
 import java.util.List;
 
-import com.example.parser.model.CodeGraph;
+import com.example.parser.models.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.AnnotationDeclaration;

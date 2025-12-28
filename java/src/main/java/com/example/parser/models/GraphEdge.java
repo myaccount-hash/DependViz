@@ -1,4 +1,4 @@
-package com.example.parser.model;
+package com.example.parser.models;
 
 public class GraphEdge {
   private final GraphNode sourceNode;
