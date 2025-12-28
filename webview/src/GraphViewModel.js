@@ -13,7 +13,7 @@
  * 4. Extension Bridge経由の外部イベント処理
  */
 import { GraphModel } from './GraphModel';
-import { GraphViewContext } from './renderers/GraphViewContext';
+import { GraphViewContext } from './views/GraphViewContext';
 import { computeSlice } from './utils';
 
 class GraphViewModel {
