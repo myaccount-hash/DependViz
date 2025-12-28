@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const AnalyzerManager = require('./analyzers/AnalyzerManager');
+const AnalyzerContext = require('./analyzers/AnalyzerContext');
 
 const COLORS = {
     BACKGROUND_DARK: '#1a1a1a',
@@ -28,7 +28,7 @@ const CONTROL_DEFAULTS = {
     sliceDepth: 3,
     enableForwardSlice: true,
     enableBackwardSlice: true,
-    analyzerId: AnalyzerManager.getDefaultAnalyzerId()
+    analyzerId: AnalyzerContext.getDefaultAnalyzerId()
 };
 
 const ANALYZER_CONFIG_RELATIVE_PATH = path.join('.vscode', 'dependviz', 'analyzer.json');
@@ -126,7 +126,7 @@ class ConfigurationManager {
     }
 
     _setActiveAnalyzer(id) {
-        const cls = AnalyzerManager.getAnalyzerClassById(id);
+        const cls = AnalyzerContext.getAnalyzerClassById(id);
         if (!cls || cls === this._activeAnalyzerClass) return;
 
         this._activeAnalyzerClass = cls;

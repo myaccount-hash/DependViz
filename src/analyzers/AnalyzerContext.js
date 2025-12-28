@@ -3,7 +3,7 @@ const JavaScriptAnalyzer = require('./JavaScriptAnalyzer');
 
 const REGISTERED_ANALYZERS = [JavaAnalyzer, JavaScriptAnalyzer];
 
-class AnalyzerManager {
+class AnalyzerContext {
     constructor(context, configManager) {
         this._configManager = configManager;
         const map = {};
@@ -32,13 +32,13 @@ class AnalyzerManager {
 
     getActiveAnalyzer() {
         const controls = this._configManager.loadControls();
-        const analyzerId = controls.analyzerId || AnalyzerManager.getDefaultAnalyzerId();
-        return this._analyzers[analyzerId] || this._analyzers[AnalyzerManager.getDefaultAnalyzerId()];
+        const analyzerId = controls.analyzerId || AnalyzerContext.getDefaultAnalyzerId();
+        return this._analyzers[analyzerId] || this._analyzers[AnalyzerContext.getDefaultAnalyzerId()];
     }
 
     getActiveAnalyzerId() {
         const controls = this._configManager.loadControls();
-        return controls.analyzerId || AnalyzerManager.getDefaultAnalyzerId();
+        return controls.analyzerId || AnalyzerContext.getDefaultAnalyzerId();
     }
 
     getActiveAnalyzerName() {
@@ -84,4 +84,4 @@ class AnalyzerManager {
     }
 }
 
-module.exports = AnalyzerManager;
+module.exports = AnalyzerContext;

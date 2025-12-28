@@ -4,11 +4,11 @@ const FilterProvider = require('./providers/FilterProvider');
 const GraphSettingsProvider = require('./providers/GraphSettingsProvider');
 const { ConfigurationManager } = require('./ConfigurationManager');
 const { registerCommands } = require('./commands');
-const AnalyzerManager = require('./analyzers/AnalyzerManager');
+const AnalyzerContext = require('./analyzers/AnalyzerContext');
 
 process.env.VSCODE_DISABLE_TELEMETRY = '1';
 
-// グローバルなAnalyzerManagerインスタンス
+// グローバルなAnalyzerContextインスタンス
 let analyzerManager = null;
 
 function activate(context) {
@@ -40,7 +40,7 @@ function activate(context) {
 
     const initialControls = broadcastSettings();
 
-    analyzerManager = new AnalyzerManager(context, configManager);
+    analyzerManager = new AnalyzerContext(context, configManager);
 
     const providers = {
         settingsProvider,
