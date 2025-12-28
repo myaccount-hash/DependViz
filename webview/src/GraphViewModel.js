@@ -15,6 +15,7 @@
 import { GraphModel } from './GraphModel';
 import { GraphViewContext } from './views/GraphViewContext';
 import { computeSlice } from './utils';
+import { EXTENSION_TO_WEBVIEW, WEBVIEW_TO_EXTENSION } from './MessageTypes';
 
 class GraphViewModel {
   /**
@@ -65,27 +66,27 @@ class GraphViewModel {
   }
 
   /**
-   * ExtensionからのJSONRPCメッセージを処理
+   * Extensionからのメッセージを処理
    * MVVMパターン: 外部イベントのディスパッチ
-   * @param {Object} message - JSONRPCメッセージ
+   * @param {Object} message - メッセージ { type: string, payload?: any }
    * @private
    */
   _handleMessage(message) {
-    if (!message || message.jsonrpc !== '2.0' || !message.method) return;
+    if (!message?.type) return;
 
     const handlers = {
-      'graph:update': params => this._handleGraphUpdate(params || {}),
-      'view:update': params => this._handleViewUpdate(params || {}),
-      'node:focus': params => this._executeFocusNodeCommand(params || {}),
-      'focus:clear': () => this._executeClearFocusCommand()
+      [EXTENSION_TO_WEBVIEW.GRAPH_UPDATE]: payload => this._handleGraphUpdate(payload || {}),
+      [EXTENSION_TO_WEBVIEW.VIEW_UPDATE]: payload => this._handleViewUpdate(payload || {}),
+      [EXTENSION_TO_WEBVIEW.NODE_FOCUS]: payload => this._executeFocusNodeCommand(payload || {}),
+      [EXTENSION_TO_WEBVIEW.FOCUS_CLEAR]: () => this._executeClearFocusCommand()
     };
 
-    const handler = handlers[message.method];
+    const handler = handlers[message.type];
     if (!handler) {
-      console.warn('[DependViz] Unknown method:', message.method);
+      console.warn('[DependViz] Unknown message type:', message.type);
       return;
     }
-    handler(message.params);
+    handler(message.payload);
   }
 
   /**
@@ -264,7 +265,7 @@ class GraphViewModel {
    */
   _handleNodeClickCommand(node) {
     if (!node?.filePath) return;
-    this._bridge?.send('focusNode', {
+    this._bridge?.send(WEBVIEW_TO_EXTENSION.FOCUS_NODE, {
       node: {
         id: node.id,
         filePath: node.filePath,

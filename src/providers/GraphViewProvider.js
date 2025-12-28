@@ -5,30 +5,11 @@ const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, mergeGraphData } = require('../utils/graph');
 const ConfigurationSubject = require('../configuration/ConfigurationSubject');
 const { COLORS } = require('../configuration/ConfigurationRepository');
-
-const outbound = {
-    'graph:update': ({ controls, data, dataVersion }) => {
-        validateGraphData(data);
-        return {
-            controls,
-            data,
-            ...(typeof dataVersion === 'number' && { dataVersion })
-        };
-    },
-    'view:update': ({ controls }) => ({
-        ...(controls && { controls })
-    }),
-    'node:focus': nodeId => ({ nodeId }),
-    'focus:clear': () => undefined
-};
-
-function createOutboundParams(type, params) {
-    const fn = outbound[type];
-    if (!fn) {
-        throw new Error(`Unknown message type: ${type}`);
-    }
-    return fn(params);
-}
+const {
+    EXTENSION_TO_WEBVIEW,
+    WEBVIEW_TO_EXTENSION
+} = require('../bridge/MessageTypes');
+const WebviewBridge = require('../bridge/WebviewBridge');
 
 /**
  * Graph Viewを提供するTreeDataProvider実装
@@ -49,16 +30,16 @@ class GraphViewProvider extends BaseProvider {
     }
 
     _handleMessage(message) {
-        if (!message || message.jsonrpc !== '2.0') return;
+        if (!message?.type) return;
 
-        if (message.method === 'ready') {
+        if (message.type === WEBVIEW_TO_EXTENSION.READY) {
             this._webviewBridge.markReady();
             this.syncToWebview();
         }
 
-        if (message.method === 'focusNode' && message.params?.node?.filePath) {
+        if (message.type === WEBVIEW_TO_EXTENSION.FOCUS_NODE && message.payload?.node?.filePath) {
             vscode.window.showTextDocument(
-                vscode.Uri.file(message.params.node.filePath)
+                vscode.Uri.file(message.payload.node.filePath)
             );
         }
     }
@@ -150,11 +131,11 @@ class GraphViewProvider extends BaseProvider {
         };
 
         if (options.viewOnly) {
-            this._sendToWebview('view:update', payload);
+            this._sendToWebview(EXTENSION_TO_WEBVIEW.VIEW_UPDATE, payload);
             return;
         }
 
-        this._sendToWebview('graph:update', {
+        this._sendToWebview(EXTENSION_TO_WEBVIEW.GRAPH_UPDATE, {
             ...payload,
             data: this._data,
             dataVersion: this._dataVersion
@@ -165,7 +146,7 @@ class GraphViewProvider extends BaseProvider {
         if (!this._view) return;
         const node = this._findNodeByFilePath(filePath);
         if (node) {
-            this._sendToWebview('node:focus', node.id);
+            this._sendToWebview(EXTENSION_TO_WEBVIEW.NODE_FOCUS, { nodeId: node.id });
         }
     }
 
@@ -181,58 +162,12 @@ class GraphViewProvider extends BaseProvider {
 
     async clearFocus() {
         if (!this._view) return;
-        this._sendToWebview('focus:clear');
+        this._sendToWebview(EXTENSION_TO_WEBVIEW.FOCUS_CLEAR);
     }
 
     _sendToWebview(type, payload) {
-        const params = createOutboundParams(type, payload);
-        this._webviewBridge.send(type, params);
+        this._webviewBridge.send(type, payload);
     }
 }
 
 module.exports = GraphViewProvider;
-
-/**
- * Webviewとのメッセージングを管理するクラス
- * ExtensionBridgeと対応する
- * 通信は必ずこのクラスを介して行う
- * GraphViewProviderからのみ使用される
- */
-class WebviewBridge {
-    constructor(onMessage) {
-        this._webview = null;
-        this._ready = false;
-        this._queue = [];
-        this._onMessage = onMessage;
-    }
-
-    attach(webview) {
-        this._webview = webview;
-        this._ready = false;
-        this._queue.length = 0;
-
-        if (webview?.onDidReceiveMessage) {
-            webview.onDidReceiveMessage(m => this._onMessage?.(m));
-        }
-    }
-
-    markReady() {
-        this._ready = true;
-        while (this._queue.length) {
-            this._webview.postMessage(this._queue.shift());
-        }
-    }
-
-    send(method, params) {
-        const message = {
-            jsonrpc: '2.0',
-            method,
-            ...(params !== undefined && { params })
-        };
-
-        if (!this._webview) return;
-        this._ready
-            ? this._webview.postMessage(message)
-            : this._queue.push(message);
-    }
-}

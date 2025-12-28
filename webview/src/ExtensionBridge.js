@@ -1,6 +1,10 @@
+import { WEBVIEW_TO_EXTENSION, createMessage, isValidMessage } from './MessageTypes';
+
 /**
  * 拡張機能とWebView間の通信を管理するクラス
- * VSCode APIを使用してJSONRPCメッセージを送受信
+ * VSCode APIを使用してメッセージを送受信
+ *
+ * メッセージ構造: { type: string, payload?: any }
  */
 class ExtensionBridge {
   /**
@@ -23,29 +27,25 @@ class ExtensionBridge {
       this.vscode = acquireVsCodeApi();
     }
     if (!this.vscode) return null;
-    
+
     window.addEventListener('message', event => {
-      if (this.onMessage) {
+      if (isValidMessage(event.data) && this.onMessage) {
         this.onMessage(event.data);
       }
     });
-    
-    this.send('ready');
+
+    this.send(WEBVIEW_TO_EXTENSION.READY);
     return this.vscode;
   }
 
   /**
-   * VSCode拡張機能にJSONRPCメッセージを送信
-   * @param {string} method - メソッド名
-   * @param {*} params - パラメータ（省略可能）
+   * VSCode拡張機能にメッセージを送信
+   * @param {string} type - メッセージタイプ
+   * @param {*} payload - ペイロード（省略可能）
    */
-  send(method, params) {
+  send(type, payload) {
     if (!this.vscode) return;
-    const message = { jsonrpc: '2.0', method };
-    if (params !== undefined) {
-      message.params = params;
-    }
-    this.vscode.postMessage(message);
+    this.vscode.postMessage(createMessage(type, payload));
   }
 }
 
