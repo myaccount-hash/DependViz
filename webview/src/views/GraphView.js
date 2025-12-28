@@ -241,6 +241,18 @@ class GraphView {
     const linkForce = ctx.graph.d3Force('link');
     if (linkForce) linkForce.distance(ctx.controls.linkDistance);
 
+    // ノードの大きさに応じて斥力を調整
+    const chargeForce = ctx.graph.d3Force('charge');
+    if (chargeForce) {
+      chargeForce.strength(node => {
+        const props = getNodeProps(node);
+        const size = props ? props.size : ctx.controls.nodeSize;
+        // ノードのサイズが大きいほど斥力を強くする
+        const baseStrength = -30;
+        return baseStrength * (size / ctx.controls.nodeSize);
+      });
+    }
+
     if (reheatSimulation && ctx.graph?.d3ReheatSimulation) {
       setTimeout(() => ctx.graph.d3ReheatSimulation(), 100);
     }
