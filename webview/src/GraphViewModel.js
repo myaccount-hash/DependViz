@@ -14,14 +14,12 @@
  */
 import { GraphModel } from './GraphModel';
 import { GraphViewContext } from './views/GraphViewContext';
-import { computeSlice } from './utils';
-import { EXTENSION_TO_WEBVIEW, WEBVIEW_TO_EXTENSION } from './MessageTypes';
+import { EXTENSION_TO_WEBVIEW, WEBVIEW_TO_EXTENSION, createMessage, isValidMessage } from './MessageTypes';
 
 class GraphViewModel {
   /**
    * GraphViewModelを初期化
    * @param {Object} options - 初期化オプション
-   * @param {Object} options.extensionBridge - ExtensionBridgeインスタンス
    * @param {HTMLElement} options.container - グラフコンテナ要素
    */
   constructor(options = {}) {
@@ -42,12 +40,9 @@ class GraphViewModel {
       isUserInteracting: false // ユーザー操作中フラグ
     };
 
-    // 外部通信層（Extension Bridge）
-    this._bridge = options.extensionBridge || null;
-    if (this._bridge) {
-      this._bridge.onMessage = msg => this._handleMessage(msg);
-      this._bridge.initializeBridge();
-    }
+    // VSCode API通信
+    this._vscode = null;
+    this._initializeVSCodeAPI();
 
     // 初期化時にViewをセットアップ
     if (options.container) {
@@ -56,13 +51,33 @@ class GraphViewModel {
   }
 
   /**
-   * ウィンドウリサイズイベントを処理
-   * MVVMパターン: Viewへのコマンド
+   * VSCode APIを初期化し、メッセージリスナーを設定
+   * @private
    */
-  handleResizeCommand() {
-    const container = document.getElementById('graph-container');
-    if (!container) return;
-    this._viewContext.resize(container.clientWidth, container.clientHeight);
+  _initializeVSCodeAPI() {
+    if (typeof acquireVsCodeApi === 'function') {
+      this._vscode = acquireVsCodeApi();
+    }
+    if (!this._vscode) return;
+
+    window.addEventListener('message', event => {
+      if (isValidMessage(event.data)) {
+        this._handleMessage(event.data);
+      }
+    });
+
+    this._sendMessage(WEBVIEW_TO_EXTENSION.READY);
+  }
+
+  /**
+   * VSCode拡張機能にメッセージを送信
+   * @param {string} type - メッセージタイプ
+   * @param {*} payload - ペイロード（省略可能）
+   * @private
+   */
+  _sendMessage(type, payload) {
+    if (!this._vscode) return;
+    this._vscode.postMessage(createMessage(type, payload));
   }
 
   /**
@@ -193,14 +208,67 @@ class GraphViewModel {
       this._presentationState.sliceLinks = null;
       return;
     }
-    const { sliceNodes, sliceLinks } = computeSlice(
+    const { sliceNodes, sliceLinks } = this._computeSlice(
       this._presentationState.focusedNode,
       this._presentationState.controls,
-      this._model.nodes,
       this._model.links
     );
     this._presentationState.sliceNodes = sliceNodes;
     this._presentationState.sliceLinks = sliceLinks;
+  }
+
+  /**
+   * 依存関係スライスを計算
+   * フォーカスノードから前方/後方の依存関係を指定深度まで探索
+   * @param {Object} focusedNode - フォーカスノード
+   * @param {Object} controls - コントロール設定
+   * @param {Array} links - 全リンク配列
+   * @returns {Object} { sliceNodes, sliceLinks }
+   * @private
+   */
+  _computeSlice(focusedNode, controls, links) {
+    const hasSlice = focusedNode && (controls.enableForwardSlice || controls.enableBackwardSlice);
+    if (!hasSlice) return { sliceNodes: null, sliceLinks: null };
+
+    const sliceNodes = new Set();
+    const sliceLinks = new Set();
+    const getId = v => (typeof v === 'object' ? v.id : v);
+
+    sliceNodes.add(focusedNode.id);
+    if (controls.enableForwardSlice) {
+      const visitForward = (nodeId, depth) => {
+        if (depth <= 0) return;
+        links.forEach(link => {
+          const sourceId = getId(link.source);
+          if (sourceId !== nodeId) return;
+          const targetId = getId(link.target);
+          sliceLinks.add(link);
+          if (!sliceNodes.has(targetId)) {
+            sliceNodes.add(targetId);
+            visitForward(targetId, depth - 1);
+          }
+        });
+      };
+      visitForward(focusedNode.id, controls.sliceDepth);
+    }
+    if (controls.enableBackwardSlice) {
+      const visitBackward = (nodeId, depth) => {
+        if (depth <= 0) return;
+        links.forEach(link => {
+          const targetId = getId(link.target);
+          if (targetId !== nodeId) return;
+          const sourceId = getId(link.source);
+          sliceLinks.add(link);
+          if (!sliceNodes.has(sourceId)) {
+            sliceNodes.add(sourceId);
+            visitBackward(sourceId, depth - 1);
+          }
+        });
+      };
+      visitBackward(focusedNode.id, controls.sliceDepth);
+    }
+
+    return { sliceNodes, sliceLinks };
   }
 
   /**
@@ -265,7 +333,7 @@ class GraphViewModel {
    */
   _handleNodeClickCommand(node) {
     if (!node?.filePath) return;
-    this._bridge?.send(WEBVIEW_TO_EXTENSION.FOCUS_NODE, {
+    this._sendMessage(WEBVIEW_TO_EXTENSION.FOCUS_NODE, {
       node: {
         id: node.id,
         filePath: node.filePath,
