@@ -2,9 +2,9 @@
  * グラフデータの状態を管理するクラス
  * ノード/リンクのデータ、バージョン管理、ノード間の関係性を保持
  */
-class GraphState {
+class GraphModel {
   /**
-   * GraphStateを初期化
+   * GraphModelを初期化
    */
   constructor() {
     this._nodes = [];
@@ -97,4 +97,4 @@ class GraphState {
   }
 }
 
-export { GraphState };
+export { GraphModel };

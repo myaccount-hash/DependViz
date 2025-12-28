@@ -1,11 +1,20 @@
 import ForceGraph3D from '3d-force-graph';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import GraphRenderer from './GraphRenderer';
+import GraphView from './GraphView';
 
 /**
  * 3Dグラフレンダリングを管理するクラス
+ * Strategyパターン: Concrete Strategy（具体的な戦略）
+ * - 3D Force Graphライブラリを使用したレンダリング戦略を実装
  */
-class GraphRenderer3D extends GraphRenderer {
+class GraphView3D extends GraphView {
+  /**
+   * GraphView3Dを初期化
+   * @param {Object} options - オプション（親クラスに渡される）
+   */
+  constructor(options = {}) {
+    super(options);
+  }
   /**
    * 3Dノードラベルのレンダラーを作成
    * CSS2DObjectを使用してThree.jsシーンにHTML要素を配置
@@ -286,4 +295,4 @@ updateFocus(ctx) {
   }
 }
 
-export default GraphRenderer3D;
+export default GraphView3D;

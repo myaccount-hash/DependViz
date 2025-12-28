@@ -1,9 +1,19 @@
 /**
  * グラフの状態管理とレンダリングを統括するViewModelクラス
- * ExtensionとWebView間のメッセージング、状態管理、レンダリング制御を担当
+ *
+ * MVVMパターン: ViewModel
+ * - Model（GraphModel）: グラフデータとビジネスロジック
+ * - View（GraphViewContext）: グラフの視覚的表現（Strategyパターンのコンテキスト）
+ * - ViewModel（このクラス）: ModelとViewの仲介、プレゼンテーションロジック
+ *
+ * 責務:
+ * 1. プレゼンテーション状態の管理（フォーカス、スライス、UI状態）
+ * 2. ModelからViewへのデータ変換とコンテキスト生成
+ * 3. ユーザーインタラクションの処理とModelへの反映
+ * 4. Extension Bridge経由の外部イベント処理
  */
-import { GraphState } from './GraphState';
-import { RendererManager } from './renderers/RendererManager';
+import { GraphModel } from './GraphModel';
+import { GraphViewContext } from './renderers/GraphViewContext';
 import { computeSlice } from './utils';
 
 class GraphViewModel {
@@ -14,54 +24,62 @@ class GraphViewModel {
    * @param {HTMLElement} options.container - グラフコンテナ要素
    */
   constructor(options = {}) {
-    this._state = new GraphState();
-    this._render = new RendererManager(
-      node => this._onNodeClick(node)
+    // Model: グラフデータとビジネスロジック
+    this._model = new GraphModel();
+
+    // View: レンダリング戦略を管理するコンテキスト（StrategyパターンのContext）
+    this._viewContext = new GraphViewContext(
+      node => this._handleNodeClickCommand(node)
     );
-    
-    this._view = {
-      controls: {},
-      focusedNode: null,
-      sliceNodes: null,
-      sliceLinks: null,
-      isUserInteracting: false
+
+    // ViewModel: プレゼンテーション状態
+    this._presentationState = {
+      controls: {},          // UI制御設定
+      focusedNode: null,     // フォーカス中のノード
+      sliceNodes: null,      // スライスハイライト対象ノード
+      sliceLinks: null,      // スライスハイライト対象リンク
+      isUserInteracting: false // ユーザー操作中フラグ
     };
-    
+
+    // 外部通信層（Extension Bridge）
     this._bridge = options.extensionBridge || null;
     if (this._bridge) {
       this._bridge.onMessage = msg => this._handleMessage(msg);
       this._bridge.initializeBridge();
     }
-    
+
+    // 初期化時にViewをセットアップ
     if (options.container) {
-      this._render.initialize(options.container, this._getContext());
+      this._viewContext.initialize(options.container, this._createRenderingContext());
     }
   }
 
   /**
    * ウィンドウリサイズイベントを処理
+   * MVVMパターン: Viewへのコマンド
    */
-  handleResize() {
+  handleResizeCommand() {
     const container = document.getElementById('graph-container');
     if (!container) return;
-    this._render.resize(container.clientWidth, container.clientHeight);
+    this._viewContext.resize(container.clientWidth, container.clientHeight);
   }
 
   /**
    * ExtensionからのJSONRPCメッセージを処理
+   * MVVMパターン: 外部イベントのディスパッチ
    * @param {Object} message - JSONRPCメッセージ
    * @private
    */
   _handleMessage(message) {
     if (!message || message.jsonrpc !== '2.0' || !message.method) return;
-    
+
     const handlers = {
       'graph:update': params => this._handleGraphUpdate(params || {}),
       'view:update': params => this._handleViewUpdate(params || {}),
-      'node:focus': params => this._focusNodeById(params || {}),
-      'focus:clear': () => this._clearFocus()
+      'node:focus': params => this._executeFocusNodeCommand(params || {}),
+      'focus:clear': () => this._executeClearFocusCommand()
     };
-    
+
     const handler = handlers[message.method];
     if (!handler) {
       console.warn('[DependViz] Unknown method:', message.method);
@@ -72,34 +90,37 @@ class GraphViewModel {
 
   /**
    * グラフデータ更新メッセージを処理
+   * MVVMパターン: Modelへの更新とViewへの反映
    * @param {Object} payload - 更新データ（data、controls、dataVersion）
    * @private
    */
   _handleGraphUpdate(payload) {
     const version = typeof payload.dataVersion === 'number' ? payload.dataVersion : null;
-    const { dataChange, modeChanged } = this._applyPayload(payload, {
+    const { dataChange, modeChanged } = this._updateModelAndPresentation(payload, {
       allowData: true,
       dataVersion: version
     });
     if ((payload.data || payload.controls) && !modeChanged) {
-      this._render.update(this._getContext(), { reheatSimulation: dataChange });
+      this._viewContext.update(this._createRenderingContext(), { reheatSimulation: dataChange });
     }
   }
 
   /**
-   * ビュー更新メッセージを処理（データは更新せず、表示設定のみ更新）
+   * ビュー更新メッセージを処理
+   * MVVMパターン: プレゼンテーション状態の更新とViewへの反映
    * @param {Object} payload - 更新データ（controls）
    * @private
    */
   _handleViewUpdate(payload) {
-    const { modeChanged } = this._applyPayload(payload);
+    const { modeChanged } = this._updateModelAndPresentation(payload);
     if (payload.controls && !modeChanged) {
-      this._render.update(this._getContext());
+      this._viewContext.update(this._createRenderingContext());
     }
   }
 
   /**
-   * ペイロードを適用して状態を更新
+   * ペイロードからModelとプレゼンテーション状態を更新
+   * MVVMパターン: ModelとViewModelの状態管理
    * @param {Object} payload - 適用するペイロード
    * @param {Object} options - オプション
    * @param {boolean} options.allowData - データ更新を許可するか
@@ -107,44 +128,50 @@ class GraphViewModel {
    * @returns {Object} 更新結果（dataChange、modeChanged）
    * @private
    */
-  _applyPayload(payload, options = {}) {
+  _updateModelAndPresentation(payload, options = {}) {
     let dataChange = false;
     let modeChanged = false;
-    
+
+    // Modelの更新
     if (options.allowData && payload.data) {
-      const ok = options.dataVersion === null || options.dataVersion !== this._state.version;
+      const ok = options.dataVersion === null || options.dataVersion !== this._model.version;
       if (ok) {
-        this._state.update(payload.data, options.dataVersion);
+        this._model.update(payload.data, options.dataVersion);
         dataChange = true;
       }
     }
+
+    // プレゼンテーション状態の更新
     if (payload.controls) {
-      modeChanged = this._setControls(payload.controls);
+      modeChanged = this._updatePresentationControls(payload.controls);
     }
+
+    // スライスハイライトの再計算（プレゼンテーションロジック）
     if (payload.data || payload.controls) {
-      this._updateSliceHighlight();
+      this._computePresentationSlice();
     }
-    
+
     return { dataChange, modeChanged };
   }
 
   /**
    * コントロール設定を更新
+   * MVVMパターン: プレゼンテーション状態の管理
    * @param {Object} controls - 新しいコントロール設定
    * @returns {boolean} モードが変更された場合true
    * @private
    */
-  _setControls(controls) {
-    const oldMode = this._view.controls.is3DMode ?? false;
+  _updatePresentationControls(controls) {
+    const oldMode = this._presentationState.controls.is3DMode ?? false;
     const hasMode = Object.prototype.hasOwnProperty.call(controls, 'is3DMode');
     const newMode = hasMode ? controls.is3DMode : oldMode;
-    
-    this._view.controls = { ...this._view.controls, ...controls };
-    
+
+    this._presentationState.controls = { ...this._presentationState.controls, ...controls };
+
     if (hasMode && newMode !== oldMode) {
-      const changed = this._render.toggleMode(newMode, this._getContext());
+      const changed = this._viewContext.toggleMode(newMode);
       if (changed) {
-        this._render.update(this._getContext(), { reheatSimulation: true });
+        this._viewContext.update(this._createRenderingContext(), { reheatSimulation: true });
       }
       return changed;
     }
@@ -152,85 +179,90 @@ class GraphViewModel {
   }
 
   /**
-   * スライスハイライトを更新
+   * スライスハイライトを計算
+   * MVVMパターン: プレゼンテーションロジック
    * フォーカスノードと関連ノード/リンクを計算
    * @private
    */
-  _updateSliceHighlight() {
-    if (!this._view.focusedNode ||
-        (!this._view.controls.enableForwardSlice && !this._view.controls.enableBackwardSlice)) {
-      this._view.sliceNodes = null;
-      this._view.sliceLinks = null;
+  _computePresentationSlice() {
+    if (!this._presentationState.focusedNode ||
+        (!this._presentationState.controls.enableForwardSlice &&
+         !this._presentationState.controls.enableBackwardSlice)) {
+      this._presentationState.sliceNodes = null;
+      this._presentationState.sliceLinks = null;
       return;
     }
     const { sliceNodes, sliceLinks } = computeSlice(
-      this._view.focusedNode,
-      this._view.controls,
-      this._state.nodes,
-      this._state.links
+      this._presentationState.focusedNode,
+      this._presentationState.controls,
+      this._model.nodes,
+      this._model.links
     );
-    this._view.sliceNodes = sliceNodes;
-    this._view.sliceLinks = sliceLinks;
+    this._presentationState.sliceNodes = sliceNodes;
+    this._presentationState.sliceLinks = sliceLinks;
   }
 
   /**
-   * フォーカスノードを設定（状態変化ハンドラ）
+   * フォーカスノードを設定
+   * MVVMパターン: プレゼンテーション状態の変更とViewへの反映
    * フォーカス状態が変更されると自動的にカメラ移動とビジュアル更新を実行
    * @param {Object|null} node - フォーカスするノード、またはクリア時null
    * @private
    */
-  _setFocusedNode(node) {
+  _updateFocusedNode(node) {
     // 変更がない場合は何もしない
-    if (this._view.focusedNode === node) return;
+    if (this._presentationState.focusedNode === node) return;
 
-    this._view.focusedNode = node;
-    this._updateSliceHighlight();
+    this._presentationState.focusedNode = node;
+    this._computePresentationSlice();
 
-    // フォーカス状態に応じてカメラを移動
+    // Viewコマンド: フォーカス状態に応じてカメラを移動
+    const ctx = this._createRenderingContext();
     if (node) {
-      this._render.focusNode(this._getContext(), node);
+      this._viewContext.focusNode(ctx, node);
     } else {
-      this._render.clearFocus(this._getContext());
+      this._viewContext.clearFocus(ctx);
     }
 
-    this._render.refresh(this._getContext());
+    this._viewContext.refresh(ctx);
   }
 
   /**
    * ノードIDでノードをフォーカス
+   * MVVMパターン: ViewModelコマンド
    * @param {Object} msg - フォーカスメッセージ（nodeIdまたはnode.id）
    * @private
    */
-  _focusNodeById(msg) {
+  _executeFocusNodeCommand(msg) {
     const nodeId = msg.nodeId || (msg.node && msg.node.id);
-    const node = this._state.findNode(nodeId);
+    const node = this._model.findNode(nodeId);
     if (!node) return;
 
     if (node.x === undefined || node.y === undefined) {
-      setTimeout(() => this._focusNodeById(msg), 100);
+      setTimeout(() => this._executeFocusNodeCommand(msg), 100);
       return;
     }
 
-    // 状態変更ハンドラを使用
-    this._setFocusedNode(node);
+    this._updateFocusedNode(node);
   }
 
   /**
    * フォーカスをクリア
+   * MVVMパターン: ViewModelコマンド
    * @private
    */
-  _clearFocus() {
-    // 状態変更ハンドラを使用
-    this._setFocusedNode(null);
+  _executeClearFocusCommand() {
+    this._updateFocusedNode(null);
   }
 
   /**
    * ノードクリックイベントを処理
+   * MVVMパターン: ユーザーインタラクションの処理
    * Extensionにメッセージを送信してファイルを開く
    * @param {Object} node - クリックされたノード
    * @private
    */
-  _onNodeClick(node) {
+  _handleNodeClickCommand(node) {
     if (!node?.filePath) return;
     this._bridge?.send('focusNode', {
       node: {
@@ -243,30 +275,35 @@ class GraphViewModel {
 
   /**
    * レンダリングコンテキストを生成
+   * MVVMパターン: ViewModelがModelとプレゼンテーション状態をViewに変換
+   * ModelとViewModelの状態をViewが必要とする形式に変換
    * @returns {Object} レンダリングに必要な全ての情報を含むコンテキスト
    * @private
    */
-  _getContext() {
+  _createRenderingContext() {
     const bgColor = (() => {
       const style = getComputedStyle(document.body);
       const bg = style.getPropertyValue('--vscode-editor-background').trim();
-      const COLORS = this._view.controls.COLORS || {};
+      const COLORS = this._presentationState.controls.COLORS || {};
       return bg || COLORS.BACKGROUND_DARK || '#1a1a1a';
     })();
 
     return {
+      // Modelからのデータ
       data: {
-        nodes: this._state.nodes,
-        links: this._state.links
+        nodes: this._model.nodes,
+        links: this._model.links
       },
-      controls: this._view.controls,
+      // プレゼンテーション状態（ViewModel）
+      controls: this._presentationState.controls,
       ui: {
-        focusedNode: this._view.focusedNode,
-        sliceNodes: this._view.sliceNodes,
-        sliceLinks: this._view.sliceLinks,
-        isUserInteracting: this._view.isUserInteracting
+        focusedNode: this._presentationState.focusedNode,
+        sliceNodes: this._presentationState.sliceNodes,
+        sliceLinks: this._presentationState.sliceLinks,
+        isUserInteracting: this._presentationState.isUserInteracting
       },
-      graph: this._render.graph,
+      // Viewへの参照
+      graph: this._viewContext.graph,
       getBackgroundColor: () => bgColor
     };
   }

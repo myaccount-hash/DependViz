@@ -1,11 +1,20 @@
 import ForceGraph from 'force-graph';
-import GraphRenderer, { applyOpacityToColor } from './GraphRenderer';
+import GraphView, { applyOpacityToColor } from './GraphView';
 
 /**
  * 2Dグラフのレンダリングと更新を管理するクラス
+ * Strategyパターン: Concrete Strategy（具体的な戦略）
+ * - 2D Force Graphライブラリを使用したレンダリング戦略を実装
  */
 
-class GraphRenderer2D extends GraphRenderer {
+class GraphView2D extends GraphView {
+  /**
+   * GraphView2Dを初期化
+   * @param {Object} options - オプション（親クラスに渡される）
+   */
+  constructor(options = {}) {
+    super(options);
+  }
   createLabelRenderer(ctx) {
     return {
       apply: (graph, getNodeProps) => {
@@ -52,4 +61,4 @@ class GraphRenderer2D extends GraphRenderer {
   }
 }
 
-export default GraphRenderer2D;
+export default GraphView2D;

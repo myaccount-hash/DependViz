@@ -1,15 +1,20 @@
 import { applyFilter } from '../utils';
 /**
  * グラフのレンダリングと視覚属性計算を管理する基底クラス
- * 2D/3Dレンダラーの共通機能を提供
+ * Strategyパターン: Strategy（戦略）インターフェース
+ * - 2D/3Dレンダラーの共通機能を提供
+ * - 各サブクラスが具体的なレンダリング戦略を実装
  */
-class GraphRenderer {
+class GraphView {
   /**
-   * GraphRendererを初期化
-   * @param {Object} callbacks - コールバック関数（onNodeClickなど）
+   * GraphViewを初期化
+   * @param {Object} options - オプション
+   * @param {Function} options.onNodeClick - ノードクリック時のコールバック関数
    */
-  constructor(callbacks = {}) {
-    this.callbacks = callbacks;
+  constructor(options = {}) {
+    this.callbacks = {
+      onNodeClick: options.onNodeClick || null
+    };
 
     this.nodeRules = [
       (node, ctx) => {
@@ -405,4 +410,4 @@ function applyOpacityToColor(color, opacity) {
 }
 
 export { applyOpacityToColor };
-export default GraphRenderer;
+export default GraphView;

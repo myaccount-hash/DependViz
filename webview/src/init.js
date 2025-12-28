@@ -12,9 +12,9 @@ function initialize() {
     extensionBridge: new ExtensionBridge(),
     container
   });
-  
-  window.addEventListener('resize', () => viewModel.handleResize());
-  
+
+  window.addEventListener('resize', () => viewModel.handleResizeCommand());
+
   return viewModel;
 }
 
