@@ -1,4 +1,4 @@
-package com.example.parser.object;
+package com.example.parser.model;
 
 import java.util.ArrayList;
 import java.util.List;

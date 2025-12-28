@@ -2,7 +2,7 @@ package com.example.parser.stage;
 
 import java.util.List;
 
-import com.example.parser.object.CodeGraph;
+import com.example.parser.model.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.MethodCallExpr;

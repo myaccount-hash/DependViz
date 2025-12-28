@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.example.parser.object.CodeGraph;
+import com.example.parser.model.CodeGraph;
 import com.example.parser.stage.BaseStage;
 import com.example.parser.stage.ClassTypeStage;
 import com.example.parser.stage.ExtendsStage;

@@ -3,7 +3,7 @@ package com.example.parser.stage;
 import java.util.List;
 import java.util.logging.Logger;
 
-import com.example.parser.object.CodeGraph;
+import com.example.parser.model.CodeGraph;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
