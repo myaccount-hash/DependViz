@@ -150,6 +150,11 @@
           "default": false,
           "description": "ノードサイズをLOCで決定"
         },
+        "forceGraphViewer.enableForceLayout": {
+          "type": "boolean",
+          "default": true,
+          "description": "力学レイアウトを有効化"
+        },
         "forceGraphViewer.hideIsolatedNodes": {
           "type": "boolean",
           "default": false,

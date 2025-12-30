@@ -238,23 +238,30 @@ class GraphView {
 
     this._applyColors(ctx, getNodeProps, getLinkProps);
 
-    const linkForce = ctx.graph.d3Force('link');
-    if (linkForce) linkForce.distance(ctx.controls.linkDistance);
+    const enableForceLayout = ctx.controls.enableForceLayout !== false;
+    if (enableForceLayout) {
+      ctx.graph.resumeAnimation?.();
 
-    // ノードの大きさに応じて斥力を調整
-    const chargeForce = ctx.graph.d3Force('charge');
-    if (chargeForce) {
-      chargeForce.strength(node => {
-        const props = getNodeProps(node);
-        const size = props ? props.size : ctx.controls.nodeSize;
-        // ノードのサイズが大きいほど斥力を強くする
-        const baseStrength = -30;
-        return baseStrength * (size / ctx.controls.nodeSize);
-      });
-    }
+      const linkForce = ctx.graph.d3Force('link');
+      if (linkForce) linkForce.distance(ctx.controls.linkDistance);
 
-    if (reheatSimulation && ctx.graph?.d3ReheatSimulation) {
-      setTimeout(() => ctx.graph.d3ReheatSimulation(), 100);
+      // ノードの大きさに応じて斥力を調整
+      const chargeForce = ctx.graph.d3Force('charge');
+      if (chargeForce) {
+        chargeForce.strength(node => {
+          const props = getNodeProps(node);
+          const size = props ? props.size : ctx.controls.nodeSize;
+          // ノードのサイズが大きいほど斥力を強くする
+          const baseStrength = -30;
+          return baseStrength * (size / ctx.controls.nodeSize);
+        });
+      }
+
+      if (reheatSimulation && ctx.graph?.d3ReheatSimulation) {
+        setTimeout(() => ctx.graph.d3ReheatSimulation(), 100);
+      }
+    } else {
+      ctx.graph.pauseAnimation?.();
     }
 
     this.onGraphUpdated(ctx);

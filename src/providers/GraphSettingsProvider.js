@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem, SliderControlItem, SearchControlItem } = require('./BaseProvider');
+const ConfigurationSubject = require('../configuration/ConfigurationSubject');
 
 
 /**
@@ -10,6 +11,29 @@ class GraphSettingsProvider extends BaseProvider {
         super();
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+
+    registerCommands() {
+        return [
+            vscode.commands.registerCommand('forceGraphViewer.showSearchInput', async () => {
+                await this.showSearchInput();
+            }),
+            vscode.commands.registerCommand('forceGraphViewer.toggleCheckbox', async (key) => {
+                await this.toggleCheckbox(key);
+            }),
+            vscode.commands.registerCommand('forceGraphViewer.showSliderInput', async (key, min, max, currentValue) => {
+                await this.showSliderInput(key, min, max, currentValue);
+            }),
+            vscode.commands.registerCommand('forceGraphViewer.forwardSlice', async () => {
+                await this.enableSlice('forward');
+            }),
+            vscode.commands.registerCommand('forceGraphViewer.backwardSlice', async () => {
+                await this.enableSlice('backward');
+            }),
+            vscode.commands.registerCommand('forceGraphViewer.clearSlice', async () => {
+                await this.clearSlice();
+            })
+        ];
     }
 
     refresh() {
@@ -38,6 +62,47 @@ class GraphSettingsProvider extends BaseProvider {
         super.handleSettingsChanged(controls);
         this.refresh();
     }
+
+    async showSearchInput() {
+        const controls = this.controls;
+        const value = await vscode.window.showInputBox({
+            prompt: '検索クエリ (例: Test, name:/Test.*/, type:Class AND name:Util, path:/.*Service/ OR NOT type:Unknown)',
+            value: controls.search,
+            placeHolder: '検索... (name:, type:, path: フィールド指定可, /正規表現/, AND/OR/NOT 演算可)'
+        });
+        if (value !== undefined) {
+            const configSubject = ConfigurationSubject.getInstance();
+            await configSubject.updateControls({ search: value });
+        }
+    }
+
+    async showSliderInput(key, min, max, currentValue) {
+        const value = await vscode.window.showInputBox({
+            prompt: `${key} (${min} - ${max})`,
+            value: currentValue.toString(),
+            validateInput: (input) => {
+                const num = parseFloat(input);
+                return isNaN(num) || num < min || num > max
+                    ? `値は ${min} から ${max} の間で入力してください`
+                    : null;
+            }
+        });
+        if (value !== undefined) {
+            const configSubject = ConfigurationSubject.getInstance();
+            await configSubject.updateControls({ [key]: parseFloat(value) });
+        }
+    }
+
+    async enableSlice(direction) {
+        const key = direction === 'forward' ? 'enableForwardSlice' : 'enableBackwardSlice';
+        const configSubject = ConfigurationSubject.getInstance();
+        await configSubject.updateControls({ [key]: true });
+    }
+
+    async clearSlice() {
+        const configSubject = ConfigurationSubject.getInstance();
+        await configSubject.updateControls({ enableForwardSlice: false, enableBackwardSlice: false });
+    }
 }
 
 
@@ -56,6 +121,7 @@ const SLIDER_RANGES = {
 const SETTINGS_ITEMS = [
     ['search', '検索', 'search'],
     ['checkbox', '3D表示', 'is3DMode'],
+    ['checkbox', '力学レイアウト', 'enableForceLayout'],
     ['checkbox', '行数反映', 'nodeSizeByLoc'],
     ['checkbox', '名前表示', 'showNames'],
     ['checkbox', '短縮名表示', 'shortNames'],

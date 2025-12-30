@@ -45,6 +45,12 @@ class BaseProvider extends ConfigurationObserver {
         }
         return ConfigurationSubject.getInstance().loadControls();
     }
+
+    async toggleCheckbox(key) {
+        const configSubject = ConfigurationSubject.getInstance();
+        const controls = this.controls;
+        await configSubject.updateControls({ [key]: !controls[key] });
+    }
 }
 
 class CheckboxControlItem extends vscode.TreeItem {

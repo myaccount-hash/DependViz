@@ -18,6 +18,7 @@ const CONTROL_DEFAULTS = {
     shortNames: true,
     nodeSize: 3.0,
     linkWidth: 0.5,
+    enableForceLayout: true,
     nodeOpacity: 1.0,
     edgeOpacity: 1.0,
     dimOpacity: 0.2,

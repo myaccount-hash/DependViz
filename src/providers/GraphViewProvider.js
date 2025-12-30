@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const { BaseProvider } = require('./BaseProvider');
 const { validateGraphData, mergeGraphData } = require('../utils/graph');
-const ConfigurationSubject = require('../configuration/ConfigurationSubject');
 const { COLORS } = require('../configuration/ConfigurationRepository');
 const {
     EXTENSION_TO_WEBVIEW,
@@ -27,6 +26,14 @@ class GraphViewProvider extends BaseProvider {
         this._updating = false;
 
         this._webviewBridge = new WebviewBridge(m => this._handleMessage(m));
+    }
+
+    registerCommands() {
+        return [
+            vscode.commands.registerCommand('forceGraphViewer.clearFocus', async () => {
+                await this.clearFocus();
+            })
+        ];
     }
 
     _handleMessage(message) {
@@ -148,11 +155,6 @@ class GraphViewProvider extends BaseProvider {
         if (node) {
             this._sendToWebview(EXTENSION_TO_WEBVIEW.NODE_FOCUS, { nodeId: node.id });
         }
-    }
-
-    async toggle3DMode() {
-        const configSubject = ConfigurationSubject.getInstance();
-        await configSubject.updateControls({ is3DMode: !this.controls.is3DMode });
     }
 
     handleSettingsChanged(controls) {

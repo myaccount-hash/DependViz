@@ -71,9 +71,14 @@ function activate(context) {
     };
 
     const commands = registerCommands(providers);
+    const providerCommands = [
+        ...settingsProvider.registerCommands(),
+        ...filterProvider.registerCommands(),
+        ...graphViewProvider.registerCommands()
+    ];
     const eventHandlers = setupEventHandlers(graphViewProvider, configSubject);
 
-    context.subscriptions.push(...commands, ...eventHandlers, analyzerManager);
+    context.subscriptions.push(...commands, ...providerCommands, ...eventHandlers, analyzerManager);
 }
 
 function deactivate() {

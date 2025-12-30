@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const { BaseProvider, CheckboxControlItem, SectionItem } = require('./BaseProvider');
 const AnalyzerContext = require('../analyzers/AnalyzerContext');
+const ConfigurationSubject = require('../configuration/ConfigurationSubject');
 
 /**
  * フィルタ設定UIを提供するTreeDataProvider実装
@@ -10,6 +11,14 @@ class FilterProvider extends BaseProvider {
         super();
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+
+    registerCommands() {
+        return [
+            vscode.commands.registerCommand('forceGraphViewer.selectAnalyzer', async (analyzerId) => {
+                await this.selectAnalyzer(analyzerId);
+            })
+        ];
     }
 
     refresh() {
@@ -57,6 +66,13 @@ class FilterProvider extends BaseProvider {
     handleSettingsChanged(controls) {
         super.handleSettingsChanged(controls);
         this.refresh();
+    }
+
+    async selectAnalyzer(analyzerId) {
+        if (typeof analyzerId === 'string' && analyzerId.length > 0) {
+            const configSubject = ConfigurationSubject.getInstance();
+            await configSubject.updateControls({ analyzerId });
+        }
     }
 }
 
