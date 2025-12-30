@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { BaseProvider, CheckboxControlItem, SliderControlItem, SectionItem, SearchControlItem } = require('./BaseProvider');
+const { BaseProvider, CheckboxControlItem, SliderControlItem, SearchControlItem } = require('./BaseProvider');
 
 
 /**
@@ -21,26 +21,17 @@ class GraphSettingsProvider extends BaseProvider {
     }
 
     getChildren(element) {
-        if (!element) return this.getRootItems();
-        if (element.contextValue === 'section') {
-            return element.children;
+        if (!element) {
+            return SETTINGS_ITEMS.map(item => {
+                const [type, label, key] = item;
+                const value = this.controls[key];
+                if (type === 'search') return new SearchControlItem(label, value);
+                if (type === 'checkbox') return new CheckboxControlItem(label, value, key);
+                if (type === 'slider') return new SliderControlItem(label, value, item[3].min, item[3].max, key);
+                throw new Error(`Unknown control type: ${type}`);
+            });
         }
         return [];
-    }
-
-    getRootItems() {
-        const makeItem = (item) => {
-            const [type, label, key] = item;
-            const value = this.controls[key];
-            if (type === 'search') return new SearchControlItem(label, value);
-            if (type === 'checkbox') return new CheckboxControlItem(label, value, key);
-            if (type === 'slider') return new SliderControlItem(label, value, item[3].min, item[3].max, key);
-            throw new Error(`Unknown control type: ${type}`);
-        };
-        return [
-            new SectionItem('表示設定', APPEARANCE_ITEMS.map(makeItem)),
-            new SectionItem('詳細設定', DETAIL_ITEMS.map(makeItem))
-        ];
     }
 
     handleSettingsChanged(controls) {
@@ -62,7 +53,7 @@ const SLIDER_RANGES = {
     dimOpacity: { min: 0, max: 10 }
 };
 
-const APPEARANCE_ITEMS = [
+const SETTINGS_ITEMS = [
     ['search', '検索', 'search'],
     ['checkbox', '3D表示', 'is3DMode'],
     ['checkbox', '行数反映', 'nodeSizeByLoc'],
@@ -70,10 +61,7 @@ const APPEARANCE_ITEMS = [
     ['checkbox', '短縮名表示', 'shortNames'],
     ['checkbox', '孤立ノード非表示', 'hideIsolatedNodes'],
     ['checkbox', '順方向スライス', 'enableForwardSlice'],
-    ['checkbox', '逆方向スライス', 'enableBackwardSlice']
-];
-
-const DETAIL_ITEMS = [
+    ['checkbox', '逆方向スライス', 'enableBackwardSlice'],
     ['slider', 'スライス深度', 'sliceDepth', SLIDER_RANGES.sliceDepth],
     ['slider', 'リンク距離', 'linkDistance', SLIDER_RANGES.linkDistance],
     ['slider', 'フォーカス距離 (3D)', 'focusDistance', SLIDER_RANGES.focusDistance],
