@@ -14,7 +14,7 @@ function initialize() {
     if (!container) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
-    viewModel._viewContext?.resize(width, height);
+    viewModel.resize(width, height);
   });
 
   return viewModel;

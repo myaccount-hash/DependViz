@@ -32,7 +32,7 @@ class GraphModel {
    * @returns {Object|undefined} ノード、または見つからない場合undefined
    */
   findNode(nodeId) {
-    return this._nodes.find(n => n.id === nodeId);
+    return this._nodeById.get(nodeId);
   }
 
   /**

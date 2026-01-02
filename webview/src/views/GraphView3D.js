@@ -262,37 +262,6 @@ updateFocus(ctx) {
     }
   }
 
-  /**
-   * フォーカスノードへのカメラターゲット追従を更新
-   * ユーザー操作中でなく、フォーカスノードがある場合、
-   * requestAnimationFrameでカメラターゲットをノード位置に追従させる
-   * @param {Object} ctx - レンダリングコンテキスト
-   */
-  updateFocus(ctx) {
-    this.cancelFocusUpdate(ctx);
-    if (!ctx.graph || ctx.ui.isUserInteracting) return;
-
-    if (ctx.ui.focusedNode) {
-      const keepFocus = () => {
-        // ループ終了条件をチェック
-        if (!ctx.ui.focusedNode || ctx.ui.isUserInteracting) {
-          ctx._focusFrame = null;
-          return;
-        }
-
-        const controlsLocal = ctx.graph.controls();
-        if (controlsLocal && ctx.ui.focusedNode) {
-          controlsLocal.target.set(
-            ctx.ui.focusedNode.x || 0,
-            ctx.ui.focusedNode.y || 0,
-            ctx.ui.focusedNode.z || 0
-          );
-        }
-        ctx._focusFrame = requestAnimationFrame(keepFocus);
-      };
-      keepFocus();
-    }
-  }
 }
 
 export default GraphView3D;

@@ -376,6 +376,15 @@ class GraphViewModel {
       getBackgroundColor: () => bgColor
     };
   }
+
+  /**
+   * グラフのサイズを変更
+   * @param {number} width - 新しい幅
+   * @param {number} height - 新しい高さ
+   */
+  resize(width, height) {
+    this._viewContext?.resize(width, height);
+  }
 }
 
 export { GraphViewModel };
