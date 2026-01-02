@@ -5,6 +5,7 @@ const ConfigurationSubject = require('../configuration/ConfigurationSubject');
 
 /**
  * フィルタ設定UIを提供するTreeDataProvider実装
+ * TODO: 色選択機能を追加
  */
 class FilterProvider extends BaseProvider {
     constructor() {
