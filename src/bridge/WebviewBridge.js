@@ -29,7 +29,7 @@ class WebviewBridge {
     attach(webview) {
         this._webview = webview;
         this._ready = false;
-        this._queue.length = 0;
+        this._queue = [];
 
         if (webview?.onDidReceiveMessage) {
             webview.onDidReceiveMessage(message => {

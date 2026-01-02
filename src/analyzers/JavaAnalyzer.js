@@ -156,6 +156,18 @@ class JavaAnalyzer extends BaseAnalyzer {
     }
 
     /**
+     * ワークスペースフォルダーを取得
+     * @returns {vscode.WorkspaceFolder} ワークスペースフォルダー
+     * @throws {Error} ワークスペースが開かれていない場合
+     * @private
+     */
+    _getWorkspaceFolder() {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) throw new Error('ワークスペースが開かれていません');
+        return workspaceFolder;
+    }
+
+    /**
      * 単一ファイルの依存関係グラフを取得
      */
     async getFileDependencyGraph(fileUri) {
@@ -264,11 +276,5 @@ class JavaAnalyzer extends BaseAnalyzer {
         }
     }
 }
-
-JavaAnalyzer.prototype._getWorkspaceFolder = function () {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) throw new Error('ワークスペースが開かれていません');
-    return workspaceFolder;
-};
 
 module.exports = JavaAnalyzer;

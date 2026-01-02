@@ -32,19 +32,19 @@ function registerCommands(providers) {
             }
 
             try {
-                if (analyzerId === 'java') {
-                    const graphData = await vscode.window.withProgress({
+                // Java解析はLSP起動が必要なためプログレス表示
+                const graphData = analyzerId === 'java'
+                    ? await vscode.window.withProgress({
                         location: vscode.ProgressLocation.Notification,
                         title: 'ファイルを解析中...',
                         cancellable: false
-                    }, () => analyzerManager.analyzeFile(filePath));
-                    graphViewProvider.mergeGraphData(graphData);
-                    vscode.window.showInformationMessage(`解析完了: ${graphData.nodes.length}ノード, ${graphData.links.length}リンク`);
-                } else {
-                    const graphData = await analyzerManager.analyzeFile(filePath);
-                    graphViewProvider.mergeGraphData(graphData);
-                    vscode.window.showInformationMessage(`${analyzerName} の解析完了: ${graphData.nodes.length}ノード, ${graphData.links.length}リンク`);
-                }
+                    }, () => analyzerManager.analyzeFile(filePath))
+                    : await analyzerManager.analyzeFile(filePath);
+
+                graphViewProvider.mergeGraphData(graphData);
+                vscode.window.showInformationMessage(
+                    `${analyzerName} の解析完了: ${graphData.nodes.length}ノード, ${graphData.links.length}リンク`
+                );
             } catch (error) {
                 vscode.window.showErrorMessage(`解析失敗: ${error.message}`);
             }

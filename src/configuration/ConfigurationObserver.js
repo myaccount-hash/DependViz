@@ -12,6 +12,7 @@ class ConfigurationObserver {
      * @param {Object} configuration - 更新された設定オブジェクト
      * @abstract
      */
+    // eslint-disable-next-line no-unused-vars
     update(configuration) {
         throw new Error('ConfigurationObserver.update() must be implemented by subclass');
     }
